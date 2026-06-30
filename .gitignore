@@ -1,0 +1,13 @@
+# build output & deps
+node_modules/
+dist/
+.astro/
+
+# pagefind cache
+.pagefind/
+
+# os / editor
+.DS_Store
+Thumbs.db
+/.idea/
+.vscode/
