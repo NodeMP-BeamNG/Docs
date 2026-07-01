@@ -11,7 +11,7 @@ description: Портирование серверного плагина BeamMP
 
 Эта страница — чек-лист по портированию. Полную картину совместимости см. в
 [Совместимости с BeamMP](/ru/introduction/beammp-compatibility/); о новом API см.
-[Lua API сервера](/plugins/server-api/).
+[Lua API сервера](/ru/plugins/server-api/).
 
 ## Устанавливайте как в BeamMP
 
@@ -72,7 +72,7 @@ NodeMP.events.on("onVehicleEdited", function(spawnerId, vehicleId, packetJson) .
 `spawnerId` — это игрок, создавший автомобиль (атрибуция), а `vehicleId` — глобальный
 идентификатор. В отличие от BeamMP, где они привязывались к паре `(playerId, vehicleId)`.
 Полный список событий и того, на какие можно наложить вето, приведён в
-[Lua API сервера](/plugins/server-api/).
+[Lua API сервера](/ru/plugins/server-api/).
 
 ## Модель sync-owner и сохранения состояния
 
@@ -97,7 +97,7 @@ NodeMP разделяет три роли, которые может иметь 
   сервер, а не плагин.
 
 Точные правила выбора и сохранения состояния см. в
-[сетевом протоколе §5.3](/plugins/protocol/).
+[сетевом протоколе §5.3](/ru/plugins/protocol/).
 
 ## Идентификаторы игрока
 
@@ -134,11 +134,11 @@ NodeMP (`help`, `kick`, `stop`, …) продолжают работать; со
   держите `[General]` синхронизированной при ручном редактировании.
 - **Клиентские части плагина** (скрипт мода BeamNG, поставляемый с плагином) требуют отдельной
   проверки — этот чек-лист охватывает серверную сторону. См.
-  [API клиентского мода](/plugins/client-api/).
+  [API клиентского мода](/ru/plugins/client-api/).
 
 ## Дальнейшие шаги
 
 - [Совместимость с BeamMP](/ru/introduction/beammp-compatibility/) — что проверено и
   транслируется.
-- [Lua API сервера](/plugins/server-api/) — нативный API `NodeMP.*`, к которому стоит
+- [Lua API сервера](/ru/plugins/server-api/) — нативный API `NodeMP.*`, к которому стоит
   портировать.

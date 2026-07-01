@@ -42,7 +42,7 @@ Lua-состояние. Скопируйте **всю папку `server-plugins
 полном API см.:
 
 - [Обзор плагинов](/ru/plugins/overview/) — модель плагинов и их жизненный цикл.
-- [Lua API сервера](/plugins/server-api/) — `MP.*` и `NodeMP.*`.
+- [Lua API сервера](/ru/plugins/server-api/) — `MP.*` и `NodeMP.*`.
 - [Совместимость с BeamMP](/ru/introduction/beammp-compatibility/) — запуск плагинов BeamMP
   без изменений.
 
