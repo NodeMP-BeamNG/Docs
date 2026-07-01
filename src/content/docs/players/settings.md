@@ -28,8 +28,10 @@ There's also a **Tools** area to open the full Multiplayer screen and the diagno
 
 Turn on **In-game chat overlay** (in *Chat & UI*) to get a floating chat panel while you drive.
 Type a message and press Enter to send it to everyone on the server; messages from other players
-appear with their name and role color. The same chat is also available as a tab in the
-diagnostics console.
+appear with their name and role color. NodeMP chat also supports BeamMP **caret formatting**:
+`^0`-`^9` / `^a`-`^f` colors, `^#RRGGBB` hex, `^l` bold, `^o` italic, `^n` underline, `^m`
+strikethrough, and `^r` to reset. The same chat is also available as a tab in the diagnostics
+console.
 
 ## The player list
 

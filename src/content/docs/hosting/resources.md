@@ -33,9 +33,12 @@ state** (one thread per plugin folder); nested modules load via `require`. Plugi
 the BeamMP-compatible global API (`MP`, `Util`, `FS`, `Http`) and NodeMP's namespaced `NodeMP.*`
 API.
 
-The server is empty by default. Ready-made examples ship in the repo under
-`server/examples/server-plugins` (`00_framework`, `10_admin`, `20_dimensions`, `30_persistence`,
-`40_welcome`); copy a folder in to try it. For how plugins work and the full API, see:
+The server is empty by default. A ready-made example bundle ships in the repo under
+`server/examples/server-plugins` — five interdependent `.lua` files (`00_framework.lua`,
+`10_admin.lua`, `20_dimensions.lua`, `30_persistence.lua`, `40_welcome.lua`) that share one Lua
+state. Copy the **whole `server-plugins` folder** into `Resources/Server/` (giving
+`Resources/Server/server-plugins/`); its files then load together as a **single plugin** —
+`00_framework.lua` first — not five separate drop-ins. For how plugins work and the full API, see:
 
 - [Plugin overview](/plugins/overview/) — the plugin model and lifecycle.
 - [Server Lua API](/plugins/server-api/) — `MP.*` and `NodeMP.*`.
@@ -84,7 +87,7 @@ To keep resources outside the working directory, set `ResourceFolder` to another
 
 ```toml
 [Server]
-ResourceFolder = "Resources"
+ResourceFolder = "/srv/nodemp-res"
 ```
 
 The server expects the same `Server/` and `Client/` subfolders under whatever path you choose, and

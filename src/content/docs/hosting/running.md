@@ -59,9 +59,10 @@ journalctl -u nodemp-server -f                          # watch it come up
 ```
 
 The unit assumes the binary at `/opt/nodemp/NodeMP-Server` and runs from `/opt/nodemp` (where the
-config and `Resources/` live). It restarts on failure and includes optional hardening
-(`NoNewPrivileges`, `ProtectSystem`, `ProtectHome`, `PrivateTmp`) you can enable after creating a
-dedicated user:
+config and `Resources/` live), and restarts on failure. Its sandbox hardening — `NoNewPrivileges`,
+`ProtectSystem`, `ProtectHome`, and `PrivateTmp` — is **on by default**. Only the `User=`/`Group=`
+lines are commented out; uncomment them once you've created a dedicated service user
+(`sudo useradd -r -s /usr/sbin/nologin nodemp`):
 
 ```ini
 [Service]
@@ -70,6 +71,15 @@ ExecStart=/opt/nodemp/NodeMP-Server
 Environment=NODEMP_BACKEND_URL=https://api.example.com
 Restart=on-failure
 RestartSec=5
+
+# Sandbox hardening — on by default:
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+# Uncomment once the dedicated user exists:
+# User=nodemp
+# Group=nodemp
 ```
 
 3. Open the firewall:
@@ -100,12 +110,12 @@ The same image used for the build also runs the server. Mount a host folder at `
 config and resources persist, and publish the port for both protocols:
 
 ```bash
-docker build -t nodemp-server:local -f Dockerfile .
+docker build -t nodemp-server-build -f Dockerfile .
 docker run -d --name nodemp-server \
   -e NODEMP_BACKEND_URL=https://api.example.com \
   -v "$PWD/gamedata:/data" -w /data \
   -p 30814:30814/tcp -p 30814:30814/udp \
-  nodemp-server:local /workspace/build/NodeMP-Server
+  nodemp-server-build /workspace/build/NodeMP-Server
 ```
 
 ### All-in-one with docker-compose
@@ -138,6 +148,13 @@ To get listed publicly, register the host and flip those flags — see
 In the single-host compose setup the backend sees the game server by its container IP, so keep
 `NODEMP_STRICT_REDEEM_IP=false`. For a real public server, run the components with their real
 public addressing.
+:::
+
+:::note
+Testing the launcher against a **self-hosted HTTP backend** (like the compose stack above)? On each
+player's machine, point the launcher at it with `NODEMP_API_BASE=<url>` **and** set `NODEMP_DEV=1`
+— without dev mode the launcher rejects any non-HTTPS backend. The full player-side setup is
+covered in `server/DEPLOY.md`.
 :::
 
 ## Verify it works

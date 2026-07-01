@@ -9,9 +9,10 @@ it once — after that it keeps itself and the mod updated automatically.
 
 ## 1. Download the launcher
 
-Download the launcher from the **official NodeMP site**. The site serves the current build
-straight from the backend's release endpoint (`GET /v1/releases/launcher`), so you always get
-the latest version. Avoid copies from anywhere else.
+Download the launcher from the **official NodeMP site**. The backend's release endpoint
+(`GET /v1/releases/launcher`) returns metadata for the current build — its version plus a download
+URL — and the binary itself lives at that URL, so you always get the latest version. Avoid copies
+from anywhere else.
 
 By default the launcher talks to the production backend at `https://api.nodemp.com`; you don't
 need to configure anything to play on public servers.
