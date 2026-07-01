@@ -98,11 +98,12 @@ UDP datagrams are prefixed with the sender's `PlayerID + 1` and a colon for endp
 * **When:** Every simulation tick for every active vehicle owned by the client. Rate is client-dependent (historically ~50 Hz).
 * **Payload (compact JSON):**
   ```json
-  {"v":"42","p":[1234.56,78.90,12.34],"r":[0.0,0.0,0.7071,0.7071],"vl":[5.2,0.0,-1.1],"vr":[0.0,0.0,0.5],"tim":12.3,"ping":0.05}
+  {"v":"42","p":[1234.56,78.90,12.34],"sp":[1234.60,78.95,12.30],"r":[0.0,0.0,0.7071,0.7071],"vl":[5.2,0.0,-1.1],"vr":[0.0,0.0,0.5],"tim":12.3,"ping":0.05}
   ```
 * **Schema:**
   * `v` — `VehicleID` (global id string)
-  * `p` — position `[x, y, z]` (float array)
+  * `p` — position `[x, y, z]` (float array). The centre-of-gravity (COG) position; used as the **fallback** when `sp` is absent.
+  * `sp` — ref-node position `[x, y, z]` (float array). **Preferred** — the point the engine spawns a car against, so the server bakes it into re-streamed spawns. Optional: older clients send only `p`.
   * `r` — rotation quaternion `[x, y, z, w]` (float array)
   * `vl` — linear velocity `[x, y, z]` (float array)
   * `vr` — angular velocity `[x, y, z]` (float array)

@@ -46,6 +46,7 @@ cancel by **returning a non-zero integer**.
 | `onVehicleExit` | `(vehicleId, playerId)` | |
 | `onVehicleSeatChange` | `(vehicleId, playerId, seat)` | |
 | `onVehicleSyncOwnerChanged` | `(vehicleId, syncOwnerId)` | `-1` = no sync owner. |
+| `onVehicleLockChanged` | `(vehicleId, mode)` | Not vetoable. `mode`: `0` open / `1` passenger-only / `2` closed. |
 
 :::caution
 `vehicleId` is a single **global** id (a decimal string on the wire), and `spawnerId` is the
@@ -91,7 +92,7 @@ end)
 | `isSynced(id)` / `isSyncing(id)` | Sync state (or `nil` if unsupported). |
 | `get(id)` | Composite record `{ id, name, role, guest, connected, synced, identifiers }`. |
 | `all()` | Array of composite records. |
-| `vehicles(id)` | Vehicles a player owns: `{ [vid] = spawnData }`. |
+| `vehicles(id)` | Vehicles a player owns, keyed by global `vehicleId`: `{ [vehicleId] = spawnJson }` — each value a spawn-packet **JSON string** (decode with `NodeMP.util.json.decode`); `nil` if the player owns none. |
 | `kick(id, reason)` | Kick; returns `ok, err`. |
 | `kickAll(reason)` | Kick everyone. |
 | `message(id, msg)` | Private chat message. |
@@ -113,7 +114,7 @@ syncing it); the server reassigns the sync owner automatically.
 
 | Call | Returns / does |
 |---|---|
-| `ofPlayer(playerId)` | Vehicles a player spawned: `{ [vid] = spawnData }`. |
+| `ofPlayer(playerId)` | Vehicles a player spawned, keyed by global `vehicleId`: `{ [vehicleId] = spawnJson }` — each value a spawn-packet **JSON string** (decode with `NodeMP.util.json.decode`); `nil` if the player owns none. |
 | `countOf(playerId)` | How many a player spawned. |
 | `count()` | Total vehicles on the server (incl. orphaned). |
 | `remove(vehicleId)` | Delete a vehicle (broadcasts, fires `onVehicleDeleted`). |

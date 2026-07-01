@@ -28,17 +28,20 @@ This is the difference that matters when porting.
 | Vehicle id | per-player pair `(player_id, vehicle_id)` | one **global** `vehicleId` (decimal string, e.g. `"42"`) |
 | Removal | `MP.RemoveVehicle(pid, vid)` | `MP.RemoveVehicle(vehicleId)` |
 | Position | `MP.GetPositionRaw(pid, vid)` | `MP.GetPositionRaw(vehicleId)` |
-| Vehicle data | string `"pid-vid:{ jbm, vcf, pos, rot }"` | object `{ jbm, config, pos, rot }` |
+| Vehicle data | string `"pid-vid:{ jbm, vcf, pos?, rot? }"` | object `{ jbm, config, … }` |
 
 NodeMP's global id **acts as** the BeamMP `vehicle_id`: it is unique and round-trips correctly, so
 there's no need to synthesize per-player counters. To keep BeamMP plugins working:
 
 - **`MP.RemoveVehicle` and `MP.GetPositionRaw` accept both forms** — `(vehicleId)` and
-  `(playerId, vehicleId)`. The id is always the **last** argument, so existing two-argument calls
-  still resolve correctly.
+  `(playerId, vehicleId)`. In the two-argument form the id is the **second** argument; the
+  single-argument form uses its sole argument. Existing two-argument BeamMP calls still resolve
+  correctly because the vehicle id a plugin already holds **is** the global id.
 - **`MP.GetPlayerVehicles(pid)`** and the `data` argument of `onVehicleSpawn` / `onVehicleEdited`
   are returned in BeamMP's `"pid-vid:{ … }"` string format, with `config` mapped to `vcf`. So
-  plugins that parse that string keep working.
+  plugins that parse that string keep working. Note the `pos`/`rot` fields are typically
+  **absent**: a spawn's car JSON carries `jbm` + `config` (no top-level position), and
+  `onVehicleEdited` wraps the raw edit packet, which has no car fields.
 - **`onVehicleReset`** is delivered as plain JSON (as in BeamMP, where the plugin calls
   `json.parse` directly); **`onVehicleDeleted`** carries `(pid, vid)` and already matches.
 

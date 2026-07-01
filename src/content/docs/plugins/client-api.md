@@ -109,16 +109,25 @@ the `NodeMP.*` equivalents.
 
 ---
 
-## Internal: module registry (`NodeMP.modules`)
+## Internal: `NodeMP.modules` and the `NODEMP` registry
 
-Plumbing, not needed by most mods. `NodeMP.modules` (a.k.a. the internal `NODEMP`
-global) is the single source of truth for module/file names and cross-VM calls:
+Plumbing, not needed by most mods — and the two Lua states differ here:
 
-- `NodeMP.modules.GE.<key>` / `NodeMP.modules.VE.<key>` → the extension name string
-  (e.g. `NodeMP.modules.GE.syncVehicles == "nodemp_sync_vehicles"`).
-- `NodeMP.modules.callVehicle(veh, key, "fn(args)")` — call a VE module from GE.
-- `NodeMP.modules.callGameEngine(obj, key, "fn(args)")` — call a GE module from VE.
-- `NodeMP.modules.geDependencies` / `veDependencies` — the load lists.
+- **In GE**, `NodeMP.modules` is the **module-framework SDK**: `register(descriptor)`,
+  `list()`, `isEnabled(id)`, `getConfig(id, key, default)`, `setLocalPref(id, key, value)`,
+  `onChanged(fn, id)`, `onPacket(typeByte, moduleId, fn)`, and `requestManifest()`. The server
+  is authoritative over which modules are enabled and their config.
+- **In VE**, `NodeMP.modules` is the raw cross-VM **registry** (it points at the `NODEMP` global).
+
+The raw registry — the single source of truth for module/file names and cross-VM calls — is
+always reachable as the `NODEMP` global (in **both** states). In GE it is *only* `NODEMP`, not
+`NodeMP.modules`:
+
+- `NODEMP.GE.<key>` / `NODEMP.VE.<key>` → the extension name string
+  (e.g. `NODEMP.GE.syncVehicles == "nodemp_sync_vehicles"`).
+- `NODEMP.callVehicle(veh, key, "fn(args)")` — call a VE module from GE.
+- `NODEMP.callGameEngine(obj, key, "fn(args)")` — call a GE module from VE.
+- `NODEMP.geDependencies` / `NODEMP.veDependencies` — the load lists.
 
 When adding or renaming a module, edit `lua/ge/extensions/nodemp/modules.lua` and
 `lua/vehicle/extensions/nodemp/modules.lua` (identical) — that one place updates the

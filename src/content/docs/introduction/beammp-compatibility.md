@@ -26,16 +26,20 @@ extensions load, and console commands respond (`ce help`, `ce status`, `ce about
 |---|---|---|
 | Vehicle ID | per-player: `(player_id, vehicle_id)` | one global `vehicle_id` |
 | Signatures | `MP.RemoveVehicle(pid, vid)`, `MP.GetPositionRaw(pid, vid)` | `(vehicleId)` |
-| Vehicle data | string `"pid-vid:{ jbm, vcf, pos, rot }"` | object `{ jbm, config, pos, rot }` |
+| Vehicle data | string `"pid-vid:{ jbm, vcf, pos?, rot? }"` | object `{ jbm, config, … }` |
 
 The solution: **our global id acts as the BeamMP `vehicle_id`** (it is unique and round-trips
 correctly, so there is no need to synthesize per-player counters).
 
 - `MP.RemoveVehicle` and `MP.GetPositionRaw` (C++, `Lua/Engine.cpp`) accept **both**
-  `(vehicleId)` **and** `(playerId, vehicleId)` — the id is always the last argument.
+  `(vehicleId)` **and** `(playerId, vehicleId)` — in the two-argument form the id is the
+  **second** argument (the single-argument form uses its sole argument). Existing two-argument
+  calls still resolve correctly because the vehicle id a plugin holds **is** the global id.
 - `MP.GetPlayerVehicles(pid)` and the `data` argument of the `onVehicleSpawn` /
   `onVehicleEdited` events are returned in BeamMP's `"pid-vid:{ … }"` format, with `config`
-  mapped to `vcf` (`server/include/Lua/BeamMPCompat.h`).
+  mapped to `vcf` (`server/include/Lua/BeamMPCompat.h`). The `pos`/`rot` fields are typically
+  **absent** — a spawn's car JSON carries `jbm` + `config` (no top-level position), and
+  `onVehicleEdited` wraps the raw edit packet, which has no car fields.
 - `onVehicleReset` is delivered as plain JSON (as in BeamMP, where the plugin calls
   `json.parse` directly); `onVehicleDeleted` carries `(pid, vid)` and already matches.
 
