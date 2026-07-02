@@ -27,8 +27,10 @@ Lua-состояния) удобнее начать с [обзора](/ru/plugin
 | Событие | Аргументы | Примечания |
 |---|---|---|
 | `onInit` | `()` | Lua-состояние запущено. |
+| `onInitFinal` | `()` | Срабатывает **один раз**, после того как завершился `onInit` у всех плагинов — безопасное место для межплагинной инициализации (чтение состояния/экспортов другого плагина). |
 | `onShutdown` | `()` | Сервер останавливается. |
-| `onPlayerAuth` | `(name, roles, isGuest, identifiersJson)` | `[veto]` отклонить подключение. |
+| `onConsoleInput` | `(line)` | Строка, введённая в консоли сервера. Верните **строку**, чтобы напечатать её обратно (так отвечают админ-плагины BeamMP). |
+| `onPlayerAuth` | `(name, roles, isGuest, identifiersJson)` | `[veto]` см. контракт возвращаемых значений ниже. |
 | `postPlayerAuth` | `(rejected, reason, name, roles, isGuest, identifiersJson)` | После завершения авторизации. |
 | `onPlayerConnecting` | `(playerId)` | |
 | `onPlayerJoining` | `(playerId)` | |
@@ -53,6 +55,19 @@ Lua-состояния) удобнее начать с [обзора](/ru/plugin
 `vehicleId` — это единый **глобальный** идентификатор (в сети — десятичная строка), а
 `spawnerId` — игрок, создавший автомобиль. Это **не** пара BeamMP `(playerId, vehicleId)`. См.
 [Перенос плагинов BeamMP](/ru/plugins/migrating/) и [сетевой протокол](/ru/plugins/protocol/).
+:::
+
+:::danger[Возвращаемые значения `onPlayerAuth`]
+`onPlayerAuth` — это не просто вето; возвращаемое значение решает судьбу подключения:
+
+- Вернуть **`1`** → отклонить подключение.
+- Вернуть **`2`** → разрешить подключение, **даже если сервер полон** (обход `MaxPlayers`).
+- Вернуть **любую строку** → отклонить подключение и показать эту строку игроку как причину кика.
+  Строка перекрывает `0`/отсутствие возврата у других обработчиков.
+- Вернуть `0` / `nil` → разрешить (с учётом других обработчиков и лимита игроков).
+
+Будьте осторожны, чтобы случайно не вернуть строку (например, замыкающее выражение в Lua) — это
+молча заблокирует **всех** игроков. Если нужно только логировать — не возвращайте ничего.
 :::
 
 ### `NodeMP.events`
@@ -144,6 +159,8 @@ end
 |---|---|
 | `NodeMP.chat.send(playerId, message)` | Сообщение одному игроку (от имени «Server»). |
 | `NodeMP.chat.broadcast(message)` | Сообщение всем. |
+| `NodeMP.chat.sendAs(playerId, from, message)` | Сообщение одному игроку с **произвольным именем отправителя** (`-1` — всем). |
+| `NodeMP.chat.broadcastAs(from, message)` | Сообщение всем с произвольным именем отправителя. |
 | `NodeMP.ui.notify(playerId, message, opts)` | Всплывающее уведомление (`-1` — широковещательно); `opts = { icon, category }`. |
 | `NodeMP.ui.dialog(playerId, opts)` | Диалог подтверждения/markdown; `opts = { title, body, buttons, interactionId, warning, reportToServer, reportToExtensions }`. |
 
@@ -231,14 +248,90 @@ end
 ## Глобальный API BeamMP (`MP.*`)
 
 Всё, на чём построен `NodeMP.*`, остаётся доступным для плагинов BeamMP и прямого использования.
-К часто используемым вызовам относятся `MP.GetPlayers()`, `MP.GetPlayerName(id)`,
-`MP.GetPlayerIdentifiers(id)`, `MP.GetPlayerRole(id)`, `MP.GetPlayerVehicles(id)`,
-`MP.RemoveVehicle(vehicleId)`, `MP.GetPositionRaw(vehicleId)`, `MP.SendChatMessage(id, msg)`,
-`MP.DropPlayer(id, reason)`, `MP.RegisterEvent(name, fn)`, `MP.CreateEventTimer(name, ms)`, а
-также `Util.*` (JSON, логирование) и `FS.*` / `Http.*`. В NodeMP вызовы, связанные с
-автомобилями, принимают глобальный идентификатор автомобиля (и двухаргументную форму BeamMP для
-совместимости). Точное соответствие см. в
-[Совместимости с BeamMP](/ru/introduction/beammp-compatibility/).
+В NodeMP вызовы, связанные с автомобилями, принимают глобальный идентификатор автомобиля (и
+двухаргументную форму BeamMP для совместимости). Точное соответствие см. в
+[Совместимости с BeamMP](/ru/introduction/beammp-compatibility/). Полный список:
+
+### Игроки
+
+| Вызов | Возвращает / делает |
+|---|---|
+| `MP.GetPlayers()` | `{ [id] = name }` всех подключённых. |
+| `MP.GetPlayerCount()` | Число подключённых игроков. |
+| `MP.GetPlayerName(id)` | Отображаемое имя или `nil`. |
+| `MP.GetPlayerIDByName(name)` | Id по имени или `-1`. |
+| `MP.GetPlayerIdentifiers(id)` | Таблица идентификаторов (`ip`, `nodemp`, …). |
+| `MP.GetPlayerRole(id)` | Строка роли или `nil`. |
+| `MP.SetPlayerRole(id, role)` | Установить и разослать роль; возвращает `ok, err`. |
+| `MP.IsPlayerConnected(id)` / `MP.IsPlayerGuest(id)` | Булевы значения. |
+| `MP.IsPlayerSynced(id)` / `MP.IsPlayerSyncing(id)` | Состояние синхронизации. |
+| `MP.DropPlayer(id, reason?)` | Кикнуть игрока (причина необязательна). |
+
+### Чат, уведомления и диалоги
+
+| Вызов | Возвращает / делает |
+|---|---|
+| `MP.SendChatMessage(id, msg [, logChat])` | Чат от «Server» игроку `id` (`-1` — всем). `logChat` (по умолч. `true`) управляет лишь эхом в консоль. |
+| `MP.SendChatMessageAs(id, from, msg [, logChat])` | То же, но с произвольным именем отправителя. |
+| `MP.SendNotification(id, msg [, icon [, category]])` | Всплывающее уведомление (`-1` — всем). |
+| `MP.ConfirmationDialog(id, title, body, buttons, interactionId)` | Диалог markdown/подтверждения. |
+
+### Автомобили
+
+| Вызов | Возвращает / делает |
+|---|---|
+| `MP.RemoveVehicle(vehicleId)` | Удалить автомобиль (рассылает, вызывает `onVehicleDeleted`). |
+| `MP.GetVehicleCount()` | Всего автомобилей на сервере. |
+| `MP.GetPositionRaw(vehicleId)` / `MP.GetPositionRaw(playerId, vehicleId)` | Сырой transform. |
+| `MP.SetVehicleDriver(vehicleId, playerId)` / `MP.GetVehicleDriver(vehicleId)` | Водитель (установка передаёт права синхронизации; `-1` сбрасывает). |
+| `MP.GetVehicleSyncOwner(vehicleId)` | Клиент, синхронизирующий его, или `-1`. |
+| `MP.GetVehicleSpawner(vehicleId)` | Кто его создал, или `-1`. |
+| `MP.SetVehicleLocked(vehicleId, bool)` / `MP.GetVehicleLocked(vehicleId)` | Состояние блокировки. |
+
+### События и таймеры
+
+| Вызов | Возвращает / делает |
+|---|---|
+| `MP.RegisterEvent(name, "globalFuncName")` | Привязать глобальную функцию к событию. |
+| `MP.TriggerGlobalEvent(name, ...)` | Событие во **всех** Lua-состояниях (асинхронно; возвращает дескриптор). |
+| `MP.TriggerLocalEvent(name, ...)` | Событие в **этом** состоянии (синхронно; возвращает результаты). |
+| `MP.TriggerClientEvent(id, name, data)` | Кастомное событие клиенту (`-1` — всем). |
+| `MP.TriggerClientEventJson(id, name, table)` | То же, с JSON-кодированием таблицы. |
+| `MP.CreateEventTimer(name, intervalMs [, strategy])` | Вызывать `name` каждые `intervalMs` (`strategy` = `MP.CallStrategy.*`). |
+| `MP.CancelEventTimer(name)` | Остановить таймер. |
+
+### Настройки, информация о сервере и прочее
+
+| Вызов | Возвращает / делает |
+|---|---|
+| `MP.Set(MP.Settings.KEY, value)` / `MP.Get(MP.Settings.KEY)` | Читать/писать живую настройку (см. `MP.Settings` ниже). |
+| `MP.GetServerVersion()` | `major, minor, patch`. |
+| `MP.GetOSName()` | `"Windows"`, `"Linux"` или `"Other"`. |
+| `MP.GetStateMemoryUsage()` / `MP.GetLuaMemoryUsage()` | Байты памяти этого состояния / всех состояний. |
+| `MP.Sleep(ms)` | Заблокировать это состояние (используйте редко; лучше `NodeMP.timers.after`). |
+| `print(...)`, `printRaw(...)`, `exit()` | Вывод в консоль / остановка сервера. |
+
+Перечисление `MP.Settings`: `Debug`, `Private`, `MaxCars`, `MaxPlayers`, `Map`, `Name`,
+`Description`, `InformationPacket`. Перечисление `MP.CallStrategy`: `BestEffort`, `Precise`.
+
+### `Util.*`
+
+| Вызов | Назначение |
+|---|---|
+| `Util.LogDebug/LogInfo/LogWarn/LogError(msg)` | Логирование по уровням. |
+| `Util.JsonEncode(table)` / `Util.JsonDecode(str)` | Lua ⇄ JSON. Таблица кодируется как **массив** JSON только если её ключи — ровно `1..N`, иначе как объект. |
+| `Util.JsonPrettify(str)` / `Util.JsonMinify(str)` | Переформатировать строку JSON. |
+| `Util.JsonDiff(a, b)` / `Util.JsonDiffApply(doc, patch)` | Diff/патч JSON. |
+| `Util.JsonFlatten(str)` / `Util.JsonUnflatten(str)` | Развернуть/свернуть вложенный JSON. |
+| `Util.Random()` / `Util.RandomRange(lo, hi)` / `Util.RandomIntRange(lo, hi)` | Случайность. |
+| `Util.Sha256(str)` / `Util.Base64Encode(str)` / `Util.Base64Decode(str)` | Хеш / кодирование. |
+| `Util.SetTimeout(fn, ms)` | Выполнить `fn` один раз через `ms` (без блокировки). |
+
+### `Http.*` (сырой)
+
+`Http.CreateConnection(host, port)` возвращает объект с методами `:Get(path, headers)` и
+`:Post(path, body, headers)` (с заглавной буквы, как в BeamMP). Обёртка `NodeMP.http.connect()`
+выше предоставляет то же самое со строчными методами.
 
 :::note
 `NodeMP.commands`, `NodeMP.modules`, `NodeMP.dimensions` и `NodeMP.persistence` **не** входят в

@@ -28,26 +28,45 @@ end
 
 ## GE API (движок игры)
 
-### Сессия / соединение
+### Сессия — `NodeMP.session`
 | Вызов | Возвращает |
 |------|---------|
-| `NodeMP.isLauncherConnected()` | bool — управляющее соединение с лаунчером активно |
-| `NodeMP.isInSession()` | bool — сейчас в мультиплеерной сессии |
-| `NodeMP.getCurrentServer()` | `{ ip, port, name, map, ... }` или nil |
-| `NodeMP.getLauncherVersion()` | строка |
-| `NodeMP.connectToServer(ip, port, name)` | — |
-| `NodeMP.leaveServer(goBack)` | — |
-| `NodeMP.VERSION` | строка версии мода |
+| `isLauncherConnected()` | bool — управляющее соединение с лаунчером активно |
+| `isConnected()` | bool — игровой сокет активен |
+| `isActive()` | bool — в мультиплеерной сессии |
+| `isJoining()` | bool — идёт подключение (грузятся моды/карта) |
+| `getServer()` | `{ ip, port, name, map, ... }` или nil |
+| `getServerName()` / `getMap()` | строка или nil |
+| `getLauncherVersion()` | строка (пусто до рукопожатия) |
+| `connect(ip, port, name, skipModWarning?)` | подключиться к серверу |
+| `leave(goBack)` | выйти; `goBack` возвращает в меню |
 
-### Аккаунт / авторизация
+`NodeMP.VERSION` — строка версии мода. Псевдонимы для обратной совместимости:
+`NodeMP.isLauncherConnected()`, `NodeMP.isInSession()`, `NodeMP.getCurrentServer()`,
+`NodeMP.getLauncherVersion()`, `NodeMP.connectToServer()`, `NodeMP.leaveServer()`.
+
+### Аккаунт — `NodeMP.account`
 | Вызов | Возвращает |
 |------|---------|
-| `NodeMP.isLoggedIn()` | bool |
-| `NodeMP.getAccount()` | `{ success, username, role, id, ... }` |
-| `NodeMP.getLocalPlayerID()` | ваш серверный идентификатор игрока (число) или nil |
+| `get()` | `{ success, username, role, avatar, ... }` |
+| `isLoggedIn()` | bool |
+| `getUsername()` / `getRole()` | строка или nil |
+| `login(identifiers)` / `logout()` | начать/сбросить вход |
+
+Псевдонимы: `NodeMP.getAccount()`, `NodeMP.isLoggedIn()`.
 
 ### Игроки — `NodeMP.players`
-`get(id)`, `getByName(name)`, `getAll()`, `count()`, `getRoleInfo(role)`.
+Таблица игрока: `{ id, name, role, guest, ping }`.
+
+| Вызов | Возвращает |
+|------|---------|
+| `get(id)` / `getByName(name)` | таблица игрока или nil |
+| `getAll()` | `{ [id] = player }` |
+| `ids()` | массив id игроков |
+| `count()` / `max()` | текущие игроки / слоты сервера |
+| `getLocalId()` / `getLocal()` | ваш id / таблица игрока |
+| `isLocal(id)` | это локальный игрок? |
+| `getRoleInfo(role)` | `{ tag, backcolor, forecolor }` для оформления |
 
 ### Автомобили — `NodeMP.vehicles`
 `gameId` = локальный идентификатор объекта BeamNG; `vehicleId` = единый **глобальный** сетевой
@@ -56,47 +75,121 @@ end
 
 `getAll()`, `getOwn()` (автомобили, которые этот клиент **синхронизирует**), `isOwn(gameId)`
 (мы — владелец синхронизации), `getServerId(gameId)`, `getGameId(vehicleId)`,
-`getByServerId(vehicleId)`, `getByGameId(gameId)`, `getOwner(vehicleId)`, `getDriver(vehicleId)`,
-`getSyncOwner(vehicleId)`, `count()`, `forEach(fn)`, `isSynced()`.
+`getByServerId(vehicleId)`, `getByGameId(gameId)`, `getNicknameMap()`, `getOwner(vehicleId)`,
+`getDriver(vehicleId)`, `getSyncOwner(vehicleId)`, `count()`, `forEach(fn)`, `isSynced()`.
 
 У автомобиля есть `spawnerID` (создатель) и `syncOwnerID` (клиент, синхронизирующий его в данный
 момент). Автомобили **постоянны**: они сохраняются после ухода спавнера — сервер переназначает
 `syncOwner` и инициирует `onNodeMPVehicleSyncOwnerChanged`.
 
 ### Чат — `NodeMP.chat`
-`send(message)`, `add(message)` (только локальная строка).
+| Вызов | Действие |
+|------|------|
+| `send(message)` | отправить сообщение в чат на сервер |
+| `add(message, username?, color?)` | добавить только локальную строку |
+| `system(message)` | локальная строка от имени «Server» |
+| `clear()` | очистить локальную историю чата |
+| `toggle()` | показать/скрыть оверлей чата |
+| `getHistory()` | массив отрисованных сообщений |
 
 ### События — `NodeMP.events`
-Пользовательские события передаются пакетом `0x66`; серверный Lua видит те же имена.
+Пользовательские события передаются пакетом `0x66`; серверный Lua видит те же имена. NodeMP также
+инициирует **локальные события жизненного цикла**, на которые можно подписаться (см. `NodeMP.events.NAMES`).
+
+| Вызов | Действие |
+|------|------|
+| `on(name, fn, id?)` | подписаться (необязательный `id` именует обработчик) |
+| `once(name, fn, id?)` | подписаться один раз; снимается после первого вызова |
+| `off(name, id)` | отписаться |
+| `triggerServer(name, data)` | отправить именованное событие на сервер |
+| `triggerLocal(name, data)` | вызвать именованное событие локально |
+
+Встроенные `NodeMP.events.NAMES` (локальные события жизненного цикла):
+
+| Ключ | Имя события | Аргументы |
+|-----|-----------|--------------|
+| `PLAYER_JOINED` | `onNodeMPPlayerJoined` | `(player)` |
+| `PLAYER_LEFT` | `onNodeMPPlayerLeft` | `({ id, name })` |
+| `PLAYER_ROLE_CHANGED` | `onNodeMPPlayerRoleChanged` | `({ id, role })` |
+| `VEHICLE_SPAWNED` | `onNodeMPVehicleSpawned` | `(vehicle)` |
+| `VEHICLE_DELETED` | `onNodeMPVehicleDeleted` | `({ vehicleId })` |
+| `VEHICLE_SYNC_OWNER` | `onNodeMPVehicleSyncOwnerChanged` | `({ vehicleId, syncOwnerId })` |
+| `SYNCED` | `onNodeMPSynced` | `()` — мир загрузился |
+| `CHAT_SENT` | `ChatMessageSent` | `(message)` |
+| `CHAT_RECEIVED` | `ChatMessageReceived` | `(message, username)` |
+
 ```lua
-NodeMP.events.on("myEvent", function(data) dump(data) end)   -- subscribe
-NodeMP.events.triggerServer("myEvent", { foo = 42 })          -- send to server
-NodeMP.events.triggerLocal("myEvent", { foo = 42 })           -- fire locally
-NodeMP.events.off("myEvent")                                   -- unsubscribe
+NodeMP.events.on(NodeMP.events.NAMES.SYNCED, function()
+    NodeMP.chat.system("Мир синхронизирован — мой мод готов")
+end)
+NodeMP.events.triggerServer("myEvent", { foo = 42 })  -- на сервер
 ```
 
 ### Клавиши — `NodeMP.keys`
 `onPressed(key, fn)`, `onReleased(key, fn)`, `getState(key)`.
 
-### Сырая сеть (продвинутое) — `NodeMP.network`
-`send(typeByte, payloadTable)`, `isConnected()`. Идентификаторы типов см. в
-[сетевом протоколе](/ru/plugins/protocol/).
+### Интерфейс — `NodeMP.ui`
+`notify(text, opts)` (`opts = { icon, category }`), `dialog(opts)` (markdown/диалог
+подтверждения), `bringToFront()`, `refreshPlayerList()`.
 
-### Утилита
-`NodeMP.translate(key, default)`.
+### Настройки — `NodeMP.settings`
+`get(key, default)` / `set(key, value)` — читать/писать опцию мода на базе BeamNG (те же
+ключи, что использует сам NodeMP, например `nameTagShowDistance`).
+
+### Конфиг — `NodeMP.config`
+Локальный профиль NodeMP: `getNickname()` / `setNickname(name)`, `getFavorites()`,
+`get()` (таблица config.json), `set(key, value)`.
+
+### Отладка — `NodeMP.debug`
+`getNetworkStats()` → `{ inBps, outBps, inPps, outPps, timer }`;
+`focusOnPlayer(name)` (перейти к последнему автомобилю игрока).
+
+### Измерения — `NodeMP.dimensions`
+Параллельные миры на одной карте (авторитет у сервера; управляется framework-модулем
+«dimensions»). `isActive()`, `get()` (номер вашего измерения, `0` = основной), `refresh()`,
+`set(n)` (переключиться — машина, в которой вы сидите, переедет с вами), `onChanged(fn, id)`.
+
+### Сырая сеть (продвинутое) — `NodeMP.network`
+`send(typeByte, payloadTable)`, `isConnected()`. Используйте id типов в диапазоне `0x80`–`0xFF`;
+см. [сетевой протокол](/ru/plugins/protocol/).
+
+### Утилиты — `NodeMP.util`
+`translate(key, default)` (псевдоним `NodeMP.translate`), `b64encode/b64decode`,
+`hex2rgb(hex)`, `jsonEncode/jsonDecode`.
 
 ---
 
 ## VE API (внутри Lua автомобиля)
 
-```lua
-NodeMP.vehicleType()         -- "L" local / "R" remote, or nil
-NodeMP.isRemote()            -- bool
-NodeMP.isLocal()             -- bool
-NodeMP.keys.onPressed(k, fn) -- key bridge (same as GE)
-NodeMP.keys.getState(k)
-NodeMP.triggerServer(name, data) -- relay a server event from vehicle code
-```
+Состояние отдельного автомобиля предоставляет подмножество. Приём событий — только в GE: из
+автомобиля вы **отправляете** через `NodeMP.events.triggerServer`, а обрабатываете в GE.
+Большинство пишущих помощников имеют смысл только на **локальном** («L») автомобиле (который
+синхронизирует этот клиент).
+
+### `NodeMP.vehicle`
+`type()` → `"L"`/`"R"`/nil, `isLocal()`, `isRemote()`, `id()` (локальный id объекта).
+
+### `NodeMP.keys`
+`onPressed(key, fn)`, `onReleased(key, fn)`, `getState(key)` — тот же мост, что и в GE.
+
+### `NodeMP.events`
+`triggerServer(name, data)` — отправить серверное событие из кода автомобиля (VE → GE → сервер).
+
+### `NodeMP.electrics`
+`get(name)`, `set(name, value)` (только локальный автомобиль), `exclude(name)` (исключить ключ
+из сетевой синхронизации, например для локальных анимаций).
+
+### `NodeMP.controllers` (продвинутое)
+`register(types)` — зарегистрировать типы модифицированных контроллеров для синхронизации
+(вызывайте из хука `loadControllerSyncFunctions`; `types` повторяет форму стокового
+`controllers/general.lua`). `send(data)` — вручную переслать состояние контроллера на удалённые.
+
+### `NodeMP.velocity` (продвинутое)
+`add(x, y, z)` / `set(x, y, z)` — коррекции линейной скорости (в основном для удалённых).
+
+### `NodeMP.callGE(moduleKey, call)`
+Поставить в очередь вызов GE-модуля NodeMP из кода автомобиля (продвинутый cross-VM), например
+`NodeMP.callGE("syncControllers", "sendControllerData(" .. serialize(x) .. ")")`.
 
 ---
 

@@ -25,6 +25,7 @@ How your node presents itself in the server browser, and who may join.
 | `ResourceFolder` | string | `"Resources"` | Folder holding server plugins and client mods. See [Resources & mods](/hosting/resources/). |
 | `Private` | bool | `true` | Hide the node from the public browser. Set `false` to be listed (also requires backend credentials and a reachable port). |
 | `AllowGuests` | bool | `true` | Allow players without an account to join. |
+| `AllowClientMods` | bool | `false` | Let players who opt in (their client-side "Use my local mods" setting) keep their own local BeamNG mods (`mods/current`) active during the session. Default `false` forces everyone to run **only** the multiplayer mod plus any server-provided mods, so all players sync against identical content. Pushed to clients after they finish syncing. |
 
 ## `[Network]` — uplink
 
@@ -109,6 +110,7 @@ Map            = "/levels/gridmap_v2/info.json"
 ResourceFolder = "Resources"
 Private        = true
 AllowGuests    = true
+AllowClientMods = false
 
 [Network]
 IP            = "0.0.0.0"

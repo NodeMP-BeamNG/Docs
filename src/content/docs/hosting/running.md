@@ -18,6 +18,20 @@ Two things apply to every method:
   environment variable, *not* the TOML file. It defaults to `https://api.nodemp.com`. A
   private/loopback server needs no backend at all (see [the quick start](/hosting/quick-start/)).
 
+### Environment variables
+
+Runtime tunables live in the environment (not `ServerConfig.toml`). Only `NODEMP_BACKEND_URL` is
+commonly needed; the rest have safe defaults.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NODEMP_BACKEND_URL` | `https://api.nodemp.com` | Backend base URL for host sessions, beacons and redeems. |
+| `NODEMP_MAX_CONCURRENT_CONNECTIONS` | `10` | Max simultaneous **connections from one IP**. Raise it for many players behind one NAT (LAN party, campus, CGNAT). Range 1–1024. |
+| `NODEMP_MAX_GLOBAL_CONNECTIONS` | `128` | Max simultaneous connections **server-wide** (includes brief browser/info probes, so keep headroom above your player count). Range 1–65535. |
+| `NODEMP_MANIFEST_INTERVAL_S` | `15` | Seconds between vehicle-manifest broadcasts. `0` or negative disables periodic manifests. |
+| `NODEMP_PROBE_ENABLED` | `true` | Backend actively probes the server's `ip:port` before listing it publicly. |
+| `NODEMP_STRICT_REDEEM_IP` | `true` | Require the joining player's IP to match the ticket. Set `false` for single-host setups where the backend can't see the real client IP. |
+
 ## Build the binary
 
 Prebuilt downloads aside, the supported way to produce the binary is the provided **Dockerfile**,
@@ -153,8 +167,8 @@ public addressing.
 :::note
 Testing the launcher against a **self-hosted HTTP backend** (like the compose stack above)? On each
 player's machine, point the launcher at it with `NODEMP_API_BASE=<url>` **and** set `NODEMP_DEV=1`
-— without dev mode the launcher rejects any non-HTTPS backend. The full player-side setup is
-covered in `server/DEPLOY.md`.
+— without dev mode the launcher rejects any non-HTTPS backend. See
+[Registering your host](/hosting/registering/) for the full account/join chain.
 :::
 
 ## Verify it works
@@ -163,6 +177,23 @@ A healthy start prints the node name, map, and an uplink summary (port, max play
 you set `[Backend]` credentials, it also reports the mesh as *registered*; otherwise *private /
 LAN*. To test the full account/join chain before players connect, run `deploy/preflight.sh`
 (covered in [Registering your host](/hosting/registering/)).
+
+## Console commands
+
+Type these into the server's console (stdin). A loaded admin plugin may add more via the
+`onConsoleInput` event.
+
+| Command | Does |
+|---|---|
+| `help` | List the built-in commands. |
+| `players` (`list`) | List connected players and their ids. |
+| `status` (`info`) | Player / vehicle counts. |
+| `kick <id\|name> [reason]` | Disconnect a player. |
+| `kickall [reason]` | Disconnect everyone. |
+| `say <message>` | Broadcast a chat message as *Server*. |
+| `setrole <id\|name> <role>` | Set a player's role (`USER`, `ADM`, `MOD`, `SCR`, `VIP`). |
+| `version` (`ver`) | Show the server version and minimum client version. |
+| `stop` (`exit`, `shutdown`, `quit`) | Shut the server down gracefully. |
 
 ## Next steps
 

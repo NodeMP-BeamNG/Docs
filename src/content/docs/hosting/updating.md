@@ -85,10 +85,12 @@ Leave `ImScaredOfUpdates = false` so you actually hear about new releases; raise
 
 ## Watch for protocol and version bumps
 
-NodeMP speaks a versioned **wire protocol** (currently **1.1**; see
-[Wire protocol](/plugins/protocol/)). The launcher and server negotiate versions during the
-handshake, and the server advertises a **minimum client version** in its beacon
-(`ClientMinVer`). A few things to keep in mind around an update:
+NodeMP documents a versioned **wire protocol** (the protocol spec is currently revision **1.1**;
+see [Wire protocol](/plugins/protocol/)). Separately, each launcher/mod build has an application
+**semver**, and that is what the handshake actually checks: the launcher sends its version and the
+server rejects it if it is below the server's built-in **minimum client version** (also advertised
+in the beacon as `ClientMinVer`). A protocol-doc revision bump does not by itself change the
+handshake — a client-version bump does. A few things to keep in mind around an update:
 
 - **Match the network.** When a release bumps the protocol, players' launchers/mods and your
   server need to be on compatible versions. Updating the server promptly avoids turning players

@@ -26,8 +26,10 @@ cancel by **returning a non-zero integer**.
 | Event | Arguments | Notes |
 |---|---|---|
 | `onInit` | `()` | Lua state started. |
+| `onInitFinal` | `()` | Fired **once**, after every plugin's `onInit` has finished — the safe place for cross-plugin setup (reading another plugin's exports/state). |
 | `onShutdown` | `()` | Server stopping. |
-| `onPlayerAuth` | `(name, roles, isGuest, identifiersJson)` | `[veto]` reject the connection. |
+| `onConsoleInput` | `(line)` | A line typed in the server console. Return a **string** to print it back (how BeamMP admin plugins reply). |
+| `onPlayerAuth` | `(name, roles, isGuest, identifiersJson)` | `[veto]` see the return-value contract below. |
 | `postPlayerAuth` | `(rejected, reason, name, roles, isGuest, identifiersJson)` | After auth resolved. |
 | `onPlayerConnecting` | `(playerId)` | |
 | `onPlayerJoining` | `(playerId)` | |
@@ -52,6 +54,19 @@ cancel by **returning a non-zero integer**.
 `vehicleId` is a single **global** id (a decimal string on the wire), and `spawnerId` is the
 player who created the vehicle — these are **not** the BeamMP `(playerId, vehicleId)` pair. See
 [Migrating BeamMP plugins](/plugins/migrating/) and the [wire protocol](/plugins/protocol/).
+:::
+
+:::danger[`onPlayerAuth` return values]
+`onPlayerAuth` is more than a simple veto — its return value decides the connection:
+
+- Return **`1`** → reject the connection.
+- Return **`2`** → allow the connection **even if the server is full** (bypass `MaxPlayers`).
+- Return **any string** → reject the connection and show that string to the player as the kick
+  reason. This wins over a `0`/no-return from other handlers.
+- Return `0` / `nil` → allow (subject to other handlers and the player cap).
+
+Be careful not to return a string by accident (e.g. a trailing expression in Lua) — doing so
+silently locks out **every** player. If you only want to log, return nothing.
 :::
 
 ### `NodeMP.events`
@@ -142,6 +157,8 @@ end
 |---|---|
 | `NodeMP.chat.send(playerId, message)` | Message one player (as "Server"). |
 | `NodeMP.chat.broadcast(message)` | Message everyone. |
+| `NodeMP.chat.sendAs(playerId, from, message)` | Message one player with a **custom sender name** (`-1` broadcasts). |
+| `NodeMP.chat.broadcastAs(from, message)` | Message everyone with a custom sender name. |
 | `NodeMP.ui.notify(playerId, message, opts)` | Toast notification (`-1` broadcasts); `opts = { icon, category }`. |
 | `NodeMP.ui.dialog(playerId, opts)` | Confirmation/markdown dialog; `opts = { title, body, buttons, interactionId, warning, reportToServer, reportToExtensions }`. |
 
@@ -227,14 +244,92 @@ the session.
 
 ## The BeamMP global API (`MP.*`)
 
-Everything `NodeMP.*` is built on remains available for BeamMP plugins and direct use. Commonly
-used calls include `MP.GetPlayers()`, `MP.GetPlayerName(id)`, `MP.GetPlayerIdentifiers(id)`,
-`MP.GetPlayerRole(id)`, `MP.GetPlayerVehicles(id)`, `MP.RemoveVehicle(vehicleId)`,
-`MP.GetPositionRaw(vehicleId)`, `MP.SendChatMessage(id, msg)`, `MP.DropPlayer(id, reason)`,
-`MP.RegisterEvent(name, fn)`, `MP.CreateEventTimer(name, ms)`, plus `Util.*` (JSON, logging) and
-`FS.*` / `Http.*`. On NodeMP, the vehicle-related calls accept the global vehicle id (and the
-two-argument BeamMP form for compatibility). See
-[BeamMP compatibility](/introduction/beammp-compatibility/) for the exact translation.
+Everything `NodeMP.*` is built on remains available for BeamMP plugins and direct use. On NodeMP
+the vehicle-related calls accept the global vehicle id (and the two-argument BeamMP form for
+compatibility). See [BeamMP compatibility](/introduction/beammp-compatibility/) for the exact
+translation. This is the full surface:
+
+### Players
+
+| Call | Returns / does |
+|---|---|
+| `MP.GetPlayers()` | `{ [id] = name }` of everyone connected. |
+| `MP.GetPlayerCount()` | Number of connected players. |
+| `MP.GetPlayerName(id)` | Display name, or `nil`. |
+| `MP.GetPlayerIDByName(name)` | Id for a name, or `-1`. |
+| `MP.GetPlayerIdentifiers(id)` | Identifiers table (`ip`, `nodemp`, …). |
+| `MP.GetPlayerRole(id)` | Role tag string, or `nil`. |
+| `MP.SetPlayerRole(id, role)` | Set + broadcast a role; returns `ok, err`. |
+| `MP.IsPlayerConnected(id)` / `MP.IsPlayerGuest(id)` | Booleans. |
+| `MP.IsPlayerSynced(id)` / `MP.IsPlayerSyncing(id)` | Sync-state booleans. |
+| `MP.DropPlayer(id, reason?)` | Kick a player (reason optional). |
+
+### Chat, notifications & dialogs
+
+| Call | Returns / does |
+|---|---|
+| `MP.SendChatMessage(id, msg [, logChat])` | Chat as "Server" to `id` (`-1` = everyone). `logChat` (default `true`) only controls the console echo. |
+| `MP.SendChatMessageAs(id, from, msg [, logChat])` | Same, but with a custom sender name. |
+| `MP.SendNotification(id, msg [, icon [, category]])` | Toast notification (`-1` broadcasts). |
+| `MP.ConfirmationDialog(id, title, body, buttons, interactionId)` | Markdown/confirmation dialog. |
+
+### Vehicles
+
+| Call | Returns / does |
+|---|---|
+| `MP.RemoveVehicle(vehicleId)` | Delete a vehicle (broadcasts, fires `onVehicleDeleted`). |
+| `MP.GetVehicleCount()` | Total vehicles server-wide. |
+| `MP.GetPositionRaw(vehicleId)` / `MP.GetPositionRaw(playerId, vehicleId)` | Raw transform table. |
+| `MP.SetVehicleDriver(vehicleId, playerId)` / `MP.GetVehicleDriver(vehicleId)` | Driver (setting hands over sync authority; `-1` clears). |
+| `MP.GetVehicleSyncOwner(vehicleId)` | Client currently syncing it, or `-1`. |
+| `MP.GetVehicleSpawner(vehicleId)` | Who created it, or `-1`. |
+| `MP.SetVehicleLocked(vehicleId, bool)` / `MP.GetVehicleLocked(vehicleId)` | Lock state. |
+
+### Events & timers
+
+| Call | Returns / does |
+|---|---|
+| `MP.RegisterEvent(name, "globalFuncName")` | Bind a global function to an event. |
+| `MP.TriggerGlobalEvent(name, ...)` | Fire a custom event across **all** Lua states (async; returns a handle). |
+| `MP.TriggerLocalEvent(name, ...)` | Fire a custom event in **this** state (sync; returns results). |
+| `MP.TriggerClientEvent(id, name, data)` | Send a custom event to a client (`-1` = broadcast). |
+| `MP.TriggerClientEventJson(id, name, table)` | Same, JSON-encoding a table payload. |
+| `MP.CreateEventTimer(name, intervalMs [, strategy])` | Fire `name` every `intervalMs` (`strategy` = `MP.CallStrategy.*`). |
+| `MP.CancelEventTimer(name)` | Stop a timer created above. |
+
+### Config, server info & misc
+
+| Call | Returns / does |
+|---|---|
+| `MP.Set(MP.Settings.KEY, value)` / `MP.Get(MP.Settings.KEY)` | Read/write a live setting (see `MP.Settings` below). |
+| `MP.GetServerVersion()` | `major, minor, patch`. |
+| `MP.GetOSName()` | `"Windows"`, `"Linux"`, or `"Other"`. |
+| `MP.GetPlayerCount()` / `MP.GetVehicleCount()` | Counts (also listed above). |
+| `MP.GetStateMemoryUsage()` / `MP.GetLuaMemoryUsage()` | Bytes used by this state / all states. |
+| `MP.Sleep(ms)` | Block this state (use sparingly; prefer `NodeMP.timers.after`). |
+| `print(...)`, `printRaw(...)`, `exit()` | Console output / stop the server. |
+
+`MP.Settings` enum: `Debug`, `Private`, `MaxCars`, `MaxPlayers`, `Map`, `Name`, `Description`,
+`InformationPacket`. `MP.CallStrategy` enum: `BestEffort`, `Precise`.
+
+### `Util.*`
+
+| Call | Purpose |
+|---|---|
+| `Util.LogDebug/LogInfo/LogWarn/LogError(msg)` | Levelled logging. |
+| `Util.JsonEncode(table)` / `Util.JsonDecode(str)` | Lua ⇄ JSON. A table is encoded as a JSON **array** only when its keys are exactly `1..N`; otherwise as an object. |
+| `Util.JsonPrettify(str)` / `Util.JsonMinify(str)` | Reformat a JSON string. |
+| `Util.JsonDiff(a, b)` / `Util.JsonDiffApply(doc, patch)` | JSON diff/patch. |
+| `Util.JsonFlatten(str)` / `Util.JsonUnflatten(str)` | Flatten/unflatten nested JSON. |
+| `Util.Random()` / `Util.RandomRange(lo, hi)` / `Util.RandomIntRange(lo, hi)` | Randomness. |
+| `Util.Sha256(str)` / `Util.Base64Encode(str)` / `Util.Base64Decode(str)` | Hash / encoding. |
+| `Util.SetTimeout(fn, ms)` | Run `fn` once after `ms` (non-blocking). |
+
+### `Http.*` (raw)
+
+`Http.CreateConnection(host, port)` returns an object with **capitalized** `:Get(path, headers)`
+and `:Post(path, body, headers)` methods (BeamMP naming). The `NodeMP.http.connect()` wrapper
+above exposes the same thing with lowercase methods.
 
 :::note
 `NodeMP.commands`, `NodeMP.modules`, `NodeMP.dimensions`, and `NodeMP.persistence` are **not**

@@ -29,26 +29,45 @@ end
 
 ## GE API (game engine)
 
-### Session / connection
+### Session — `NodeMP.session`
 | Call | Returns |
 |------|---------|
-| `NodeMP.isLauncherConnected()` | bool — launcher control link up |
-| `NodeMP.isInSession()` | bool — currently in a multiplayer session |
-| `NodeMP.getCurrentServer()` | `{ ip, port, name, map, ... }` or nil |
-| `NodeMP.getLauncherVersion()` | string |
-| `NodeMP.connectToServer(ip, port, name)` | — |
-| `NodeMP.leaveServer(goBack)` | — |
-| `NodeMP.VERSION` | mod version string |
+| `isLauncherConnected()` | bool — launcher control link up |
+| `isConnected()` | bool — the gameplay socket is up |
+| `isActive()` | bool — in a multiplayer session |
+| `isJoining()` | bool — a join is in progress (mods/map loading) |
+| `getServer()` | `{ ip, port, name, map, ... }` or nil |
+| `getServerName()` / `getMap()` | string or nil |
+| `getLauncherVersion()` | string (empty before handshake) |
+| `connect(ip, port, name, skipModWarning?)` | join a server |
+| `leave(goBack)` | leave; `goBack` returns to the menu |
 
-### Account / auth
+`NodeMP.VERSION` holds the mod version string. Back-compat aliases:
+`NodeMP.isLauncherConnected()`, `NodeMP.isInSession()`, `NodeMP.getCurrentServer()`,
+`NodeMP.getLauncherVersion()`, `NodeMP.connectToServer()`, `NodeMP.leaveServer()`.
+
+### Account — `NodeMP.account`
 | Call | Returns |
 |------|---------|
-| `NodeMP.isLoggedIn()` | bool |
-| `NodeMP.getAccount()` | `{ success, username, role, id, ... }` |
-| `NodeMP.getLocalPlayerID()` | your server player id (number) or nil |
+| `get()` | `{ success, username, role, avatar, ... }` |
+| `isLoggedIn()` | bool |
+| `getUsername()` / `getRole()` | string or nil |
+| `login(identifiers)` / `logout()` | start/clear a login |
+
+Aliases: `NodeMP.getAccount()`, `NodeMP.isLoggedIn()`.
 
 ### Players — `NodeMP.players`
-`get(id)`, `getByName(name)`, `getAll()`, `count()`, `getRoleInfo(role)`.
+A player table looks like `{ id, name, role, guest, ping }`.
+
+| Call | Returns |
+|------|---------|
+| `get(id)` / `getByName(name)` | player table or nil |
+| `getAll()` | `{ [id] = player }` |
+| `ids()` | array of player ids |
+| `count()` / `max()` | current players / server slots |
+| `getLocalId()` / `getLocal()` | your own id / player table |
+| `isLocal(id)` | is this the local player? |
+| `getRoleInfo(role)` | `{ tag, backcolor, forecolor }` for styling |
 
 ### Vehicles — `NodeMP.vehicles`
 `gameId` = local BeamNG object id; `vehicleId` = single **global** network id
@@ -56,7 +75,7 @@ end
 
 `getAll()`, `getOwn()` (vehicles this client **syncs**), `isOwn(gameId)` (we are the
 sync owner), `getServerId(gameId)`, `getGameId(vehicleId)`, `getByServerId(vehicleId)`,
-`getByGameId(gameId)`, `getOwner(vehicleId)`, `getDriver(vehicleId)`,
+`getByGameId(gameId)`, `getNicknameMap()`, `getOwner(vehicleId)`, `getDriver(vehicleId)`,
 `getSyncOwner(vehicleId)`, `count()`, `forEach(fn)`, `isSynced()`.
 
 A vehicle has a `spawnerID` (creator) and a `syncOwnerID` (the client currently
@@ -64,39 +83,112 @@ syncing it). Vehicles are **persistent**: they survive their spawner leaving —
 server reassigns `syncOwner` and fires `onNodeMPVehicleSyncOwnerChanged`.
 
 ### Chat — `NodeMP.chat`
-`send(message)`, `add(message)` (local-only line).
+| Call | Does |
+|------|------|
+| `send(message)` | send a chat message to the server |
+| `add(message, username?, color?)` | add a local-only line |
+| `system(message)` | local-only line attributed to "Server" |
+| `clear()` | clear local chat history |
+| `toggle()` | show/hide the chat overlay |
+| `getHistory()` | array of rendered message tables |
 
 ### Events — `NodeMP.events`
-Custom events ride packet `0x66`; server-side Lua sees the same names.
+Custom events ride packet `0x66`; server-side Lua sees the same names. NodeMP also
+fires **local lifecycle events** you can subscribe to (see `NodeMP.events.NAMES`).
+
+| Call | Does |
+|------|------|
+| `on(name, fn, id?)` | subscribe (optional `id` names the handler) |
+| `once(name, fn, id?)` | subscribe once; auto-removes after first call |
+| `off(name, id)` | unsubscribe |
+| `triggerServer(name, data)` | send a named event to the server |
+| `triggerLocal(name, data)` | fire a named event locally |
+
+Built-in `NodeMP.events.NAMES` (local lifecycle events):
+
+| Key | Event name | Handler args |
+|-----|-----------|--------------|
+| `PLAYER_JOINED` | `onNodeMPPlayerJoined` | `(player)` |
+| `PLAYER_LEFT` | `onNodeMPPlayerLeft` | `({ id, name })` |
+| `PLAYER_ROLE_CHANGED` | `onNodeMPPlayerRoleChanged` | `({ id, role })` |
+| `VEHICLE_SPAWNED` | `onNodeMPVehicleSpawned` | `(vehicle)` |
+| `VEHICLE_DELETED` | `onNodeMPVehicleDeleted` | `({ vehicleId })` |
+| `VEHICLE_SYNC_OWNER` | `onNodeMPVehicleSyncOwnerChanged` | `({ vehicleId, syncOwnerId })` |
+| `SYNCED` | `onNodeMPSynced` | `()` — world finished loading |
+| `CHAT_SENT` | `ChatMessageSent` | `(message)` |
+| `CHAT_RECEIVED` | `ChatMessageReceived` | `(message, username)` |
+
 ```lua
-NodeMP.events.on("myEvent", function(data) dump(data) end)   -- subscribe
-NodeMP.events.triggerServer("myEvent", { foo = 42 })          -- send to server
-NodeMP.events.triggerLocal("myEvent", { foo = 42 })           -- fire locally
-NodeMP.events.off("myEvent")                                   -- unsubscribe
+NodeMP.events.on(NodeMP.events.NAMES.SYNCED, function()
+    NodeMP.chat.system("World synced — my mod is ready")
+end)
+NodeMP.events.triggerServer("myEvent", { foo = 42 })  -- send to server
 ```
 
 ### Keys — `NodeMP.keys`
 `onPressed(key, fn)`, `onReleased(key, fn)`, `getState(key)`.
 
-### Raw network (advanced) — `NodeMP.network`
-`send(typeByte, payloadTable)`, `isConnected()`. See the
-[wire protocol](/plugins/protocol/) for type ids.
+### UI — `NodeMP.ui`
+`notify(text, opts)` (`opts = { icon, category }`), `dialog(opts)` (markdown/confirm
+dialog), `bringToFront()`, `refreshPlayerList()`.
 
-### Utility
-`NodeMP.translate(key, default)`.
+### Settings — `NodeMP.settings`
+`get(key, default)` / `set(key, value)` — read/write a BeamNG-backed mod option (the
+same keys used by NodeMP's own settings, e.g. `nameTagShowDistance`).
+
+### Config — `NodeMP.config`
+Local NodeMP profile: `getNickname()` / `setNickname(name)`, `getFavorites()`,
+`get()` (config.json table), `set(key, value)`.
+
+### Debug — `NodeMP.debug`
+`getNetworkStats()` → `{ inBps, outBps, inPps, outPps, timer }`;
+`focusOnPlayer(name)` (spectate the newest vehicle of a player).
+
+### Dimensions — `NodeMP.dimensions`
+Parallel worlds on one map (server-authoritative; gated by the "dimensions" framework
+module). `isActive()`, `get()` (your dimension number, `0` = default), `refresh()`,
+`set(n)` (switch — the car you sit in comes along), `onChanged(fn, id)`.
+
+### Raw network (advanced) — `NodeMP.network`
+`send(typeByte, payloadTable)`, `isConnected()`. Use type ids in the `0x80`–`0xFF`
+mod range; see the [wire protocol](/plugins/protocol/).
+
+### Utility — `NodeMP.util`
+`translate(key, default)` (alias `NodeMP.translate`), `b64encode/b64decode`,
+`hex2rgb(hex)`, `jsonEncode/jsonDecode`.
 
 ---
 
 ## VE API (inside a vehicle's Lua)
 
-```lua
-NodeMP.vehicleType()         -- "L" local / "R" remote, or nil
-NodeMP.isRemote()            -- bool
-NodeMP.isLocal()             -- bool
-NodeMP.keys.onPressed(k, fn) -- key bridge (same as GE)
-NodeMP.keys.getState(k)
-NodeMP.triggerServer(name, data) -- relay a server event from vehicle code
-```
+The per-vehicle state exposes a subset. Receiving events is GE-only — from a vehicle
+you **send** with `NodeMP.events.triggerServer` and handle it in GE. Most write helpers
+are only meaningful on a **local** ("L") vehicle (one this client syncs).
+
+### `NodeMP.vehicle`
+`type()` → `"L"`/`"R"`/nil, `isLocal()`, `isRemote()`, `id()` (local object id).
+
+### `NodeMP.keys`
+`onPressed(key, fn)`, `onReleased(key, fn)`, `getState(key)` — same bridge as GE.
+
+### `NodeMP.events`
+`triggerServer(name, data)` — relay a server event from vehicle code (VE → GE → server).
+
+### `NodeMP.electrics`
+`get(name)`, `set(name, value)` (local vehicle only), `exclude(name)` (keep a key out
+of network sync, e.g. for locally-driven animations).
+
+### `NodeMP.controllers` (advanced)
+`register(types)` — register modded controller types for sync (call from a
+`loadControllerSyncFunctions` hook; `types` mirrors the stock `controllers/general.lua`
+shape). `send(data)` — manually forward a controller-state payload to remotes.
+
+### `NodeMP.velocity` (advanced)
+`add(x, y, z)` / `set(x, y, z)` — linear-velocity corrections (mostly for remotes).
+
+### `NodeMP.callGE(moduleKey, call)`
+Queue a call into a GE NodeMP module from vehicle code (advanced cross-VM), e.g.
+`NodeMP.callGE("syncControllers", "sendControllerData(" .. serialize(x) .. ")")`.
 
 ---
 
