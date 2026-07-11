@@ -22,6 +22,10 @@ export default defineConfig({
           { label: 'What is NodeMP', slug: 'introduction/what-is-nodemp' },
           { label: 'BeamMP compatibility', slug: 'introduction/beammp-compatibility' },
         ]},
+        { label: 'Framework (new stack)', translations: { ru: 'Фреймворк (новый стек)' }, items: [
+          { label: 'Overview', slug: 'framework/overview' },
+          { label: 'How synchronization works', slug: 'framework/sync' },
+        ]},
         { label: 'For players', translations: { ru: 'Игрокам' }, items: [
           { label: 'Install the launcher', slug: 'players/install' },
           { label: 'Join a server', slug: 'players/join' },
