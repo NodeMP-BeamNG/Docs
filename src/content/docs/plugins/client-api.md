@@ -216,13 +216,20 @@ always reachable as the `NODEMP` global (in **both** states). In GE it is *only*
 `NodeMP.modules`:
 
 - `NODEMP.GE.<key>` / `NODEMP.VE.<key>` → the extension name string
-  (e.g. `NODEMP.GE.syncVehicles == "nodemp_sync_vehicles"`).
+  (e.g. `NODEMP.GE.syncVehicles == "MPVehicleGE"`).
 - `NODEMP.callVehicle(veh, key, "fn(args)")` — call a VE module from GE.
 - `NODEMP.callGameEngine(obj, key, "fn(args)")` — call a GE module from VE.
 - `NODEMP.geDependencies` / `NODEMP.veDependencies` — the load lists.
 
-When adding or renaming a module, edit `lua/ge/extensions/nodemp/modules.lua` and
-`lua/vehicle/extensions/nodemp/modules.lua` (identical) — that one place updates the
+The names are BeamMP's, flat and unprefixed, so that anything written against BeamMP's
+client API resolves the same modules. The **files** are grouped by role
+(`lua/ge/extensions/nodemp/sync/MPVehicleGE.lua`), which does not change the names: the mod
+loads them at BeamNG's *empty root*, where the extension loader drops the directories and
+uses the bare file name. Folder structure is therefore invisible to callers — do not build a
+module name out of a path.
+
+When adding or renaming a module, edit `lua/ge/extensions/MPModules.lua` and
+`lua/vehicle/extensions/MPModules.lua` (identical) — that one place updates the
 dependency lists and every cross-VM call.
 
 ## See also

@@ -217,13 +217,19 @@ NodeMP.events.triggerServer("myEvent", { foo = 42 })  -- на сервер
 не `NodeMP.modules`:
 
 - `NODEMP.GE.<key>` / `NODEMP.VE.<key>` → строка с именем расширения
-  (например, `NODEMP.GE.syncVehicles == "nodemp_sync_vehicles"`).
+  (например, `NODEMP.GE.syncVehicles == "MPVehicleGE"`).
 - `NODEMP.callVehicle(veh, key, "fn(args)")` — вызвать модуль VE из GE.
 - `NODEMP.callGameEngine(obj, key, "fn(args)")` — вызвать модуль GE из VE.
 - `NODEMP.geDependencies` / `NODEMP.veDependencies` — списки загрузки.
 
-При добавлении или переименовании модуля правьте `lua/ge/extensions/nodemp/modules.lua` и
-`lua/vehicle/extensions/nodemp/modules.lua` (они идентичны) — это единственное место обновляет
+Имена — это имена BeamMP: плоские, без префиксов, чтобы всё, написанное под клиентский API
+BeamMP, находило те же модули. **Файлы** при этом сгруппированы по роли
+(`lua/ge/extensions/nodemp/sync/MPVehicleGE.lua`), и на имена это не влияет: мод загружает их
+в *пустом корне* BeamNG, где загрузчик расширений отбрасывает каталоги и берёт голое имя
+файла. Структура папок для вызывающей стороны невидима — не собирайте имя модуля из пути.
+
+При добавлении или переименовании модуля правьте `lua/ge/extensions/MPModules.lua` и
+`lua/vehicle/extensions/MPModules.lua` (они идентичны) — это единственное место обновляет
 списки зависимостей и все кросс-VM вызовы.
 
 ## См. также
