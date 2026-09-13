@@ -29,10 +29,10 @@ export default defineConfig({
           { label: 'How synchronization works', translations: { ru: 'Как работает синхронизация' }, slug: 'framework/sync' },
         ]},
         { label: 'For players', translations: { ru: 'Игрокам' }, items: [
-          { label: 'Install the launcher', slug: 'players/install' },
-          { label: 'Join a server', slug: 'players/join' },
-          { label: 'Settings & UI', slug: 'players/settings' },
-          { label: 'Troubleshooting', slug: 'players/troubleshooting' },
+          { label: 'Install the launcher', translations: { ru: 'Установка лаунчера' }, slug: 'players/install' },
+          { label: 'Join a server', translations: { ru: 'Подключение к серверу' }, slug: 'players/join' },
+          { label: 'Settings and UI', translations: { ru: 'Настройки и интерфейс' }, slug: 'players/settings' },
+          { label: 'Troubleshooting', translations: { ru: 'Устранение неполадок' }, slug: 'players/troubleshooting' },
         ]},
         { label: 'Server hosting', translations: { ru: 'Хостинг серверов' }, items: [
           { label: 'Quick start', slug: 'hosting/quick-start' },

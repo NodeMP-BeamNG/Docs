@@ -1,80 +1,103 @@
 ---
 title: Install the launcher
-description: Download and install the NodeMP launcher on Windows, run it for the first time, and sign in (or play as a guest).
+description: Download and install the NodeMP launcher 1.0.0 on Windows, let it install the client mod, and sign in or continue as Test Drive.
 ---
 
-The **launcher** is the desktop app you run alongside BeamNG.drive. It signs you in, keeps the
-in-game mod up to date, and proxies your connection to game servers. You only need to install
-it once — after that it keeps itself and the mod updated automatically.
+The **launcher** is the Windows app that runs NodeMP for you: it signs you in, keeps the
+**client mod** (`NodeMP.zip`) in step with the release the **directory** publishes, starts
+BeamNG.drive and carries your traffic to the server. You install the launcher once; the client
+mod is installed and updated by the launcher, never by hand. The parts are introduced in
+[What is NodeMP](/introduction/what-is-nodemp/).
 
-## 1. Download the launcher
+## Requirements
 
-Download the launcher from the **official NodeMP site**. The backend's release endpoint
-(`GET /v1/releases/launcher`) returns metadata for the current build — its version plus a download
-URL — and the binary itself lives at that URL, so you always get the latest version. Avoid copies
-from anywhere else.
+- Windows 10 or 11, 64-bit.
+- BeamNG.drive from Steam, started at least once: the first start creates the user folder the
+  client mod is installed into and writes `BeamNG.Drive.ini`, one of the places the launcher
+  looks for the game.
 
-By default the launcher talks to the production backend at `https://api.nodemp.com`; you don't
-need to configure anything to play on public servers.
+## Download and install
 
-## 2. Install on Windows
+1. Download `NodeMP-Setup-1.0.0.exe` from [nodemp.com/download](https://nodemp.com/download)
+   (the *Launcher (Windows)* card). The same file is attached to tag `launcher-v1.0.0` at
+   [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).
+2. Run it. The installer installs for the current user only, into `%LOCALAPPDATA%\NodeMP`, and
+   does not ask for administrator rights.
+3. To upgrade, run the new installer over the old one. Launchers before 1.0.0 wrote a
+   `directory.url` file beside the executable that pointed at a test address; 1.0.0 removes it
+   on first start. A `directory.url` you wrote yourself is kept.
 
-NodeMP currently targets **Windows**. After downloading:
+## First start
 
-1. Extract the launcher (the executable is `NodeMP-Launcher.exe`) to a folder you can find
-   again, for example `C:\NodeMP`.
-2. Make sure BeamNG.drive is installed and has been run at least once, so its user folder
-   exists.
-3. If Windows SmartScreen or your antivirus prompts you, allow the launcher to run and to
-   access the network — it needs to reach the backend and bind a couple of local ports.
+The launcher opens as a small **Sign in** window: **Sign in** with your nodemp.com account,
+**Create an account**, or **Continue as Test Drive** (see [Accounts](#accounts)). The sign-in is
+remembered in the Windows credential store, so the window is skipped next time.
 
-:::note
-The launcher uses local ports **4444** (meta) and **4445** (game) to talk to the mod. If a
-previous launcher is still running it can hold these ports and stop a new one from starting,
-so close any stale instance first.
-:::
+Once open, the launcher checks the client mod in the background (next section) and loads the
+server list from `https://api.nodemp.com`. If the directory does not answer, you get the **No
+connection** screen: *Try again*, or *Continue without the list* to reach Direct Connect.
 
-## 3. First run
+Open **Settings → Game** once. The line under the heading says what was found, for example
+`Version 0.39.4.0`. If it says `Could not find a BeamNG.drive install. Browse to it, or launch
+the game once so Steam writes its path.`, press **Browse** and pick the folder that contains
+`Bin64\BeamNG.drive.x64.exe`, or start the game once through Steam and press **Find it**.
 
-Start `NodeMP-Launcher.exe`. On first launch it will:
+## The client mod
 
-- connect to the backend and check for updates, then
-- download and install the current in-game mod into your BeamNG user folder.
+The client mod is the BeamNG mod that does the multiplayer work inside the game. The launcher
+installs it into BeamNG's user folder, next to a small file that records its version:
 
-Leave the launcher running, then start BeamNG.drive. Multiplayer lives on the main menu under
-**NodeMP Multiplayer**.
+```
+%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\mods\multiplayer\NodeMP.zip
+%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\mods\multiplayer\NodeMP.zip.version
+```
 
-A detailed log is written to `Launcher.log` next to the executable — keep it handy if you ever
-need to [troubleshoot](/players/troubleshooting/).
+A moved user folder (`UserPath` in `startup.ini` beside the game, or `userFolder` in
+`BeamNG.Drive.ini`) is followed. BeamNG derives the mod id `multiplayernodemp` from that path;
+the launcher's helper activates it in `mods/db.json` before every game start, so the mod is on
+even if you disabled it in the game's mod manager.
 
-## 4. Log in or play as a guest
+- At every launcher start and before every join, the launcher fetches the current release
+  (`GET https://api.nodemp.com/v1/releases/mod`) and compares the SHA-256 of the installed zip
+  with the published one. Versions are not compared; only the hash counts.
+- If the hashes differ, the release is downloaded to `NodeMP.zip.part`, verified by size and
+  hash, and only then renamed over the old file. A failed download leaves the previous zip
+  untouched.
+- BeamNG must be closed while the file is replaced. With the game running the launcher reports
+  `Could not check the client mod · could not replace …\NodeMP.zip (is BeamNG.drive running?): …`.
+- If the update cannot be fetched but a zip is on disk, a join goes ahead with the toast
+  `Client mod could not be updated · joining with the installed copy`; whether an older mod is
+  accepted is the server's decision. With no zip on disk the join stops:
+  `Could not join · client mod is not installed and the directory is unreachable`.
 
-NodeMP uses a BeamMP-style account gate. When you open the **Multiplayer** screen in BeamNG
-you can:
+**Settings → Launcher → Client mod** shows the installed version and the last result
+(`Up to date · v1.3.0`, `Not installed yet; it is downloaded before the first join`, …);
+**Check now** repeats the check without joining.
 
-- **Log in** with your NodeMP username (or email) and password,
-- **Create account** to register a new one, or
-- **Play as guest** to jump straight in without an account.
+Do not copy `NodeMP.zip` into the folder yourself. Developers who keep the mod's source
+unpacked at `mods/unpacked/nodemp` are left alone: the launcher installs nothing and reports
+`Unpacked developer copy at mods/unpacked/nodemp is in use`.
 
-The launcher remembers your session, so next time it signs you in automatically. Some servers
-restrict or disable guest access — if so, you'll need a registered account to join.
+## Accounts
 
-## Advanced: pointing at a local backend
+A NodeMP account gives you a fixed name that servers verify with the directory. Create one:
 
-If you're testing against your own backend, the launcher reads a few environment variables
-(otherwise it defaults to production):
+- in the launcher: **Create an account** in the sign-in window (username, e-mail, password).
+  The launcher registers you and signs you in. If the directory is configured to require
+  e-mail verification, the form shows `please verify your e-mail first` instead — open the
+  link in the e-mail, then press **Sign in**;
+- on the website: [nodemp.com/register](https://nodemp.com/register). **Username**: 3 to 24
+  characters, letters, digits, hyphens and underscores. **E-mail**. **Password**: 8 to 200
+  characters. The page then says *Check your e-mail*: open the verification link (it expires
+  after a short while), then sign in. Until then the directory answers
+  `please verify your e-mail first`.
 
-| Variable | Purpose |
-|---|---|
-| `NODEMP_API_BASE` | Backend API base URL (e.g. `http://localhost:8080`) |
-| `NODEMP_CDN_BASE` | Where mod/launcher releases are fetched from |
-| `NODEMP_DEV=1` | Dev mode: allows `http://` and `localhost` hosts |
-
-Useful command-line flags:
-
-- `--no-download` — keep the already-installed mod (skip fetching a release).
-- `--verbose` — detailed debug logging to the console and `Launcher.log`.
+**Test Drive** is the guest mode: the launcher joins without an account, and the directory
+mints a fresh guest name (`Guest` plus random characters) for every join. A server can refuse
+guests: its detail panel says *Account required*, and the join ends with `Disconnected · This
+server requires a NodeMP account: sign in to the launcher and join again`. To sign in later,
+open **Settings → Account → Sign in**.
 
 ## Next step
 
-Once the launcher is installed and you're signed in, head to [Join a server](/players/join/).
+[Join a server](/players/join/).
