@@ -31,7 +31,7 @@ test('transformPage: H1 becomes frontmatter, README becomes index, links and anc
   const maps = { 'lua.md': headingMap(lua), 'raw.md': new Map(), 'c.md': new Map(), 'events.md': new Map(), 'README.md': headingMap(readme) };
   const out = transformPage('README.md', readme, maps);
   assert.equal(out.file, 'index.md');
-  assert.match(out.text, /^---\ntitle: API reference\ndescription: .+\n---\n/);
+  assert.match(out.text, /^---\ntitle: API reference\ndescription: .+\nsidebar:\n  order: 0\n---\n/);
   assert.ok(!/^# /m.test(out.text), 'no H1 left');
   assert.ok(out.text.includes('](/plugins/api/lua/)'));
   assert.ok(out.text.includes('](/plugins/api/lua/#nodeplayers--the-roster)'));
@@ -64,6 +64,11 @@ test('every guide link apigen emits has a target page', () => {
     assert.ok(GUIDE_LINKS[`guides/${g}.md`], g);
   }
   assert.equal(GUIDE_LINKS['guides/wire.md'], '/plugins/client-scripting/');
+});
+
+test('sidebar order: index, lua, raw, c, events (autogenerate would sort by file name)', () => {
+  const order = (name) => /\nsidebar:\n  order: (\d+)\n/.exec(transformPage(name, '# T\n', {}).text)[1];
+  assert.deepEqual(['README.md', 'lua.md', 'raw.md', 'c.md', 'events.md'].map(order), ['0', '1', '2', '3', '4']);
 });
 
 test('placeholder page is valid Starlight markdown', () => {
