@@ -1,0 +1,31 @@
+---
+title: NodeMP
+description: Мультиплеер для BeamNG.drive с аккаунтами, каталогом серверов и платформой плагинов.
+template: splash
+hero:
+  tagline: Мультиплеер для BeamNG.drive с аккаунтами, каталогом серверов и платформой плагинов.
+  actions:
+    - text: Установить лаунчер
+      link: /ru/players/install/
+      icon: right-arrow
+    - text: Запустить сервер
+      link: /ru/hosting/quick-start/
+      variant: minimal
+    - text: Написать плагин
+      link: /ru/plugins/overview/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Игрокам" icon="rocket">
+    Установите лаунчер, войдите в аккаунт или продолжите как Test Drive и подключитесь к серверу из списка. [Установить лаунчер](/ru/players/install/)
+  </Card>
+  <Card title="Хостерам серверов" icon="setting">
+    Запустите `Node-Server`, создайте ключ сервера в аккаунте NodeMP и попадите в список директории. [Быстрый старт](/ru/hosting/quick-start/)
+  </Card>
+  <Card title="Разработчикам плагинов" icon="puzzle">
+    Пишите ресурсы на Lua или JavaScript с API `node` либо нативные модули на C и C++. [Обзор плагинов](/ru/plugins/overview/)
+  </Card>
+</CardGrid>

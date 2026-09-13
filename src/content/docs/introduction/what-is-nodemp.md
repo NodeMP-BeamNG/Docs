@@ -1,51 +1,86 @@
 ---
 title: What is NodeMP
-description: An overview of NodeMP — a BeamMP-compatible multiplayer system for BeamNG.drive and the four parts it is built from.
+description: NodeMP is a multiplayer platform for BeamNG.drive — launcher, client mod, game server, directory and plugins — and this is how a session starts.
 ---
 
-NodeMP is a multiplayer system for [BeamNG.drive](https://www.beamng.com/) that lets many
-players share the same world — driving, crashing, and spawning vehicles together. It is
-designed to be **BeamMP-compatible**, so existing BeamMP server plugins run on a NodeMP
-server with little or no change.
+NodeMP is a multiplayer platform for [BeamNG.drive](https://www.beamng.com/). Many players share
+one map: they drive, crash and spawn vehicles together, and the server keeps every car in step.
+Around that core NodeMP adds accounts, a directory of servers and a plugin platform for server
+owners and developers.
 
-NodeMP is made of four parts. Each one is a separate program, and together they cover the
-whole journey from launching the game to syncing vehicles in a live session.
+This page names the parts, walks through how a session starts and says what NodeMP is not.
 
-## The four parts
+## The parts
 
-- **Launcher** — a desktop app (C++) that you run before BeamNG. It signs you in automatically
-  when you have a saved session, keeps the in-game mod up to date, and proxies your connection to
-  game servers.
-- **Mod** — the in-game add-on (Lua, with a Vue/Angular UI) that runs inside BeamNG.drive.
-  It adds the Multiplayer screen and server browser, in-game chat, the player list,
-  nametags, and the vehicle synchronization that keeps everyone's cars in step.
-- **Server** — the game server (C++) that hosts a session. It accepts player connections,
-  relays vehicle and chat traffic, and runs server-side Lua plugins (including BeamMP ones).
-- **Backend** — the central API (Go) for the whole network: accounts and login, one-time
-  join tickets, the public server list, host registration, and release metadata.
+- **Launcher** — a desktop app for Windows. You sign in to your NodeMP account or continue as
+  *Test Drive*, pick a server from the list and press Play. The launcher keeps the client mod up to
+  date and starts BeamNG.drive through a bundled helper (`Node-Launcher.exe`) that owns the
+  connection to the server.
+- **Client mod** — `NodeMP.zip`, a BeamNG mod (id `multiplayernodemp`). The launcher downloads it
+  from the directory into `mods/multiplayer/` in your BeamNG user folder and checks its hash
+  before every join. Inside the game it synchronizes vehicles, draws the chat, the player list and
+  the session info, and adds a NodeMP page to the game's Options.
+- **Game server** — `Node-Server`, a C++ program for Linux and Windows, also shipped as a Docker
+  image. It reads `server.toml`, listens on one port for TCP and UDP (`30814` by default), relays
+  vehicle state between players, delivers content to joining players and runs plugins.
+- **Directory** — the service at `https://api.nodemp.com`. It holds accounts, issues join tickets,
+  lists servers, issues server keys to hosts and publishes launcher and mod releases.
+- **Website** — `https://nodemp.com`: downloads, your account and the page where you create server
+  keys.
 
-## How they fit together
+## How a session starts
 
-When you start the launcher it checks for updates and installs the current in-game mod; it signs
-you in automatically only if you have a saved session — otherwise you sign in from the in-game
-gate. Inside BeamNG you open **Multiplayer**, where the mod shows the server list (provided by the
-backend) and lets you connect. The launcher fetches a single-use *join ticket* from the
-backend, hands it to the chosen game server, and proxies the session. The game server checks
-that ticket with the backend, then streams the world to your mod for the rest of the session.
+1. In the launcher you pick a server from the list, or type an address into *Direct Connect*.
+2. The launcher compares the installed `NodeMP.zip` with the release the directory publishes and
+   downloads the published one if the hashes differ.
+3. The launcher asks the directory for a one-shot join ticket for that server. A signed-in player
+   gets a ticket for their account; a Test Drive player gets a guest ticket and a generated guest
+   name.
+4. The launcher starts the helper with the server address, your name and the ticket. The helper
+   starts BeamNG.drive and opens a TLS 1.3 connection to the server. The client mod talks to the
+   helper over two local TCP channels: `4444` for commands and `4445` for game traffic.
+5. The server redeems the ticket with the directory and takes the verified name from the answer.
+   A server with `TestDrive = false` refuses guests and players without a ticket.
+6. The server sends the map and its content list, the helper downloads missing content into
+   `mods/multiplayer/`, the server streams its client scripts, and you spawn.
 
-Server owners run the **server** program and register their host with the **backend** so it
-appears in the public list; the backend keeps that listing fresh through a periodic *beacon*.
+A server without a server key skips step 5: it accepts anyone who knows its address and takes
+names as the launcher sends them. See the [framework overview](/framework/overview/).
 
-## BeamMP compatibility
+## What a plugin is
 
-A core goal of NodeMP is to be a drop-in home for the BeamMP ecosystem. Server-side BeamMP
-Lua plugins use the same global API (`MP`, `Util`, `FS`, `Http`) and event model on NodeMP.
-See [BeamMP compatibility](/introduction/beammp-compatibility/) for exactly what is supported
-and the few differences to know about.
+*Plugin* is the umbrella word for two things:
+
+- A **resource** is a folder under `resources/` in the server's working directory with a
+  `resource.toml`. Its server half is Lua (`server/main.lua`), or JavaScript when the `js-host`
+  module is installed, and uses the `node` API. Its client half, `client/*.lua`, is streamed to
+  every player on join and runs inside the game.
+- A **native module** is a shared library (`.so` or `.dll`) in `modules/` next to the server
+  executable. It is written in C or C++ against `node.h` and can do what a resource cannot: teach
+  the server a new resource language.
+
+Start with the [plugin overview](/plugins/overview/).
+
+## What NodeMP is not
+
+NodeMP is not a replacement for BeamMP: it does not run BeamMP server plugins, and a BeamMP server
+cannot be moved over as it is. See [Differences from BeamMP](/introduction/differences-from-beammp/).
+
+## Versions
+
+| Component | Version | Release |
+|---|---|---|
+| Game server (`Node-Server`) | 1.0.0 | tag `server-v1.0.0`: `Node-Server-1.0.0-linux-x64.tar.gz`, `Node-Server-1.0.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:1.0.0` |
+| Launcher | 1.0.0 | tag `launcher-v1.0.0`: `NodeMP-Setup-1.0.0.exe` |
+| Client mod (`NodeMP.zip`) | 1.3.0 | tag `mod-v1.3.0`: `NodeMP-1.3.0.zip`, installed by the launcher |
+| Wire protocol | v17 | launcher and server must match exactly; a mismatch is refused with a reason |
+
+All releases are published at
+[github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).
 
 ## Next steps
 
-- Players: start with [Install the launcher](/players/install/) and then
-  [Join a server](/players/join/).
-- Server owners: head to the [hosting quick start](/hosting/quick-start/).
-- New to the terminology? The [glossary](/reference/glossary/) defines the key terms.
+- Players: [Install the launcher](/players/install/), then [Join a server](/players/join/).
+- Server owners: [Hosting quick start](/hosting/quick-start/).
+- Developers: [Plugin overview](/plugins/overview/) and the [API reference](/plugins/api/).
+- Terms: the [glossary](/reference/glossary/).

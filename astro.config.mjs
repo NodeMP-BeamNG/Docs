@@ -21,12 +21,12 @@ export default defineConfig({
       },
       sidebar: [
         { label: 'Introduction', translations: { ru: 'Введение' }, items: [
-          { label: 'What is NodeMP', slug: 'introduction/what-is-nodemp' },
-          { label: 'BeamMP compatibility', slug: 'introduction/beammp-compatibility' },
+          { label: 'What is NodeMP', translations: { ru: 'Что такое NodeMP' }, slug: 'introduction/what-is-nodemp' },
+          { label: 'Differences from BeamMP', translations: { ru: 'Отличия от BeamMP' }, slug: 'introduction/differences-from-beammp' },
         ]},
-        { label: 'Framework (new stack)', translations: { ru: 'Фреймворк (новый стек)' }, items: [
-          { label: 'Overview', slug: 'framework/overview' },
-          { label: 'How synchronization works', slug: 'framework/sync' },
+        { label: 'Framework', translations: { ru: 'Фреймворк' }, items: [
+          { label: 'Overview', translations: { ru: 'Обзор' }, slug: 'framework/overview' },
+          { label: 'How synchronization works', translations: { ru: 'Как работает синхронизация' }, slug: 'framework/sync' },
         ]},
         { label: 'For players', translations: { ru: 'Игрокам' }, items: [
           { label: 'Install the launcher', slug: 'players/install' },

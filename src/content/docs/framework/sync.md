@@ -1,115 +1,144 @@
 ---
 title: How synchronization works
-description: Transport layers, packet categories, control modes, the 72-byte position snapshot, seats, damage, events and the node grabber - the full data flow of the NodeMP stack.
+description: Transport hops, the packet categories of wire protocol v17, control modes, the position snapshot, seats, damage, identity, events and the relay.
 ---
 
-This page documents the actual data flow of the NodeMP stack (wire **v13**):
-what travels where, at which rate, and who is allowed to send what.
+This page follows the data through a NodeMP session on wire protocol **v17**: what travels
+where, at which rate, and who is allowed to send what. The byte layout of every packet is on the
+[wire protocol](/plugins/protocol/) page; the normative contract is `server/include/net/Protocol.h`,
+kept byte-identical in the helper.
 
 ## Transport: three hops
 
 ```
-BeamNG mod (GE Lua)  <-- TCP 4444 (commands) + TCP 4445 (game) -->  Launcher
-Launcher             <-- TCP + TLS 1.3 (TOFU pin) + UDP        -->  Server
+client mod (GE Lua)  <-- TCP 4444 (commands) + TCP 4445 (game traffic) -->  helper
+helper               <-- TCP + TLS 1.3 + UDP                           -->  Node-Server
 ```
 
-* The mod talks to the launcher over two loopback TCP channels: **4444**
-  (command: connect/quit/status/map/mod list) and **4445** (relay: all game
-  traffic). The first frame on both channels is a per-run auth token.
-* The launcher owns the TLS 1.3 session with the server (certificate pinned
-  trust-on-first-use) and decides what rides UDP: only `State::Pos` and
-  `State::HeadPose`, each with an HMAC anti-spoof trailer. The mod never sees
-  UDP or compression.
-* Every packet is `[u32 LE length][category][subtype][flags][body]`.
-  Categories: Handshake, Session, Content, Vehicle, State, Event, Command,
-  Module. The full normative contract lives in `server/include/net/Protocol.h`
-  (byte-identical copy in the launcher; Lua and Python mirrors are asserted by
-  `wire_parity_test.py` against golden fixtures).
+- The client mod talks to the helper over two loopback TCP channels: **4444** (commands: connect,
+  quit, status, map, mod list) and **4445** (relay: all game traffic). The first frame on both is
+  a per-run auth token.
+- The helper owns the TLS 1.3 session with the server. For a listed server it pins the certificate
+  fingerprint the directory reported; for a direct connection it pins on first use. Of the game
+  traffic, only `State::Pos` and `State::HeadPose` ride UDP, each with an HMAC trailer keyed by a
+  per-session token delivered once over TLS. The client mod never sees UDP or compression.
+- Every TCP frame is `[u32 length][category][subtype][flags][body]`; bodies over about 400 bytes
+  may be zstd-compressed on the helper–server hop only.
+
+## Packet categories
+
+Every packet is identified by a `(Category, SubType)` pair. Subtype names, from `Protocol.h`:
+
+| Category | Subtypes | Names |
+|---|---:|---|
+| `Handshake` | 11 | `Hello`, `Welcome`, `Ping`, `Pong`, `UdpToken`, `UdpHello`, `MapInfo`, `JoinWorld`, `VerifyRequest`, `VerifyReport`, `Identity` |
+| `Session` | 7 | `Kick`, `SelfInfo`, `PlayerJoined`, `PlayerLeft`, `PlayerList`, `SessionEnd`, `ClientId` |
+| `Content` | 8 | `ModsRequest`, `ModsInfo`, `FileRequest`, `FileBegin`, `FileDeny`, `SyncDone`, `ResourceChunk`, `ResourceDone` |
+| `Vehicle` | 28 | `SpawnReq`, `Spawn`, `SpawnDeny`, `Edit`, `Delete`, `Reset`, `Coupler`, `Paint`, `Camera`, `SeatClaim`, `SeatVerdict`, `Driver`, `SeatFree`, `Authority`, `AuthRevoke`, `PlayerVehicle`, `Resync`, `ResyncReq`, `Trigger`, `DamageStat`, `DamageBlob`, `CouplerSet`, `Tag`, `Lock`, `ConfigHash`, `TriggerReq`, `NodeGrab`, `NodeGrabSet` |
+| `State` | 9 | `Pos`, `Inputs`, `Electrics`, `Nodes`, `BreakGroups`, `Controller`, `Powertrain`, `Engine`, `HeadPose` |
+| `Event` | 1 | `Event` |
+| `Command` | 18 | `Keepalive`, `VersionReq`, `Version`, `Connect`, `Quit`, `StatusReq`, `Status`, `PingReq`, `Ping`, `MapReq`, `Map`, `ModLoaded`, `ModList`, `ConnectFailed`, `Prompt`, `PromptAnswer`, `Auth`, `Server` |
+| `Module` | 1 | `Data` |
+
+`Command` packets never leave the machine; `Handshake` and the content-control half of `Content`
+end at the helper; everything else is relayed to the game.
+
+## Joining: handshake and identity
+
+The helper sends `Hello` (protocol version and requested name) and then, always, `Identity` with
+the join ticket — empty when there is none. A version mismatch is refused with a reason naming
+both versions; `VerifyRequest`/`VerifyReport` then check the game install at the strictness of
+`[General] VerifyGame`, before any content is downloaded. Identity is decided last, because a
+redeemed ticket is spent: a server with `[Directory]` configured redeems it and takes the verified
+name — the account's username or the guest name the directory minted — in place of what `Hello`
+asked for. Names are sanitized either way (control characters stripped, 24-byte UTF-8-safe cap,
+`#<id>` suffix on duplicates; no name at all becomes `Player<id>`) and broadcast as a
+`player:identity` event, which is what `NodeMP.getAccount()` reads on the client.
 
 ## Who streams a vehicle: control modes L/S/R
 
 | Mode | Meaning | What this client sends for it |
-|------|---------|-------------------------------|
-| `L`  | local driver | everything, controls folded into the snapshot |
-| `S`  | sync authority (keeper of an empty/foreign car) | everything except controls |
-| `R`  | remote ghost | nothing; inbound state overwrites it, local inputs are ghost-suppressed |
+|---|---|---|
+| `L` | local driver | everything, controls folded into the snapshot |
+| `S` | sync authority (keeper of an empty or foreign car) | everything except controls |
+| `R` | remote ghost | nothing; inbound state overwrites it, local inputs are ghost-suppressed |
 
-The server assigns driver/authority (`Driver`/`Authority`/`AuthRevoke`
-broadcasts, each stamped with a per-vehicle **seat epoch** so stale packets are
-dropped and gaps trigger a resync).
+The server assigns driver and authority (`Driver`, `Authority`, `AuthRevoke` broadcasts), each
+stamped with a per-vehicle **seat epoch** so stale packets are dropped and a gap triggers a
+resync. The authority's `Pos` stream doubles as its liveness heartbeat: a silent authority is
+released after a grace period so another client can take the car over.
 
-The outbound scheduler polls sync-map vehicles at fixed rates: **position
-60 Hz**, inputs 30, electrics 30, controllers 30, nodes/breakgroups 15,
-powertrain 10 (+ NodeMP extras: fire 4 Hz, optional full-state 0.5 Hz). All
-channels are diff-gated - an idle car sends almost nothing.
+The client scheduler polls synced vehicles at fixed rates: **position 60 Hz**, inputs 30,
+electrics 30, controllers 30, nodes and break groups 15, powertrain 10, fire 4, plus an optional
+full-state snapshot at 0.5 Hz (off by default). All channels except position are diff-gated, so
+an idle car sends almost nothing.
 
 ## Position: the only binary state channel
 
-`State::Pos` is a fixed **72-byte snapshot**: position, quaternion, linear and
-angular velocity (f32), the five driving controls quantized to single bytes
-(steering/throttle/brake/clutch/parking brake) + gear, sender timer, ping,
-sequence counter and flags. It rides UDP with a per-datagram HMAC.
+`State::Pos` is a fixed **72-byte snapshot**: position, orientation quaternion, linear and angular
+velocity as `f32`, the five driving controls (steering, throttle, brake, clutch, parking brake)
+quantized to single bytes, the gear, the sender's timer, ping, a sequence counter and a flags byte
+(paused, controls valid, teleport, velocity step). It rides UDP with a per-datagram HMAC and an
+anti-replay window on the sequence.
 
-The receiver applies it through a prediction/correction pipeline in the
-vehicle VM: dead-reckoned target, PD-style velocity corrections (force-capped),
-a velocity-scaled teleport ladder for large errors, and NodeMP's low-speed
-shaping - as the sender's car approaches standstill the correction stiffness
-falls toward a floor and the target switches from extrapolation to
-interpolation between the two latest packets (this kills the "car rocking on a
-flatbed at mid ping" feedback loop). Correction strength, teleport threshold,
-view distance and the statics shaping are user-tunable from the settings panel.
+The receiver applies it in the vehicle VM with the client mod's prediction math:
+extrapolation toward a dead-reckoned target, PD-style velocity corrections and a velocity-scaled
+teleport for large errors. A car resting on a moving body (a flatbed, another car's roof) is
+corrected by velocity only, so the spring cannot load up and launch it; a sender-detected teleport
+(reset, recover) makes receivers snap instead. Correction strength and the teleport threshold are
+player-tunable in the mod's settings; remote cars are fully simulated at every distance.
 
-The server also runs distance-based interest management for Pos relays
-(default radius 2000 m: full rate up close, half rate in the outer ring,
-culled beyond).
+The server can add distance-based interest management: with `[Network] StateRelayRadius` set in
+metres, `Pos` reaches players within half that radius at full rate, players in the outer half at
+half rate, and nobody beyond it. The default `0` relays every snapshot to everyone.
 
 ## Everything else per vehicle
 
-* Secondary channels (`u32 gid + JSON` over TCP): electrics, nodes/breakgroups,
-  controllers, powertrain/engine. The server caches the last body per
-  (vehicle, subtype) and replays them to joiners, so late joiners see correct
-  lights and damage.
-* Lifecycle: `SpawnReq -> Spawn` (server assigns the global id and caches the
-  config), `Edit/Reset/Paint/Delete` accepted only from the driver/authority,
-  `ConfigHash` reconciliation with silent targeted resyncs.
-* Damage (v4): the authority reports a damage counter; when it grows and
-  settles it uploads a deformation blob. Joiners spawn damaged cars in ONE
-  spawn.
-* Seats (v8/v9): transactional `SeatClaim -> SeatVerdict` + epoch-stamped
-  broadcasts; occupied cars grant passenger seats; a silent authority can be
-  taken over after a grace period; since v13 a driver claim while the registry
-  still thinks you drive another car performs an automatic seat change instead
-  of dead-ending (`DeniedOccupied`).
-* Vehicle locks (v12): `unlocked` / `driver-only` / `locked`, set server-side
-  (NodeMP exposes them as the per-player policy in the settings panel).
+- **Secondary channels** (`u32 gid + JSON` over TCP): electrics, nodes and break groups,
+  controllers, powertrain and engine. The server caches the last body per (vehicle, subtype) and
+  replays it to joiners, so a late joiner sees correct lights and damage.
+- **Lifecycle**: `SpawnReq -> Spawn` (the server assigns the global id and caches the config);
+  `Edit`, `Reset` and `Paint` are accepted only from the current driver; `Delete` from the driver
+  or the spawner. `SpawnDeny` carries a plugin's veto reason. Clients report a `ConfigHash` of the config they hold; a
+  mismatch triggers a silent, targeted resync.
+- **Damage**: the authority reports a damage counter (`DamageStat`) and, once it settles, uploads
+  a deformation blob (`DamageBlob`). Joiners spawn damaged cars already damaged, in one spawn.
+- **Seats**: a transactional `SeatClaim -> SeatVerdict` pair plus epoch-stamped broadcasts.
+  Claiming an occupied driver seat grants a passenger seat; claiming a new car while the registry
+  still thinks you drive another one frees the old wheel first. `PlayerVehicle` tells everyone
+  which seat a player occupies.
+- **Tags and locks**: plugins attach key–value tags to vehicles (`Tag`) and lock them (`Lock`:
+  `unlocked`, `driver-only`, `locked`, with a whitelist). Locks gate client seat claims only;
+  server-driven seating bypasses them. Both are replayed to joiners after the vehicle's `Spawn`.
+- **Triggers**: `Trigger` (doors, couplers) is echoed to every client including the sender;
+  `TriggerReq` asks the vehicle's sync authority to run a controller call and is never cached.
 
-## Events, chat and the relay resource
+## Events, the relay and the module channel
 
-Client-emitted `Event` packets are **server-terminal**: they reach server Lua
-resources only. NodeMP's chat, fire sync, remote trigger use and policy ride
-`nodemp:*` events, forwarded between clients by the `nodemp-relay` server
-resource (which also logs chat to the console, applies per-player vehicle
-policy and answers the module manifest handshake).
+Client-emitted `Event` packets are **server-terminal**: they reach server resources only. Wire
+event names are `<domain>:<verb>` in lowercase (`chat:send`, `vehicle:fire`, `player:policy`,
+`modules:request`); camelCase names (`playerJoin`, `onVehicleSpawnRequest`) are server-side hooks
+that never cross the wire. The client mod's peer features — fire sync, node grabbing, optional
+full-state blobs — ride `vehicle:*` events that the `nodemp-relay` server resource forwards to
+every other player; the same resource applies each player's `player:policy`. Chat is the `chat`
+resource. `Module::Data` is the binary counterpart of `Event`: arbitrary bytes on a `u32` channel
+id, server-terminal from the client, targeted or relay-filtered broadcast from the server.
 
-## Node grabber (experimental, v12)
+## Node grabber (experimental)
 
-Ctrl+drag sends `NodeGrab {gid, action, node, target, force}` at up to 30 Hz.
-The server forwards it as `NodeGrabSet` to the vehicle's **sync authority**
-only when `[Experimental] NodeGrab = true` AND a resource explicitly allows it
-via the fail-closed `onVehicleNodeGrabRequest` hook - so the pull is simulated
-by the client that owns the car's physics and deforms identically for everyone.
+The client mod's synced grabber is off by default (`nodempSyncedGrabber` in the mod's settings).
+When on, Ctrl+drag picks a node and streams `vehicle:grab` events at up to 60 Hz; `nodemp-relay`
+forwards them verbatim to every other player; a player who has turned off `nodempAllowNodeGrab`
+ignores grabs on their own cars, and the resource's `allowGrab` policy gates only the typed path
+below. Every client — the grabber included — runs the same spring on its copy of the car, so the
+deformation is identical for everyone. The wire also has a typed, server-arbitrated path:
+`node.requestNodeGrab` in a client script sends `Vehicle::NodeGrab`, which the server forwards as
+`NodeGrabSet` to the vehicle's **sync authority** only when `[Experimental] NodeGrab = true` and a
+resource allows the request through the fail-closed `onVehicleNodeGrabRequest` hook.
 
-## Head poses / freecam markers (v12)
+## Head poses
 
-Every client streams its camera pose (33 bytes: position, quaternion, freecam
-flag) at 30 Hz over UDP. NodeMP renders a marker + nickname for players in
-free camera, interpolated receiver-side for frame-smooth motion. Poses are
-ephemeral: never cached, expired after 3 s.
-
-## Nicknames (v13)
-
-The launcher sends an optional player name in the handshake (`Launcher.cfg`
-`"Name"` or `--name`). The server sanitizes it (control characters stripped,
-UTF-8-safe 24-byte cap), de-duplicates against connected players with a
-`#<id>` suffix, and falls back to the legacy `Player<id>` guest name when
-empty.
+Every client streams its camera pose (`HeadPose`: 33 bytes — player id, position, quaternion,
+freecam flag) at 30 Hz over UDP. The client mod renders a marker and the player's name for players
+in free camera, interpolated on the receiver. Poses are ephemeral: never cached, never replayed,
+expired after 3 s of silence. The server drops a pose whose player id is not the sender's.
