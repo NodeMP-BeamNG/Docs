@@ -17,9 +17,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NODEMP_SDK_DIR: ${{ github.workspace }}/sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - name: Checkout sdk (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/sdk
+          ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
+          path: sdk
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm

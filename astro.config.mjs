@@ -48,6 +48,7 @@ export default defineConfig({
           { label: 'Wire protocol', slug: 'plugins/protocol' },
           { label: 'Client mod API', slug: 'plugins/client-api' },
           { label: 'Migrating BeamMP plugins', slug: 'plugins/migrating' },
+          { label: 'API reference', translations: { ru: 'Справочник API' }, items: [{ autogenerate: { directory: 'plugins/api' } }] },
         ]},
         { label: 'Reference', translations: { ru: 'Справочник' }, items: [
           { label: 'Launcher error codes', slug: 'reference/error-codes' },
