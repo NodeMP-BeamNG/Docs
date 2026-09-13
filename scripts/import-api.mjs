@@ -2,11 +2,22 @@
 // Runs apigen in a scratch copy of the sdk (its `docs` command writes next to
 // the sdk folder) and imports the result into src/content/docs/plugins/api/.
 // Without an sdk checkout it writes a single placeholder page so the site still builds.
+//
+// Environment:
+//   NODEMP_SDK_DIR     sdk checkout (default ../sdk)
+//   NODEMP_PYTHON      interpreter to try first (then python3, python)
+//   CI                 set → no sdk/python is an error (exit 1) instead of the placeholder
+//   IMPORT_API_STRICT  set to 1 → exit 1 when a guide page apigen links to does not exist
+//                      yet (the pages arrive with the content tasks; the final content task
+//                      turns this on in CI). Unset: missing guides link to /plugins/overview/
+//                      and are listed in one "guide pages missing" summary line.
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { headingMap, transformPage, placeholderPage, resolveGuideLinks, GUIDE_LINKS, PAGE_FILES } from './lib/api-transform.mjs';
+import {
+  headingMap, transformPage, placeholderPage, resolveGuideLinks, GUIDE_LINKS, PAGE_FILES, PAGE_TITLES, TITLES,
+} from './lib/api-transform.mjs';
 
 const CONTENT_ROOT = 'src/content/docs';
 const OUT_DIRS = ['src/content/docs/plugins/api', 'src/content/docs/ru/plugins/api'];
@@ -45,6 +56,7 @@ if (!hasSdk || !py) {
   placeholder(reason);
 }
 
+const missingGuides = [];
 const scratch = mkdtempSync(join(tmpdir(), 'nodemp-apigen-'));
 try {
   for (const rel of ['api.toml', 'node.h', 'lua/prelude.lua', 'tools/apigen.py']) {
@@ -53,20 +65,33 @@ try {
   const r = spawnSync(py, [join(scratch, 'sdk', 'tools', 'apigen.py'), 'docs'], { encoding: 'utf8' });
   process.stdout.write(r.stdout || '');
   process.stderr.write(r.stderr || '');
-  if (r.status !== 0) { console.error('import-api: apigen docs failed'); process.exit(1); }
+  if (r.status !== 0) throw new Error('import-api: apigen docs failed');
   const src = join(scratch, 'docs', 'api');
   const raw = Object.fromEntries(Object.keys(PAGE_FILES).map((n) => [n, readFileSync(join(src, n), 'utf8')]));
   const maps = Object.fromEntries(Object.entries(raw).map(([n, t]) => [n, headingMap(t)]));
   const guideLinks = resolveGuideLinks(pageExists);
   for (const [g, url] of Object.entries(GUIDE_LINKS)) {
-    if (guideLinks[g] !== url) console.warn(`import-api: ${url} does not exist yet; ${g} links to ${guideLinks[g]} until it does`);
+    if (guideLinks[g] !== url) missingGuides.push(url);
   }
   resetOut();
   for (const [name, text] of Object.entries(raw)) {
     const page = transformPage(name, text, maps, guideLinks);
+    const title = /^title: (.*)$/m.exec(page.text)[1].replace(/^"(.*)"$/, (m, s) => JSON.parse(m));
+    if (title !== (TITLES[name] || PAGE_TITLES[name])) {
+      console.warn(`import-api: ${name} is titled "${title}" but links to it read "${PAGE_TITLES[name]}"; update PAGE_TITLES`);
+    }
     for (const d of OUT_DIRS) writeFileSync(join(d, page.file), page.text);
   }
   console.log(`import-api: wrote ${Object.keys(raw).length} pages to ${OUT_DIRS.join(' and ')}`);
 } finally {
   rmSync(scratch, { recursive: true, force: true });
+}
+
+if (missingGuides.length) {
+  const strict = process.env.IMPORT_API_STRICT === '1';
+  console[strict ? 'error' : 'warn'](
+    `import-api: ${missingGuides.length} guide page(s) missing, linked to /plugins/overview/ instead: ${missingGuides.join(' ')}` +
+    (strict ? ' (IMPORT_API_STRICT=1: failing)' : ''),
+  );
+  if (strict) process.exitCode = 1;
 }
