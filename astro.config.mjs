@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightLinksValidator from 'starlight-links-validator';
 
 export default defineConfig({
   site: 'https://docs.nodemp.com',
@@ -9,6 +10,7 @@ export default defineConfig({
       title: 'NodeMP',
       logo: { src: './src/assets/nmp-logo.png', alt: 'NodeMP' },
       customCss: ['./src/styles/custom.css'],
+      plugins: [starlightLinksValidator({ errorOnRelativeLinks: true, errorOnFallbackPages: false })],
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/NodeMP-BeamNG' },
       ],
