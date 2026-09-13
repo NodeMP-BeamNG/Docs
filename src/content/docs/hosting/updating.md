@@ -1,108 +1,102 @@
 ---
 title: Updating
-description: Update a NodeMP server safely — replace the binary while keeping your config and resources, and watch for protocol and version bumps.
+description: Check the version, replace the binary or pull the new image, keep server.toml and the TLS files, and what a protocol change means for players.
 ---
 
-Updating a NodeMP server is mostly **replacing the binary**. Your `ServerConfig.toml` and
-`Resources/` folders are data the server reads, not part of the executable, so they survive an
-update untouched.
+An update replaces the executable and its `tools/` folder, or the container image. Everything
+else — `server.toml`, the TLS files, resources, content, storage, bans — is data next to it and
+stays.
 
-## What is preserved
-
-- **`ServerConfig.toml`** — the server only generates a config when none exists; it never
-  overwrites yours. A new binary keeps reading your existing file.
-- **`Resources/Server`** (plugins) and **`Resources/Client`** (mods) — left exactly as they are.
-- **Plugin data files** written under a plugin's own folder (bans, persisted world, module
-  config, etc.) — untouched.
-
-So the safe pattern is: stop the server, swap the binary, start it again.
-
-## Update steps
-
-### systemd (Linux)
+## Check the version
 
 ```bash
+./Node-Server --version
+```
+
+prints `Node-Server v1.0.0`. The startup banner shows the same number on its `version` line, and
+a listed server reports it to the directory in every beacon.
+
+## Where releases are
+
+Server releases are tags `server-v*` at
+[github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Each carries
+the two archives named after the version (`Node-Server-1.0.0-linux-x64.tar.gz`,
+`Node-Server-1.0.0-windows-x64.zip`), their `.sha256` files, and the release notes in the
+release body. The Docker image of the same build carries the tag with the `v`
+(`ghcr.io/nodemp-beamng/server:v1.0.0`); `latest` follows the newest main-branch build, which
+may be ahead of the latest release — pin a version tag.
+
+## Binary
+
+Linux, with the layout from the [quick start](/hosting/quick-start/) and the systemd unit from
+[Running the server](/hosting/running/):
+
+```bash
+cd /tmp
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.0.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-# replace the binary (rebuild via Docker, then copy — see Running the server):
-sudo cp ./NodeMP-Server /opt/nodemp/NodeMP-Server
-sudo chmod +x /opt/nodemp/NodeMP-Server
+sudo tar -xzf Node-Server-1.0.0-linux-x64.tar.gz -C /opt/nodemp
+sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
-journalctl -u nodemp-server -f
+/opt/nodemp/Node-Server --version
 ```
 
-### Docker / docker-compose
+The archive holds `Node-Server` and `tools/`; extracting it over the folder replaces exactly
+those two and touches nothing else. Replace the version in the file names with the release you
+are installing.
 
-Rebuild the image and recreate the container; your `gamedata/` volume (config + resources)
-persists:
+Windows: stop the server, extract the new zip over `C:\NodeMP` so that `Node-Server.exe` and
+`tools\` are replaced, start it again.
+
+## Docker
+
+Change the tag in the Compose file, then:
 
 ```bash
-cd deploy
-docker compose up -d --build game-server
-docker compose logs -f game-server
+docker compose pull gameserver
+docker compose up -d gameserver
+docker compose logs -f gameserver
 ```
 
-### Windows (native)
+With `image: ghcr.io/nodemp-beamng/server:latest` the same two commands move to the newest
+main-branch build, which may be ahead of the latest release — pin a version tag. The `/data`
+volume is untouched. To roll back, put the previous tag in the file and run
+the same commands.
 
-Stop the server, replace `NodeMP-Server.exe` in its folder, and start it again. The
-`ServerConfig.toml` and `Resources/` beside it are kept.
+## What survives an update
 
-:::tip
-Keep a copy of your `ServerConfig.toml` and `Resources/` (or the whole server folder) before a
-major update, so you can roll back instantly if something misbehaves.
-:::
+- **`server.toml`** is read by the new version and rewritten on its first start. Keys the new
+  version adds appear with their defaults; keys it no longer has are dropped; your values stay.
+  Read the release notes for a changed default, because the file does not show you which value
+  is new. The env-only Docker image has no file: a new key simply takes its default until you set
+  its variable.
+- **`node_cert.pem` and `node_key.pem`** are not part of the archive and are only generated
+  when missing. Keep them: their fingerprint is how the directory and every launcher identify
+  your server, and players who used Direct Connect have pinned it. A server that comes back with
+  a new certificate is refused by those launchers with `server certificate fingerprint mismatch`
+  until they clear the pin; listed servers get a new fingerprint recorded by the directory's
+  probe within a couple of minutes.
+- **`resources/`, `content/`, `storage/`, `bans.json`** are yours and untouched.
+- **`.obfcache/`** is keyed by the obfuscator's revision, so a new build rebuilds it as needed.
+  Deleting it is always safe.
+- **Native modules** in `modules/` are checked against the server's plugin ABI at load. A module
+  built for an older major ABI is refused with
+  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.0 -- refusing to load it. Rebuild the module.`
+  (the numbers are the live values) and needs a rebuild; resources written in a language such a module provides then do not
+  load. Lua resources need nothing rebuilt, but re-test them after a major update.
 
-## New config keys after an update
+Going back to an older version works the same way in reverse: it ignores keys it does not know
+and rewrites the file without them.
 
-If a new version adds a setting, your existing `ServerConfig.toml` simply won't contain it, and
-the server falls back to that key's built-in default. To pick up a freshly added key explicitly,
-either add it by hand to the right section (see [Configuration](/hosting/configuration/)) or
-regenerate a fresh config:
+## Protocol versions
 
-1. Stop the server.
-2. Rename or back up your current `ServerConfig.toml`.
-3. Start the server once to generate a new file with all current keys.
-4. Copy your values across, then restart.
-
-### The `[General]` mirror
-
-NodeMP appends a BeamMP-style `[General]` section that some server plugins read directly. A config
-generated by an **older** version may not have it. If a BeamMP plugin misbehaves after an update,
-add `[General]` by hand (or regenerate the config). NodeMP ignores `[General]` itself — see
-[BeamMP compatibility](/introduction/beammp-compatibility/).
-
-## The update reminder
-
-The `[Updates]` section controls the "your server is outdated" notice:
-
-```toml
-[Updates]
-ImScaredOfUpdates  = false   # set true to mute the reminder
-UpdateReminderTime = 360     # minutes between reminders
-```
-
-Leave `ImScaredOfUpdates = false` so you actually hear about new releases; raise
-`UpdateReminderTime` if the reminder is too chatty.
-
-## Watch for protocol and version bumps
-
-NodeMP documents a versioned **wire protocol** (the protocol spec is currently revision **1.1**;
-see [Wire protocol](/plugins/protocol/)). Separately, each launcher/mod build has an application
-**semver**, and that is what the handshake actually checks: the launcher sends its version and the
-server rejects it if it is below the server's built-in **minimum client version** (also advertised
-in the beacon as `ClientMinVer`). A protocol-doc revision bump does not by itself change the
-handshake — a client-version bump does. A few things to keep in mind around an update:
-
-- **Match the network.** When a release bumps the protocol, players' launchers/mods and your
-  server need to be on compatible versions. Updating the server promptly avoids turning players
-  away with a version mismatch at the handshake.
-- **Re-check plugins.** A protocol bump can change vehicle/event payloads. Re-test your server
-  plugins (and any BeamMP plugins) after a major update — start with `Debug = true` in
-  `[Logging]` to surface Lua errors. See [Server Lua API](/plugins/server-api/) and
-  [Migrating BeamMP plugins](/plugins/migrating/).
-- **Re-check client mods.** Client mods in `Resources/Client` are re-hashed automatically when
-  their files change, so replacing a `.zip` is enough — see [Resources & mods](/hosting/resources/).
-
-## Next steps
-
-- [Resources & mods](/hosting/resources/) — manage plugins and client mods.
-- [Configuration](/hosting/configuration/) — every config key.
+Launcher and server speak a versioned wire protocol, `v17` in this release. When a release
+changes it, a launcher on the old version is refused at the handshake with
+`Protocol version mismatch: launcher speaks v16, server speaks v17 - update the outdated side`
+(the two numbers are the live values). Players fix that by installing the current launcher from
+[nodemp.com/download](https://nodemp.com/download); the client mod is kept current by the
+launcher automatically before every join. As a host, update the server soon after such a
+release, since players are on the new launcher already. The release notes say when the protocol
+changed.

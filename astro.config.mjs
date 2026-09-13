@@ -34,13 +34,13 @@ export default defineConfig({
           { label: 'Settings and UI', translations: { ru: 'Настройки и интерфейс' }, slug: 'players/settings' },
           { label: 'Troubleshooting', translations: { ru: 'Устранение неполадок' }, slug: 'players/troubleshooting' },
         ]},
-        { label: 'Server hosting', translations: { ru: 'Хостинг серверов' }, items: [
-          { label: 'Quick start', slug: 'hosting/quick-start' },
-          { label: 'Configuration', slug: 'hosting/configuration' },
-          { label: 'Running the server', slug: 'hosting/running' },
-          { label: 'Registering your host', slug: 'hosting/registering' },
-          { label: 'Updating', slug: 'hosting/updating' },
-          { label: 'Resources & mods', slug: 'hosting/resources' },
+        { label: 'Server hosting', translations: { ru: 'Хостинг сервера' }, items: [
+          { label: 'Quick start', translations: { ru: 'Быстрый старт' }, slug: 'hosting/quick-start' },
+          { label: 'Configuration', translations: { ru: 'Конфигурация' }, slug: 'hosting/configuration' },
+          { label: 'Running the server', translations: { ru: 'Запуск сервера' }, slug: 'hosting/running' },
+          { label: 'Registering your server', translations: { ru: 'Регистрация сервера' }, slug: 'hosting/registering' },
+          { label: 'Updating', translations: { ru: 'Обновление' }, slug: 'hosting/updating' },
+          { label: 'Resources and content', translations: { ru: 'Ресурсы и контент' }, slug: 'hosting/resources' },
         ]},
         { label: 'Plugin development', translations: { ru: 'Разработка плагинов' }, items: [
           { label: 'Overview', slug: 'plugins/overview' },

@@ -1,207 +1,169 @@
 ---
 title: Запуск сервера
-description: Соберите бинарный файл игрового сервера NodeMP и запустите его в Linux (systemd), Windows (нативно) или через Docker / docker-compose.
+description: Node-Server как служба systemd или сервис Docker Compose — где лежат файлы, как читать логи, корректно останавливать и что резервировать.
 ---
 
-Эта страница описывает сборку **игрового сервера** NodeMP и три способа его запуска: нативно
-в Linux под systemd, нативно в Windows и через Docker (один контейнер или комплексный стек
-compose). О файле конфигурации, общем для всех способов, см.
-[Конфигурация](/ru/hosting/configuration/).
+Эта страница предполагает, что сервер уже запускается вручную, как в
+[быстром старте](/ru/hosting/quick-start/). Она превращает это в нечто, переживающее
+перезагрузку, и перечисляет файлы, за которые отвечаете вы.
 
-## Порты и URL бэкенда
+## Файлы и папки
 
-Два момента касаются каждого способа:
+Сервер строит пути от двух точек: **рабочего каталога**, в котором запущен, и **папки
+исполняемого файла**. Когда вы запускаете его из его собственной папки, как в быстром старте,
+это одно и то же место.
 
-- **Порты** — по умолчанию сервер слушает **`30814/tcp` и `30814/udp`** (один порт, оба
-  протокола). Откройте оба в брандмауэре для удалённых игроков.
-- **URL бэкенда** — адрес бэкенда задаётся через переменную окружения
-  **`NODEMP_BACKEND_URL`**, *а не* в файле TOML. По умолчанию — `https://api.nodemp.com`.
-  Приватному/loopback-серверу бэкенд не нужен вовсе (см. [быстрый старт](/ru/hosting/quick-start/)).
-
-### Переменные окружения
-
-Runtime-параметры задаются через окружение (не в `ServerConfig.toml`). Обычно нужна только
-`NODEMP_BACKEND_URL`; у остальных безопасные значения по умолчанию.
-
-| Переменная | По умолчанию | Назначение |
+| Путь | Относительно | Что это |
 |---|---|---|
-| `NODEMP_BACKEND_URL` | `https://api.nodemp.com` | Базовый URL бэкенда для сессий хоста, маяков и redeem. |
-| `NODEMP_MAX_CONCURRENT_CONNECTIONS` | `10` | Максимум одновременных **подключений с одного IP**. Повышайте для многих игроков за одним NAT (LAN-пати, кампус, CGNAT). Диапазон 1–1024. |
-| `NODEMP_MAX_GLOBAL_CONNECTIONS` | `128` | Максимум одновременных подключений **на весь сервер** (включает короткие запросы браузера/инфо — держите запас выше числа игроков). Диапазон 1–65535. |
-| `NODEMP_MANIFEST_INTERVAL_S` | `15` | Секунды между рассылками манифеста автомобилей. `0` или отрицательное отключает периодические манифесты. |
-| `NODEMP_PROBE_ENABLED` | `true` | Бэкенд активно проверяет `ip:port` сервера перед публичным листингом. |
-| `NODEMP_STRICT_REDEEM_IP` | `true` | Требовать совпадения IP подключающегося игрока с тикетом. Установите `false` для одно-хостовых конфигураций, где бэкенд не видит реальный IP клиента. |
+| `server.toml` | рабочий каталог (или `--config=`) | Конфигурация, перезаписывается при каждом запуске. |
+| `resources/<name>/` | рабочий каталог | Ресурсы: серверные скрипты и передаваемые игрокам клиентские скрипты. |
+| `content/` | рабочий каталог (`[Content] Folder`) | Zip-архивы клиентских модов и кэш хешей `content/mods.json`. |
+| `storage/<store>.json`, `.log` | рабочий каталог | Постоянные данные, которые ресурсы хранят через API хранилища. |
+| `bans.json` | рабочий каталог | Заблокированные адреса и аккаунты. |
+| `logs/server.log`, `logs/server.old.log` | рабочий каталог | Лог текущего и предыдущего запуска. |
+| `node_cert.pem`, `node_key.pem` | папка исполняемого файла (`[Network] TlsCert`, `TlsKey`) | TLS-идентичность сервера. |
+| `modules/` | папка исполняемого файла | Нативные модули (`.so`, `.dll`). |
+| `tools/` | папка исполняемого файла (или `NODE_TOOLS_DIR`) | Обфускатор и, на Windows, его интерпретатор Lua. |
+| `.obfcache/` | рядом с `tools/` | Кэш обфусцированных клиентских скриптов; можно удалять. |
 
-## Сборка бинарного файла
+`--working-directory=/path` меняет первую группу без `cd`; `--config=` переносит только файл
+конфигурации.
 
-Если не считать готовых загрузок, поддерживаемый способ получить бинарный файл — прилагаемый
-**Dockerfile**, который фиксирует инструментарий (современный CMake + vcpkg) и выполняет
-сборку за вас. Из каталога `server/`:
+## Linux: systemd
 
-```bash
-docker build -t nodemp-server-build .
-id=$(docker create nodemp-server-build)
-sudo mkdir -p /opt/nodemp
-docker cp "$id":/workspace/build/NodeMP-Server /opt/nodemp/NodeMP-Server
-docker rm "$id"
-sudo chmod +x /opt/nodemp/NodeMP-Server
-```
-
-Также есть `Dockerfile.ubuntu` (на базе Ubuntu 24.04), если он вам предпочтительнее варианта
-по умолчанию на Debian. Первый запуск из `/opt/nodemp` создаёт `ServerConfig.toml` и пустые
-папки `Resources/Server` и `Resources/Client`.
-
-## Linux — systemd (нативно)
-
-Лучший вариант для выделенного хоста: соберите один раз, запускайте бинарный файл напрямую
-под systemd (без Docker во время работы).
-
-1. Установите библиотеки времени выполнения, с которыми слинкован бинарный файл:
+Дайте серверу своего пользователя и папку, затем unit, который перезапускает его и передаёт
+две нужные ему переменные: интерпретатор Lua для обфускации и, если вы держите ключ сервера вне
+`server.toml`, переменные `NODE_DIRECTORY_*` из файла, доступного только root.
 
 ```bash
-sudo apt install -y liblua5.4-0 libssl3 libcurl4 zlib1g
+sudo useradd -r -s /usr/sbin/nologin -d /opt/nodemp nodemp
+sudo chown -R nodemp:nodemp /opt/nodemp
+sudo install -m 600 /dev/null /etc/nodemp.env   # optional: NODE_DIRECTORY_URL, _HOST_ID, _HOST_SECRET
 ```
 
-2. Установите unit-файл, поставляемый в `deploy/nodemp-server.service`:
-
-```bash
-sudo cp deploy/nodemp-server.service /etc/systemd/system/
-sudo nano /etc/systemd/system/nodemp-server.service   # set NODEMP_BACKEND_URL
-sudo systemctl daemon-reload
-sudo systemctl enable --now nodemp-server
-journalctl -u nodemp-server -f                          # watch it come up
-```
-
-Unit-файл предполагает, что бинарный файл находится в `/opt/nodemp/NodeMP-Server`, запускается
-из `/opt/nodemp` (где лежат конфигурация и `Resources/`) и перезапускается при сбое. Его
-усиление изоляции (sandbox) — `NoNewPrivileges`, `ProtectSystem`, `ProtectHome` и
-`PrivateTmp` — **включено по умолчанию**. Закомментированы лишь строки `User=`/`Group=`;
-раскомментируйте их, как только создадите отдельного служебного пользователя
-(`sudo useradd -r -s /usr/sbin/nologin nodemp`):
+`/etc/systemd/system/nodemp-server.service`:
 
 ```ini
+[Unit]
+Description=NodeMP game server
+After=network-online.target
+Wants=network-online.target
+
 [Service]
+User=nodemp
+Group=nodemp
 WorkingDirectory=/opt/nodemp
-ExecStart=/opt/nodemp/NodeMP-Server
-Environment=NODEMP_BACKEND_URL=https://api.example.com
-Restart=on-failure
+Environment=NODE_LUA=/usr/bin/lua5.1
+EnvironmentFile=-/etc/nodemp.env
+ExecStart=/opt/nodemp/Node-Server
+Restart=always
 RestartSec=5
 
-# Sandbox hardening — on by default:
-NoNewPrivileges=true
-ProtectSystem=full
-ProtectHome=true
-PrivateTmp=true
-# Uncomment once the dedicated user exists:
-# User=nodemp
-# Group=nodemp
+[Install]
+WantedBy=multi-user.target
 ```
-
-3. Откройте брандмауэр:
 
 ```bash
-sudo ufw allow 30814/tcp
-sudo ufw allow 30814/udp
+sudo systemctl daemon-reload
+sudo systemctl enable --now nodemp-server
+journalctl -u nodemp-server -f
 ```
 
-## Windows — нативно
+Строки в `EnvironmentFile` имеют вид `NAME=value` без кавычек. Переменные перекрывают те же
+ключи в `server.toml`, поэтому секрет из `/etc/nodemp.env` никогда не попадает в файл.
 
-NodeMP работает в Windows нативно. Поместите `NodeMP-Server.exe` в отдельную папку и запускайте
-его оттуда, чтобы конфигурация и `Resources/` создавались рядом с ним.
+## Windows
 
-Если вы собираете из исходников, вспомогательный скрипт **`run-server-local.bat`** — самый
-простой путь для локальной проверки: он запускает свежесобранный
-`build\Release\NodeMP-Server.exe` из рабочей папки `run-local\`, указывает
-`NODEMP_BACKEND_URL` на `http://localhost:8080`, освобождает порт 30814 от любого зависшего
-экземпляра и оставляет окно открытым, чтобы вы могли читать `run-local\Server.log`.
+Запустите `Node-Server.exe` из оболочки, открытой в его папке, и оставьте окно открытым; Ctrl+C
+останавливает сервер. Чтобы сервер стартовал вместе с машиной, создайте задачу в планировщике
+заданий, которая запускает `C:\NodeMP\Node-Server.exe` с полем *Start in* (рабочая папка), равным
+`C:\NodeMP`, при запуске системы, независимо от того, вошёл ли пользователь. Прилагаемый
+`tools\lua515\lua5.1.exe` находится автоматически; переменная окружения не нужна.
 
-Для настоящего хоста на Windows задайте `NODEMP_BACKEND_URL` самостоятельно (системная
-переменная окружения или в оболочке перед запуском) и разрешите `30814/tcp` + `30814/udp` в
-брандмауэре Windows.
+## Docker Compose
 
-## Docker
+Образ настраивается целиком переменными `NODE_*` и хранит состояние в `/data`. Этот сервис — та
+форма, в которой работает официальный сервер:
 
-### Один контейнер
+```yaml
+services:
+  gameserver:
+    image: ghcr.io/nodemp-beamng/server:v1.0.0
+    restart: unless-stopped
+    ports:
+      - "30814:30814/tcp"
+      - "30814:30814/udp"
+    environment:
+      NODE_NAME: My server
+      NODE_MAP: /levels/west_coast_usa/info.json
+      NODE_MAX_PLAYERS: "16"
+      NODE_MAX_CARS: "2"
+      NODE_VERIFY_GAME: size
+      NODE_TLS_CERT: /data/tls/node_cert.pem
+      NODE_TLS_KEY: /data/tls/node_key.pem
+      NODE_DIRECTORY_URL: https://api.nodemp.com
+      NODE_DIRECTORY_HOST_ID: ${NODE_DIRECTORY_HOST_ID}
+      NODE_DIRECTORY_HOST_SECRET: ${NODE_DIRECTORY_HOST_SECRET}
+    volumes:
+      - ./data:/data
+```
 
-Тот же образ, что используется для сборки, также запускает сервер. Смонтируйте папку хоста в
-`/data`, чтобы ваша конфигурация и ресурсы сохранялись, и опубликуйте порт для обоих
-протоколов:
+Положите два секрета в файл `.env` рядом с `compose.yaml` (`NODE_DIRECTORY_HOST_ID=…`,
+`NODE_DIRECTORY_HOST_SECRET=…`, права 600), создайте папку данных для пользователя контейнера и
+запустите:
 
 ```bash
-docker build -t nodemp-server-build -f Dockerfile .
-docker run -d --name nodemp-server \
-  -e NODEMP_BACKEND_URL=https://api.example.com \
-  -v "$PWD/gamedata:/data" -w /data \
-  -p 30814:30814/tcp -p 30814:30814/udp \
-  nodemp-server-build /workspace/build/NodeMP-Server
+mkdir -p data && sudo chown 10001:10001 data
+docker compose up -d
+docker compose logs -f gameserver
 ```
 
-### Всё-в-одном с docker-compose
+Две TLS-переменные в контейнере обязательны: папка исполняемого файла внутри образа доступна
+только для чтения, поэтому сертификат и ключ должны лежать на томе. Чтобы изменить переменную,
+отредактируйте файл и снова выполните `docker compose up -d`; Compose пересоздаст контейнер, а
+`data/` сохранится. Файлы, которые вы копируете в `data/resources/` или `data/content/`, должны
+быть доступны для чтения пользователю с id 10001 (`sudo chown -R 10001:10001 data`), а контент
+индексируется при запуске, поэтому после добавления архива перезапустите:
+`docker compose restart gameserver`.
 
-Для автономного стека — **Postgres + Redis + бэкенд + игровой сервер** на одном хосте —
-используйте `deploy/docker-compose.yml`. Он идеален для сквозной (end-to-end) проверки, когда
-вам нужны также аккаунты и список серверов.
+Консоли нет: процесс ничего не читает со стандартного ввода — ни в контейнере, ни вне его.
+Администрирование выполняется через ресурсы.
 
-```bash
-cd deploy
-cp .env.example .env        # set NODEMP_JWT_SECRET (openssl rand -base64 48)
-docker compose up -d --build
-docker compose logs -f game-server
-```
+## Логи
 
-Файл compose автоматически связывает игровой сервер с бэкендом
-(`NODEMP_BACKEND_URL=http://backend:8080`) и сохраняет конфигурацию и ресурсы в
-`deploy/gamedata/` (`ServerConfig.toml`, `Resources/Server`, `Resources/Client`). Его
-значения по умолчанию подходят для приватной/по-IP проверки на одном хосте:
+Всё, что сервер печатает, попадает и в `logs/server.log` без цветовых кодов. При каждом запуске
+предыдущий файл переименовывается в `logs/server.old.log`, так что хранится ровно один прошлый
+запуск. Каждая строка имеет вид `время  тег › сообщение`, где тег — `Core`, `Net`, `Res`,
+`Mods`, `Join`, `Leave`, `Kick`, `Warn`, `Error` и так далее. `[General] Debug = true` (или
+`NODE_DEBUG=true`) добавляет отладочные строки и метки времени с миллисекундами;
+`NODE_FORCE_ANSI=1` сохраняет цвета, когда вывод — не терминал.
 
-```
-NODEMP_PROBE_ENABLED=false
-NODEMP_STRICT_REDEEM_IP=false
-```
+Строки, которые стоит узнавать с первого взгляда:
 
-Чтобы попасть в публичный список, зарегистрируйте хост и переключите эти флаги — см.
-[Регистрация хоста](/ru/hosting/registering/).
+- `server is ready` — все подсистемы запущены.
+- `TLS 1.3 enabled — certificate fingerprint (SHA-256): …` — идентичность, которую закрепляют
+  лаунчеры.
+- `announcing this server to https://api.nodemp.com`, затем `listed in the server browser` —
+  директория приняла ключ. Только вторая строка означает, что сервер в списке.
+- `client obfuscation ready · runner lua5.1 · Prometheus (cache .obfcache)` — клиентские скрипты
+  будут обфусцированы; строка `Warn` вместо неё называет, чего не хватает.
+- `startup not successful, systems [Directory] had errors — this may or may not cause issues` —
+  одна подсистема не запустилась; строки выше говорят, какая и почему.
 
-:::note
-В конфигурации compose на одном хосте бэкенд видит игровой сервер по IP его контейнера,
-поэтому оставьте `NODEMP_STRICT_REDEEM_IP=false`. Для настоящего публичного сервера запускайте
-компоненты с их реальной публичной адресацией.
-:::
+## Остановка
 
-:::note
-Тестируете лаунчер с **собственным HTTP-бэкендом** (как в стеке compose выше)? На машине
-каждого игрока укажите лаунчеру на него через `NODEMP_API_BASE=<url>` **и** задайте
-`NODEMP_DEV=1` — без режима разработчика лаунчер отклоняет любой бэкенд без HTTPS. Полная
-цепочка аккаунт/подключение описана в [Регистрации хоста](/ru/hosting/registering/).
-:::
+Ctrl+C, `systemctl stop` или `docker compose stop` посылают SIGINT или SIGTERM. Сервер пишет в лог
+`gracefully shutting down via SIGTERM`, отключает всех игроков с причиной `Server shutdown`,
+останавливает подсистемы и завершает работу строкой `Shutdown.`. Повторное нажатие Ctrl+C
+принудительно завершает процесс.
 
-## Проверьте, что всё работает
+## Что резервировать
 
-При успешном запуске выводятся имя узла, карта и сводка по аплинку (порт, максимум игроков,
-максимум автомобилей). Если вы задали учётные данные `[Backend]`, сеть также отмечается как
-*registered*; иначе — *private / LAN*. Чтобы проверить всю цепочку аккаунт/подключение до
-того, как подключатся игроки, запустите `deploy/preflight.sh` (описано в
-[Регистрация хоста](/ru/hosting/registering/)).
-
-## Команды консоли
-
-Вводите их в консоли сервера (stdin). Загруженный админ-плагин может добавить новые через
-событие `onConsoleInput`.
-
-| Команда | Действие |
+| Хранить | Зачем |
 |---|---|
-| `help` | Показать встроенные команды. |
-| `players` (`list`) | Список подключённых игроков и их id. |
-| `status` (`info`) | Счётчики игроков / автомобилей. |
-| `kick <id\|имя> [причина]` | Отключить игрока. |
-| `kickall [причина]` | Отключить всех. |
-| `say <сообщение>` | Разослать сообщение в чат от *Server*. |
-| `setrole <id\|имя> <роль>` | Задать роль игрока (`USER`, `ADM`, `MOD`, `SCR`, `VIP`). |
-| `version` (`ver`) | Показать версию сервера и минимальную версию клиента. |
-| `stop` (`exit`, `shutdown`, `quit`) | Корректно остановить сервер. |
+| `server.toml` | Ваши настройки. Не нужен для Docker-варианта только на переменных; храните вместо него файлы Compose и `.env`. |
+| `node_cert.pem`, `node_key.pem` (`data/tls/` в Docker) | Отпечаток, по которому лаунчеры и директория узнают ваш сервер. Новая пара — новая идентичность. |
+| `resources/`, `content/` | Ваши дополнения. |
+| `storage/`, `bans.json` | Данные, записанные ресурсами, и ваши блокировки. |
 
-## Дальнейшие шаги
-
-- [Регистрация хоста](/ru/hosting/registering/) — появитесь в публичном списке серверов.
-- [Обновление](/ru/hosting/updating/) — замените бинарный файл, сохранив конфигурацию.
-- [Ресурсы и моды](/ru/hosting/resources/) — добавьте серверные плагины и клиентские моды.
+`logs/`, `.obfcache/` и `content/mods.json` создаются заново и в резервной копии не нуждаются.
