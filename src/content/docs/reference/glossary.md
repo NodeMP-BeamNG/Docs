@@ -1,20 +1,31 @@
 ---
 title: Glossary
-description: Short definitions of the key NodeMP terms — launcher, mod, host, backend, sync-owner, join ticket, host secret, dimension, presence, and beacon.
+description: NodeMP terms in one table with the Russian term and the page that explains each - directory, server key, join ticket, resource, content, helper.
 ---
 
-A quick reference for the terms used throughout these docs. For how the pieces fit together,
-see [What is NodeMP](/introduction/what-is-nodemp/).
+One line per term, the Russian term the Russian pages use, and the page that explains it. For how
+the parts fit together, read [What is NodeMP](/introduction/what-is-nodemp/) first.
 
-| Term | Definition |
-|---|---|
-| **Launcher** | The desktop app you run alongside BeamNG that signs you in, keeps the in-game mod updated, and proxies your connection to game servers. |
-| **Mod** | The in-game BeamNG add-on (Lua, with a Vue/Angular UI) that adds the Multiplayer screen, chat, player list, nametags, and vehicle synchronization. |
-| **Host** | A registered game server — its owner and machine — that can appear in the public server list. |
-| **Backend** | The central API for the network: accounts and login, join tickets, the public server list, host registration, and release metadata. |
-| **Sync-owner** | The single connected client currently responsible for syncing a given vehicle; the server reassigns it if that client leaves. |
-| **Join ticket** | A single-use token the launcher fetches from the backend and hands to a server to prove you're allowed to join. |
-| **Host secret** | The secret credential a server presents (together with its host id) to open its authenticated session with the backend. |
-| **Dimension** | A parallel world on the same map; players in different dimensions don't see or collide with each other. Off by default. |
-| **Presence** | A host's live "online" record that powers the public server browser; kept fresh by the beacon and expiring after a short time-to-live. |
-| **Beacon** | The periodic update a running server sends to the backend to stay listed in the server browser. |
+| Term | Russian | Definition | Explained on |
+|---|---|---|---|
+| **Directory** | директория | The service at `https://api.nodemp.com`: accounts and sign-in, join tickets, the server list, server keys for hosts, and the launcher and client mod releases. | [Framework overview](/framework/overview/) |
+| **Server key** | ключ сервера | A **Host ID** and a **Host secret**, created at `https://nodemp.com` and set as `[Directory] HostId` and `HostSecret`. With `Url` they let the server open a host session with the directory, send beacons and redeem join tickets. | [Registering your server](/hosting/registering/) |
+| **Join ticket** | билет на подключение | A one-shot token the launcher requests from the directory (`/v1/play/ticket`) for one server and sends in the `Identity` frame right after `Hello`. The server redeems it with the directory and takes the verified name from the answer. | [Framework overview](/framework/overview/) |
+| **Test Drive** | Test Drive | A session without an account: the directory mints a fresh `Guest…` name for every join. A server with `[Directory] TestDrive = false` refuses Test Drive players and joins without a ticket. | [Install the launcher](/players/install/) |
+| **Resource** | ресурс | A folder under `resources/` in the server's working directory: an optional `resource.toml`, a server half (`server/main.lua`, or JavaScript with the `js-host` module) using the `node` API, and optional client Lua under `client/` streamed to every player on join. | [Resources](/plugins/resources/) |
+| **Content** | контент | BeamNG mod zips under `content/` (`[Content] Folder`). The server announces them at join; the helper downloads what is missing into `mods/multiplayer/` before the game enters the world. | [Resources and content](/hosting/resources/) |
+| **Client mod** | клиентский мод | `NodeMP.zip` (BeamNG id `multiplayernodemp`) in `mods/multiplayer/` of the BeamNG user folder. The launcher installs it from the directory's release and checks its hash before every join. Version 1.3.0. | [Install the launcher](/players/install/) |
+| **Launcher** | лаунчер | `nodemp-launcher.exe`, the Windows desktop app: sign-in or Test Drive, the server list, the client mod check, and starting the helper for a join. Version 1.0.0. | [Install the launcher](/players/install/) |
+| **Helper** | хелпер | The C++ traffic process linked into the launcher and run as `nodemp-launcher.exe --helper`. It finds and starts BeamNG.drive, holds the TLS 1.3 session with the server, downloads content, and talks to the client mod over loopback TCP `4444` (commands) and `4445` (game traffic). A separate `Node-Launcher.exe` exists only in developer builds. | [What is NodeMP](/introduction/what-is-nodemp/) |
+| **Relay** | ретрансляция | Forwarding one player's traffic to the others. The core relays vehicle state itself; client events are server-terminal and reach other players only through a resource such as `nodemp-relay`. A relay filter (`node.relay.filter` in Lua, `canRelay` in C) can veto any relayed packet per recipient. | [Framework overview](/framework/overview/) |
+| **Wire event** | сетевое событие | A named `Event` frame between a client script and the server: `node.emitServer(name, data)` upwards, `player:send` and `node.broadcast` downwards. Names are `<domain>:<verb>` in lowercase (`chat:send`); camelCase names are server-side hooks that never cross the wire. | [Events](/plugins/events/) |
+| **Category / subtype** | категория / подтип | The two bytes that identify every packet of wire protocol v17: one of eight categories (`Handshake`, `Session`, `Content`, `Vehicle`, `State`, `Event`, `Command`, `Module`) and a subtype within it. Every table on the protocol page is keyed by this pair. | [Wire protocol](/plugins/protocol/) |
+| **Obfuscation level** | уровень обфускации | How much a resource's client Lua is transformed before delivery: `none`, `light` (the default), `medium` or `strong`, set per resource with `[client] obfuscation`. `[Resources] Obfuscate = false` turns it off for the whole server. | [Resources and content](/hosting/resources/) |
+| **Native module** | нативный модуль | A shared library (`.dll` or `.so`) in `modules/` next to the server executable. It exports `node_plugin_abi`, `node_plugin_init` and `node_plugin_shutdown` and calls the server through the `NodeApi` table declared in `node.h`. | [Native modules](/plugins/native-modules/) |
+| **Language host** | языковой хост | A native module that registers a resource `type` and runs resources of that type. `js-host` registers `type = "js"`; without it such resources are skipped. | [Native modules](/plugins/native-modules/) |
+| **Beacon** | маяк | The report a registered server sends to the directory every 15 s by default: name, map, players, capacity, content names and size, the `Public` and `TestDrive` flags and the version. The server list is built from beacons; when they stop, the listing lapses. | [Registering your server](/hosting/registering/) |
+| **Fingerprint (TLS)** | отпечаток (TLS) | The SHA-256 of a server's self-signed TLS certificate, logged at every start. Listed servers hand it to launchers through the directory; Direct Connect pins it on first use in `known_servers.json`. `[Directory] Fingerprint` pins the directory's certificate, not the server's. | [Registering your server](/hosting/registering/) |
+| **Direct Connect** | Direct Connect | The launcher form that joins a server by `host:port` (or `[addr]:port` for IPv6) without picking it from the list. It works for unlisted and for `Public = false` servers. | [Join a server](/players/join/) |
+| **Authority / driver / spawner** | авторитет / водитель / спавнер | Three roles per vehicle. The **spawner** created it and may delete it. The **driver** sits in it and sends its inputs. The **sync authority** is the client whose simulation counts and who streams the vehicle's state (control mode `S` for an empty or foreign car); the server assigns driver and authority and stamps both with a seat epoch. | [How synchronization works](/framework/sync/) |
+
+*Plugin* is not a type of its own: it is the umbrella word for resources and native modules.

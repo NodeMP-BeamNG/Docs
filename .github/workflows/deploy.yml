@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODEMP_SDK_DIR: ${{ github.workspace }}/sdk
+      IMPORT_API_STRICT: "1"
     steps:
       - uses: actions/checkout@v5
       - name: Checkout sdk (read-only deploy key)
@@ -36,6 +37,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run check
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

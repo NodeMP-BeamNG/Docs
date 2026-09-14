@@ -69,7 +69,7 @@ HMAC trailer. Details:
 3. **The mod SDK (`NodeMP.*`).** Locally installed BeamNG mods talk to the client mod through the
    global `NodeMP` table (`NodeMP.isInSession()`, `NodeMP.getAccount()`, `NodeMP.players`,
    `NodeMP.vehicles`, `NodeMP.chat`, `NodeMP.events`, `NodeMP.keys`), with a per-vehicle subset
-   in the vehicle VM. Reference: [Client mod API](/plugins/client-api/).
+   in the vehicle VM. Reference: [Client scripting](/plugins/client-scripting/).
 
 ## Resource folder layout
 

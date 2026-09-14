@@ -73,7 +73,7 @@ Node-Server  <-- HTTPS                                              -->  directo
    через глобальную таблицу `NodeMP` (`NodeMP.isInSession()`, `NodeMP.getAccount()`,
    `NodeMP.players`, `NodeMP.vehicles`, `NodeMP.chat`, `NodeMP.events`, `NodeMP.keys`), с
    подмножеством для автомобилей в виртуальной машине автомобиля. Справочник:
-   [API клиентского мода](/ru/plugins/client-api/).
+   [Клиентские скрипты](/ru/plugins/client-scripting/).
 
 ## Структура папки ресурса
 

@@ -48,7 +48,7 @@ installed copy` instead.
 
 If the game was already on screen, the same reason also arrives as `Session ended · …`, and
 the game shows *The session has ended* with it. Every reason a server can send is listed in
-[Launcher error codes](/reference/error-codes/).
+[Error codes](/reference/error-codes/).
 
 ## Signing in
 
