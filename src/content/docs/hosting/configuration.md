@@ -1,141 +1,263 @@
 ---
 title: Configuration
-description: Every key in ServerConfig.toml — the [Server], [Network], [Backend], [Gameplay], [Logging] and [Updates] sections — with its type, default, and meaning.
+description: Every server.toml key with section, type, default and NODE_* variable; precedence, the file rewrite, provider variables and command-line flags.
 ---
 
-A NodeMP server is configured through a single file, **`ServerConfig.toml`**, in the folder you
-run the server from. It is created automatically on first launch (see the
-[quick start](/hosting/quick-start/)) with sensible defaults, then yours to edit.
+The server reads one file, `server.toml`, from the folder it is started in (or the path given
+with `--config=`). If the file does not exist at start, the server writes it with every key at
+its default and a comment that explains it, then runs on those defaults. Settings are read once
+at start: edit the file, then restart.
 
-:::note
-Settings are read **once at startup**. Edit a value, save the file, then **restart the server**
-to apply it. Keep quotes around text values; numbers and `true`/`false` stay unquoted.
-:::
+Every key can also be set with an environment variable named `NODE_…`. That is how the Docker
+image is configured, and the right place for the host secret on any machine where the config
+file gets copied around.
 
-## `[Server]` — identity
+## Precedence
 
-How your node presents itself in the server browser, and who may join.
+From strongest to weakest:
 
-| Key | Type | Default | Meaning |
-|---|---|---|---|
-| `Name` | string | `"NodeMP Server"` | Name shown in the server browser. |
-| `Description` | string | `"Default NodeMP server"` | One-line description in the browser. |
-| `Tags` | string | `""` | Comma-separated tags, e.g. `"Freeroam,Drift"`. |
-| `Map` | string | `"/levels/gridmap_v2/info.json"` | The level the server hosts. |
-| `ResourceFolder` | string | `"Resources"` | Folder holding server plugins and client mods. See [Resources & mods](/hosting/resources/). |
-| `Private` | bool | `true` | Hide the node from the public browser. Set `false` to be listed (also requires backend credentials and a reachable port). |
-| `AllowGuests` | bool | `true` | Allow players without an account to join. |
-| `AllowClientMods` | bool | `false` | Let players who opt in (their client-side "Use my local mods" setting) keep their own local BeamNG mods (`mods/current`) active during the session. Default `false` forces everyone to run **only** the multiplayer mod plus any server-provided mods, so all players sync against identical content. Pushed to clients after they finish syncing. |
+1. `--port=` on the command line (the port only).
+2. The environment variable, when it is set and not empty.
+3. The value in `server.toml`.
+4. The built-in default.
 
-## `[Network]` — uplink
+Details that matter when a setting does not take effect:
 
-The listening socket and per-session limits.
+- A boolean variable accepts `true`, `false`, `1` and `0` in any case. Any other value is
+  ignored with `Environment variable NODE_DEBUG has non-boolean value 'yes', ignoring it (accepted: true/false/1/0)`,
+  and the file decides.
+- An integer variable must be a plain number; text is read as `0`.
+- A key with the wrong type in the file (`Port = "30814"`, with quotes) is reported as
+  `Value 'General.Port' has unexpected type, expected type 'integer'`, and the default is used.
+- A key missing from the file takes its default silently. That is how a file written by an
+  older version keeps working.
+- A file the TOML parser rejects stops the server: `Error parsing config file value: …`,
+  `Closing in 10 seconds`, exit code 1.
 
-| Key | Type | Default | Meaning |
-|---|---|---|---|
-| `IP` | string | `"0.0.0.0"` | Bind address; `0.0.0.0` means all interfaces. |
-| `Port` | int | `30814` | Listening port — used for **both** TCP and UDP. |
-| `MaxPlayers` | int | `10` | Maximum simultaneous players. |
-| `MaxCars` | int | `5` | Vehicles each player may spawn. |
-| `TrustLoopback` | bool | `true` | Trust `127.0.0.1` peers without backend auth (local dev). **Set `false` if the server sits behind a reverse proxy** that appears as loopback, otherwise external players could be treated as trusted. |
+## The file is rewritten
 
-## `[Backend]` — mesh credentials
+After every successful read of the file (at start, before anything else) the server writes
+`server.toml` back: every key it knows, with its own comments. Consequences:
 
-The credentials the server presents to the backend to open its host session and appear in the
-public list. Leave both blank to stay **private / LAN-only**.
+- Comments you added are lost, and keys the server does not know are dropped. Keep notes
+  elsewhere.
+- Values set through the environment are not written into the file. The file keeps what it said
+  before; a key the file did not mention gets its default, not the value from the environment.
+  A one-run override never becomes permanent.
+- Keys added by a new version appear with their defaults after the first start (see
+  [Updating](/hosting/updating/)).
 
-| Key | Type | Default | Meaning |
-|---|---|---|---|
-| `HostId` | string | `""` | Host id issued by the backend. |
-| `HostSecret` | string | `""` | Host secret issued by the backend (shown only once). |
+The rewrite is skipped when `NODE_PROVIDER_DISABLE_CONFIG` is set (see
+[Provider variables](#provider-variables)).
 
-Get these by registering your host — see [Registering your host](/hosting/registering/), which
-can also fill this section in for you.
+## Reference
 
-:::caution
-The **address** of the backend itself is **not** set here. It comes from the
-`NODEMP_BACKEND_URL` environment variable (default `https://api.nodemp.com`). See
-[Running the server](/hosting/running/).
-:::
+Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
+(`Port = 30814`, `Debug = false`).
 
-## `[Gameplay]` — ruleset
+| Section | Key | Type | Default | Environment |
+|---|---|---|---|---|
+| `[General]` | `Debug` | bool | `false` | `NODE_DEBUG` |
+| `[General]` | `IP` | string | `"::"` | `NODE_IP` |
+| `[General]` | `Port` | int | `30814` | `NODE_PORT` |
+| `[General]` | `Name` | string | `"Node Server"` | `NODE_NAME` |
+| `[General]` | `MaxCars` | int | `1` | `NODE_MAX_CARS` |
+| `[General]` | `MaxPlayers` | int | `8` | `NODE_MAX_PLAYERS` |
+| `[General]` | `Map` | string | `"/levels/gridmap_v2/info.json"` | `NODE_MAP` |
+| `[General]` | `VerifyGame` | string | `"size"` | `NODE_VERIFY_GAME` |
+| `[Resources]` | `Obfuscate` | bool | `true` | `NODE_OBFUSCATE` |
+| `[Content]` | `Folder` | string | `"content"` | `NODE_CONTENT_FOLDER` |
+| `[Content]` | `Encrypt` | bool | `false` | `NODE_CONTENT_ENCRYPT` |
+| `[Network]` | `TlsCert` | string | `"node_cert.pem"` | `NODE_TLS_CERT` |
+| `[Network]` | `TlsKey` | string | `"node_key.pem"` | `NODE_TLS_KEY` |
+| `[Network]` | `StateRelayRadius` | int | `0` | `NODE_STATE_RELAY_RADIUS` |
+| `[Experimental]` | `NodeGrab` | bool | `false` | `NODE_EXPERIMENTAL_NODEGRAB` |
+| `[Directory]` | `Url` | string | `""` | `NODE_DIRECTORY_URL` |
+| `[Directory]` | `HostId` | string | `""` | `NODE_DIRECTORY_HOST_ID` |
+| `[Directory]` | `HostSecret` | string | `""` | `NODE_DIRECTORY_HOST_SECRET` |
+| `[Directory]` | `Fingerprint` | string | `""` | `NODE_DIRECTORY_FINGERPRINT` |
+| `[Directory]` | `Description` | string | `""` | `NODE_DIRECTORY_DESCRIPTION` |
+| `[Directory]` | `Mode` | string | `"freeroam"` | `NODE_DIRECTORY_MODE` |
+| `[Directory]` | `Tags` | string | `""` | `NODE_DIRECTORY_TAGS` |
+| `[Directory]` | `Public` | bool | `true` | `NODE_DIRECTORY_PUBLIC` |
+| `[Directory]` | `TestDrive` | bool | `true` | `NODE_DIRECTORY_TEST_DRIVE` |
+| `[Directory]` | `RedeemFailOpen` | bool | `false` | `NODE_DIRECTORY_REDEEM_FAIL_OPEN` |
+| `[Directory]` | `AllowInsecure` | bool | `false` | `NODE_DIRECTORY_ALLOW_INSECURE` |
 
-| Key | Type | Default | Meaning |
-|---|---|---|---|
-| `InformationPacket` | bool | `false` | Advanced; keep `false` unless told otherwise. |
+### `[General]`
 
-## `[Logging]` — telemetry
+- `Debug` — extra debug and trace lines in the log, and millisecond timestamps.
+- `IP` — the address to listen on. `::` is every interface, IPv6 and IPv4; `0.0.0.0` is every
+  IPv4 interface; a single address picks one interface. Not related to your public address.
+- `Port` — the one port, used for TCP and UDP.
+- `Name` — the name players see in the list and in the launcher.
+- `MaxCars` — vehicles each player may have at once.
+- `MaxPlayers` — players at once; the list shows it as the capacity.
+- `Map` — the level sent to joining players, as the path of its `info.json` inside the game, for
+  example `/levels/west_coast_usa/info.json`. A level from a mod works when its zip is in
+  `content/`.
+- `VerifyGame` — how much of a joining player's BeamNG install is compared with the game's own
+  file list before the join. `off`: the launcher still runs the `size` check, and the server
+  only logs a mismatch instead of refusing. `size`: every file's length plus a sweep for files
+  added under the game's `content/` folder, about two seconds. `scripts`: also hashes the game's
+  `lua/` and `ui/` trees, about ten seconds; this is what catches an edited script. `full`:
+  hashes the whole install, about 50 GB, minutes — an audit, not a pre-join check. A player
+  whose install does not match is refused with
+  `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again.`
+  Any other value is logged as an error and treated as `scripts`.
 
-| Key | Type | Default | Meaning |
-|---|---|---|---|
-| `LogChat` | bool | `true` | Echo chat messages to the console. |
-| `Debug` | bool | `false` | Verbose trace and event logging. Handy while testing plugins. |
+### `[Resources]`
 
-## `[Updates]`
+- `Obfuscate` — obfuscate the client Lua that resources stream to players. `false` ships plain
+  source, for debugging. Details in [Resources and content](/hosting/resources/).
 
-Controls the "your server is outdated" reminder.
+### `[Content]`
 
-| Key | Type | Default | Meaning |
-|---|---|---|---|
-| `ImScaredOfUpdates` | bool | `false` | Set `true` to mute the outdated reminder. |
-| `UpdateReminderTime` | int | `360` | Minutes between update reminders. |
+- `Folder` — the folder with client mod zips, relative to the working directory.
+- `Encrypt` — deliver the zips ChaCha20-encrypted with a key made at each start; the launcher
+  then keeps only encrypted copies in its cache.
 
-## `[General]` — BeamMP compatibility mirror
+### `[Network]`
 
-When NodeMP generates the config it also appends a `[General]` section in BeamMP's flat layout
-(`Name`, `Port`, `MaxCars`, `MaxPlayers`, `Map`, `Private`, `Description`, `Tags`, `Debug`,
-`LogChat`, `ResourceFolder`, `AuthKey`). Many BeamMP server plugins read `ServerConfig.toml`
-directly (raw file I/O, bypassing the API) and expect exactly this section.
+- `TlsCert`, `TlsKey` — the server's TLS certificate and private key, PEM. Relative paths
+  resolve next to the executable, not in the working directory. Missing files are generated at
+  start (self-signed, valid ten years). The certificate's SHA-256 fingerprint is what launchers
+  pin, so keep both files; [Updating](/hosting/updating/) explains why.
+- `StateRelayRadius` — distance-based relay of vehicle positions, in metres. `0` (the default)
+  relays every position update to every player. With a radius, players within half of it get
+  updates at full rate, players in the outer half at half rate, and nobody beyond it.
+  [How synchronization works](/framework/sync/) has the details.
 
-NodeMP itself **ignores** `[General]` — it reads its own typed sections above. Treat `[General]`
-as a mirror, not the source of truth:
+### `[Experimental]`
 
-- Edit real values in `[Server]` / `[Network]` / etc.
-- If you hand-edit a value a plugin reads from `[General]`, keep the two in sync.
-- For a config created by an older version that lacks `[General]`, add it by hand or delete
-  `ServerConfig.toml` and let the server regenerate a fresh one.
+- `NodeGrab` — accept node-grabber requests over the wire. Off, the server drops them. On, every
+  grab still needs an explicit allow from a resource's `onVehicleNodeGrabRequest` handler; the
+  `nodegrab-allow` example is the smallest one.
 
-See [BeamMP compatibility](/introduction/beammp-compatibility/) for the full picture.
+### `[Directory]`
+
+Whether and how the server announces itself to the directory;
+[Registering your server](/hosting/registering/) covers the workflow.
+
+- `Url`, `HostId`, `HostSecret` — the directory, `https://api.nodemp.com`, and the server key
+  from your account. All three are needed: with one of them empty the server warns and is not
+  announced; with all three empty it is silent. The secret is a password — rotate it in your
+  account if it leaks.
+- `Fingerprint` — SHA-256 of the *directory's* TLS certificate as lowercase hex, for a directory
+  you run yourself with a self-signed certificate. Empty means the normal check: a certificate
+  signed by an authority the machine trusts that names the host. This is not your server's own
+  fingerprint.
+- `Description` — one or two sentences under the server name in the list (cut at 500
+  characters).
+- `Mode` — one word shown as a column in the list: `freeroam`, `racing`, `roleplay`, …
+- `Tags` — up to eight comma-separated tags players can filter by, `"drift, no-crash, ru"`.
+- `Public` — `true` puts the server in the list. `false` still announces it, so players who have
+  the address see it as online, but it is not advertised.
+- `TestDrive` — whether players without an account may join. With a directory configured this
+  is enforced: a Test Drive ticket, or a join without a ticket, is refused with
+  `This server requires a NodeMP account: sign in to the launcher and join again` when it is
+  `false`.
+- `RedeemFailOpen` — what to do with a join whose ticket cannot be checked because the directory
+  is unreachable. `false` refuses it. `true` admits the player as an unverified guest under the
+  name the launcher asked for — only when `TestDrive` is also `true`. It matters only while the
+  directory is down.
+- `AllowInsecure` — allow a `Url` that starts with `http://`. Leave it off: the secret is sent
+  in every session request, and without TLS anyone on the path can read it. Only for a directory
+  of your own on a LAN or VPN.
+
+## Provider variables
+
+Three variables exist for hosting panels and containers. They are read from the environment
+only and have no key in the file.
+
+| Variable | Effect |
+|---|---|
+| `NODE_PROVIDER_DISABLE_CONFIG` | When its value is exactly `true` or `1` (`TRUE` and `yes` do not count): no `server.toml` is read, generated or rewritten; settings come from the environment and the defaults. The Docker image sets it. |
+| `NODE_PROVIDER_PORT_ENV` | The name of another variable that carries the port, for a panel that exports it under its own name (`SERVER_PORT`). Read instead of `NODE_PORT`. |
+| `NODE_PROVIDER_IP_ENV` | The same for the bind address, instead of `NODE_IP`. |
+
+## Other environment variables
+
+| Variable | Effect |
+|---|---|
+| `NODE_LUA` | Path of the Lua 5.1 (or LuaJIT) executable that runs the obfuscator. Without it the server looks for `tools/lua515/lua5.1` (`lua5.1.exe` on Windows), then `tools/luajit`, `tools/lua5.1`, `tools/lua`. |
+| `NODE_TOOLS_DIR` | The `tools/` folder, when it is not next to the executable. |
+| `NODE_FORCE_ANSI` | `1` or `true`: coloured console output even when the output is not a terminal. |
+| `NODE_PLUGIN_POOL` | Threads in the background job pool resources use for `node.job` and `node.await`. Default: the machine's core count, between 2 and 32. |
+
+## Command line
+
+`Node-Server --help` prints:
+
+```
+USAGE:
+    Node-Server [arguments]
+
+ARGUMENTS:
+    --help
+                        Displays this help and exits.
+    --port=1234
+                        Sets the server's listening TCP and
+                        UDP port. Overrides ENV and server.toml.
+    --config=/path/to/server.toml
+                        Absolute or relative path to the
+                        server config file, including the
+                        filename. For paths and filenames with
+                        spaces, put quotes around the path.
+    --working-directory=/path/to/folder
+                        Sets the working directory of the Server.
+                        All paths are considered relative to this,
+                        including the path given in --config.
+    --version
+                        Prints version info and exits.
+
+EXAMPLES:
+    Node-Server --config=../MyWestCoastServer.toml
+        Runs the Node-Server and uses the server config file
+        which is one directory above it and is named
+        'MyWestCoastServer.toml'.
+```
 
 ## Example
 
-A complete generated `ServerConfig.toml` (comments trimmed):
+A `server.toml` with every key at its default (the comments the server writes are omitted):
 
 ```toml
-[Server]
-Name           = "NodeMP Server"
-Description    = "Default NodeMP server"
-Tags           = ""
-Map            = "/levels/gridmap_v2/info.json"
-ResourceFolder = "Resources"
-Private        = true
-AllowGuests    = true
-AllowClientMods = false
+[General]
+Debug = false
+IP = "::"
+Port = 30814
+Name = "Node Server"
+MaxCars = 1
+MaxPlayers = 8
+Map = "/levels/gridmap_v2/info.json"
+VerifyGame = "size"
+
+[Resources]
+Obfuscate = true
+
+[Content]
+Folder = "content"
+Encrypt = false
 
 [Network]
-IP            = "0.0.0.0"
-Port          = 30814
-MaxPlayers    = 10
-MaxCars       = 5
-TrustLoopback = true
+TlsCert = "node_cert.pem"
+TlsKey = "node_key.pem"
+StateRelayRadius = 0
 
-[Backend]
-HostId     = ""
+[Experimental]
+NodeGrab = false
+
+[Directory]
+Url = ""
+HostId = ""
 HostSecret = ""
-
-[Gameplay]
-InformationPacket = false
-
-[Logging]
-LogChat = true
-Debug   = false
-
-[Updates]
-ImScaredOfUpdates  = false
-UpdateReminderTime = 360
+Fingerprint = ""
+Description = ""
+Mode = "freeroam"
+Tags = ""
+Public = true
+TestDrive = true
+RedeemFailOpen = false
+AllowInsecure = false
 ```
-
-## Next steps
-
-- [Running the server](/hosting/running/) — Linux, Windows, and Docker.
-- [Registering your host](/hosting/registering/) — fill in `[Backend]` and get listed.

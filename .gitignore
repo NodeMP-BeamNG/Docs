@@ -6,6 +6,11 @@ dist/
 # pagefind cache
 .pagefind/
 
+# generated API reference (npm run gen:api) and the sdk checkout CI makes
+src/content/docs/plugins/api/
+src/content/docs/ru/plugins/api/
+sdk/
+
 # os / editor
 .DS_Store
 Thumbs.db

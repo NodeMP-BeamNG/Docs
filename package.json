@@ -7,11 +7,22 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "gen:api": "node scripts/import-api.mjs",
+    "prebuild": "node scripts/import-api.mjs",
+    "predev": "node scripts/import-api.mjs",
+    "test": "node --test \"scripts/*.test.mjs\"",
+    "check:locales": "node scripts/check-locales.mjs",
+    "check:stale": "node scripts/check-stale.mjs",
+    "check": "npm run check:locales && npm run check:stale"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.41.1",
     "astro": "^7.0.2",
     "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "github-slugger": "^2.0.0",
+    "starlight-links-validator": "^0.25.3"
   }
 }

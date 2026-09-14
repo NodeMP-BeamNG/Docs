@@ -1,0 +1,37 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODEMP_SDK_DIR: ${{ github.workspace }}/sdk
+      IMPORT_API_STRICT: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Checkout sdk (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/sdk
+          ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
+          path: sdk
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run build

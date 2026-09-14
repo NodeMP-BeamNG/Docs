@@ -1,59 +1,113 @@
 ---
 title: Troubleshooting
-description: Fixes for the most common NodeMP problems — can't connect, mod download stuck, and lost connections — plus where to find logs and error codes.
+description: Every launcher message from a failed join with its cause and fix, where the logs are, and how testers point the launcher at another directory.
 ---
 
-Most problems fall into a few buckets. When something fails, the launcher writes a stable
-`[NMP-Exxxx]` code to its console and to `Launcher.log` (next to `NodeMP-Launcher.exe`) — note
-that code and cross-reference the [launcher error codes](/reference/error-codes/) for the exact
-meaning.
+The launcher reports problems as toasts at the bottom of its window; a toast stays for a few
+seconds. Each message starts with a prefix that says which part failed:
 
-## Launcher not connected
+| Prefix | Who failed |
+|---|---|
+| `Could not join · …` | The client mod check, with no usable `NodeMP.zip` on disk. |
+| `Could not start the launcher · …` | The helper process could not be started. |
+| `Could not connect · …` | The helper could not reach the server. |
+| `Disconnected · …` | The server refused or ended the session; the text is the reason it gave. |
+| `The launcher stopped · …` | The helper exited during the join; the text is the last line of its log. |
+| `Session ended · …` | The game was already running when the session ended. |
 
-If the Multiplayer screen says the launcher is offline:
+## Joining fails
 
-- Make sure `NodeMP-Launcher.exe` is actually running, and start it **before** opening
-  Multiplayer.
-- Close any **stale launcher** still running in the background — it can hold local ports 4444 /
-  4445 and stop a fresh launcher from binding them.
-- Allow the launcher through Windows Firewall / your antivirus.
+Every `Could not join · …` message means there is no `NodeMP.zip` on disk yet; once one is
+installed, the same failures show as `Client mod could not be updated · joining with the
+installed copy` instead.
 
-## Can't connect to a server
+| Message | Cause | Fix |
+|---|---|---|
+| `Could not join · client mod is not installed and the directory is unreachable` | First join with no `NodeMP.zip` yet, and `https://api.nodemp.com` did not answer or published an unusable release. | Get online, join again; if it persists the directory is at fault, try later. |
+| `Could not join · client mod is not installed and no release has been published yet` | First join; the directory has no client mod release yet. | Wait for a release. |
+| `Could not join · could not start the download: …`, `… the download server returned 503 Service Unavailable`, `… the download stopped: …`, `… the download was N bytes, the release says M`, `… the download is larger than the release says` | First join; the release file host (not the directory) could not be reached or the transfer broke. | Check your connection and any VPN or proxy, join again. |
+| `Could not join · the downloaded client mod does not match the published checksum` | The download was corrupted. | Join again. |
+| `Could not join · cannot create …\mods\multiplayer: …`, `… could not create …\NodeMP.zip.part: …`, `… could not write …`, `… could not finish …`, `… could not read …\NodeMP.zip.part: …`, `… hashing …\NodeMP.zip.part was interrupted: …` | BeamNG's user folder is not writable, or the disk is full. | Free space; check permissions on `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\mods\multiplayer\`. |
+| `Could not join · LOCALAPPDATA is not set, so BeamNG's user folder cannot be found` | The environment variable is missing. | Fix the user environment; sign out of Windows and in again. |
+| `Client mod could not be updated · joining with the installed copy` | The check failed, but an older `NodeMP.zip` exists. Not an error by itself. | If the server refuses the old mod: **Settings → Launcher → Check now** with BeamNG closed. |
+| `Could not check the client mod · could not replace …\NodeMP.zip (is BeamNG.drive running?): …` | BeamNG.drive has the zip open. | Close the game, then *Check now*. |
+| `Could not start the launcher · could not start …\nodemp-launcher.exe: …` | Antivirus or a policy blocked the helper process. | Allow `nodemp-launcher.exe`, or reinstall from [nodemp.com/download](https://nodemp.com/download). |
+| `The launcher stopped · … Failed to find the game please launch it. Report this if the issue persists code 8` | The helper could not find BeamNG.drive. | Start the game once through Steam, or set the folder in **Settings → Game**. |
+| `The launcher stopped · … Failed to Launch the game! launcher closing soon.` | `Bin64\BeamNG.drive.x64.exe` would not start, through Steam either. | Verify the game files in Steam; check **Settings → Game**. |
+| The step stays on `Starting BeamNG.drive` or `Loading BeamNG.drive` | The launcher waits up to four minutes for BeamNG's window; a cold start can take that long. | Wait. If the game never appears, read `launcher.log` (below). |
+| `Could not connect · Could not reach the server` | Nothing answers at `host:port`: server down, port closed, firewall. | Refresh the list; the host checks `30814` TCP and UDP. |
+| `Could not connect · DNS Lookup Failed` | The hostname in a Direct Connect address does not resolve. | Check the spelling, or use the IP. |
+| `Could not connect · server certificate fingerprint mismatch` | The certificate of a server you joined by address changed; the pin is per `host:port`. | If the host confirms the change, delete the server's entry from `known_servers.json` in the cache folder (**Settings → Launcher → Downloaded content → Open**). |
+| `Disconnected · Protocol version mismatch: launcher speaks v17, server speaks v16 - update the outdated side` | Launcher and server speak different wire protocol versions. | With launcher 1.0.0 the server is outdated; tell its host. |
+| `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again` | You are in Test Drive and the server refuses guests (*Account required*). | **Settings → Account → Sign in**, or filter by *No account needed*. |
+| `Disconnected · Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | A ticket is single-use and expires within a minute; a join from another IP fails too. | Join again from the launcher. |
+| `Disconnected · The server could not verify your account with the directory (…). Try again in a moment` | The server could not reach the directory. | Try again in a moment. |
+| `Disconnected · Server full!`, `Disconnected · You are banned from this server`, `Disconnected · The server is still starting, please try joining again later.` | What they say. | Filter by *Free slots*; ask the host; wait a minute. |
+| `Disconnected · Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | The server checks game files and yours differ from the game's manifest. | Verify the game files in Steam. |
+| `Disconnected · Invalid mod "…"`, `Disconnected · Failed to verify "…"`, `Disconnected · Server cannot find …` | A content file the server announced is broken or missing on the server. | Tell the host. Removing the file in **Content** forces a fresh download. |
 
-If a connection fails ("Couldn't connect" / "the server didn't respond"):
+If the game was already on screen, the same reason also arrives as `Session ended · …`, and
+the game shows *The session has ended* with it. Every reason a server can send is listed in
+[Error codes](/reference/error-codes/).
 
-- **Refresh** the server list — the server may have gone offline or filled up.
-- Try **Direct Connect** with the server's `host:port` in case it isn't in the public list.
-- A **version mismatch** (`[NMP-E1103]`) means the server runs a different protocol version —
-  let the launcher update your client and mod, then retry.
-- Being refused (`[NMP-E1105]`) usually means the server is full, you're banned, or guests
-  aren't allowed — try a registered account or another server.
-- Codes in the `10xx` range point at the **backend** (no internet, backend down, or login/ticket
-  failures) rather than the server itself.
+## Signing in
 
-## Mod download stuck or failed
+| Message | Cause | Fix |
+|---|---|---|
+| `Enter a username and a password of at least four characters.` | The form's own check. | Fill both fields. |
+| `invalid username or password` | Wrong credentials. | Reset the password at [nodemp.com/forgot](https://nodemp.com/forgot). |
+| `please verify your e-mail first` | The verification link was not opened. | Open it; it expires after a short while, so register again under another name if it is gone. |
+| `username must be 3-24 chars [A-Za-z0-9_-]`, `password must be 8-200 chars`, `already exists` | The directory's rules for a new account. | Pick another name or a longer password. |
+| `two-factor code required or invalid` | The account has two-factor authentication on; launcher 1.0.0 has no field for the code. | Play as Test Drive, or use an account without two-factor. |
+| `could not reach the directory: …` | No connection to `https://api.nodemp.com`. | Check your connection and any VPN. |
 
-If joining hangs on *Downloading mods* or fails with `[NMP-E1200]` / `[NMP-E1201]`:
+## The server list is empty
 
-- When prompted that a server requires custom mods, choose **Accept and download** — declining
-  cancels the join.
-- Check you have free disk space and that antivirus isn't quarantining the downloaded files.
-- Leave and rejoin to restart the download; a half-finished resource will be re-fetched.
+- **No connection** screen (`NodeMP cannot reach its server list. Check that you are online —
+  and if you use a VPN for a test server, that it is connected.`): the directory did not answer
+  at start-up. *Try again*, or *Continue without the list*; Direct Connect still works. While
+  it is down, Refresh reports `Could not reach NodeMP at https://api.nodemp.com`.
+- `No servers online` / `Nobody is hosting right now.`: the directory answered with an empty
+  list. Nothing is wrong on your side.
+- `Nothing matches these filters`: open **Filters** and press *Reset*. Favorites and Recent only
+  show servers that are online now.
+- A server you know is running but cannot see is private, unlisted (no server key) or has
+  stopped sending beacons. Join it through Direct Connect.
 
-## Connection lost or kicked
+`could not remove …: …` in the Content view means BeamNG.drive is holding the archive; close
+the game and remove again.
 
-- **Connection lost** (`[NMP-E1301]`) is almost always your network dropping mid-session — check
-  your connection and rejoin.
-- **Kicked** (`[NMP-E1300]`) means the server removed you (often by an admin or a plugin); the
-  reason is usually shown on the disconnect overlay.
-- Persistent high ping (shown red in the player list) can cause rubber-banding — try a server
-  closer to you.
+## Logs
 
-## Where to look
+- **Helper log** — `launcher.log` records one session: game detection, the connection, content
+  downloads and why the session ended. **Settings → Launcher → Logs → Open** opens its folder:
 
-- **`Launcher.log`** — the most useful file; run the launcher with `--verbose` for extra detail.
-- The in-game **diagnostics console** (NodeMP options → *Tools*) shows live session, network,
-  and event data.
-- The full code table lives in [Launcher error codes](/reference/error-codes/).
+  ```
+  %LOCALAPPDATA%\com.nodemp.launcher\helper\logs\launcher.log
+  ```
 
-If you're stuck on a term, the [glossary](/reference/glossary/) explains the moving parts.
+  The file is rewritten at every join, so copy it before you try again. Its parent folder,
+  `%LOCALAPPDATA%\com.nodemp.launcher\helper\`, holds the helper's `Launcher.cfg` and its
+  `cache\` of downloaded content (the folder **Downloaded content → Open** shows), including
+  `known_servers.json` with the TLS pins.
+- **Launcher window** — the interface writes no log file. What it knows is in the toast, and the
+  last helper log line in `The launcher stopped · …`.
+- **BeamNG** — `beamng.log` in the game's user folder,
+  `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\`, carries the client mod's lines (tag `node.`).
+  The in-game **Diagnostics console** (Options → NodeMP → Tools) shows the session live.
+
+When you report a problem, attach `launcher.log`, the exact toast text and the server's name.
+
+## Advanced: another directory
+
+Testers running their own directory can repoint the launcher. In order of precedence:
+
+1. The environment variable `NODEMP_API_BASE`, for example `http://localhost:8080`.
+2. A file `directory.url` beside `nodemp-launcher.exe` in `%LOCALAPPDATA%\NodeMP`: one line
+   with the base URL; lines starting with `#` are comments. The launcher never writes this file;
+   a leftover from a launcher before 1.0.0 is removed on start.
+3. The built-in `https://api.nodemp.com`.
+
+The address in use appears in the toast `Could not reach NodeMP at …` when the list cannot be
+loaded. `NODEMP_LAUNCHER=C:\dev\launcher\bin\Release\Node-Launcher.exe` makes the launcher start a separate helper executable instead
+of its built-in one; it is for people building the helper themselves.

@@ -1,67 +1,81 @@
 ---
 title: Join a server
-description: Open the Multiplayer screen in BeamNG, sign in or play as guest, browse the server list, and connect — including the mod download and sync step.
+description: Pick a server in the launcher's list or by address, hold Play, and follow the join from "Checking client mod" to the game window.
 ---
 
-With the [launcher installed](/players/install/) and running, joining a server happens entirely
-inside BeamNG.drive.
+Servers are joined from the launcher, not from inside BeamNG.drive; the game's *NodeMP
+Multiplayer* menu entry only says so. This page assumes the launcher is
+[installed](/players/install/) and you are signed in or in Test Drive.
 
-## 1. Open Multiplayer
+## The server list
 
-From the BeamNG main menu, choose **NodeMP Multiplayer**. The top of the screen shows whether
-the launcher is connected — if it says the launcher is offline, start the launcher and wait a
-moment.
+The launcher opens on **Home**: after your first session it offers **Hold to play** for the
+server you last joined; otherwise **Browse servers**. Open **Servers** in the rail. The list is built from the beacons servers send to the directory,
+so only servers that are online and listed appear.
 
-## 2. The authorization gate
+- Tabs: **Public**, **Favorites** (starred servers) and **Recent** (the last 30 addresses you
+  joined, newest first).
+- A row shows the name with the map and region underneath, the players as `players / max` and
+  the mode. Click a heading (*Server*, *Players*, *Mode*) to sort, again to flip. The star adds
+  the server to Favorites.
+- **Search** (or `/`) matches name, tags, map, region and description. **Filters** has a
+  *Required mods* slider from *Stock* to *Any* (the readout says `Stock only`, `Up to 512 MB`, …
+  `Any size`) and the chips *Free slots*, *Players online*, *No account needed*.
+- **Refresh** reloads the list: `12 servers online` or `Connected · nobody is hosting right now`.
 
-Before you can browse servers, NodeMP asks you to authorize. This is the BeamMP-style gate:
+Select a row and the panel beside the list describes the server: map preview and name, tags,
+the host's description, then *Players*, *Access* (`Test Drive allowed` or `Account required`),
+*Content* (`Stock content` or `3 files · 120 MB`), *Mode*, *Region*, *On the server now*
+(player names) and *It will send you* (content files).
 
-- **Log in** — enter your NodeMP username (or email) and password.
-- **Create account** — opens the registration page to make a new account.
-- **Play as guest** — continue without an account.
+The same list is at [nodemp.com/servers](https://nodemp.com/servers), read-only: pick a server
+there, then join it from the launcher.
 
-Once you're signed in (or have chosen guest), the launcher caches your session and signs you in
-automatically next time. Note that individual servers may refuse guests, so a registered account
-is the most reliable way to play.
+## Direct Connect
 
-## 3. Browse the server list
+**Direct Connect** in the toolbar takes `host:port`, or `[address]:port` for IPv6. The launcher
+refreshes the list first; a listed server is joined with its fingerprint (`Found · starting
+session…`). An unlisted address is joined anyway (`Not on the public list · connecting
+anyway…`): it appears in the list under its address, and the server's TLS certificate is
+trusted on first use and pinned. This is how you join a private server, or one without a
+server key.
 
-The **Servers** tab lists every public server the backend currently knows about. For each one
-you'll see its name, map, player count, and ping. You can:
+## Joining
 
-- press **Refresh** to re-fetch the list,
-- type in the filter box to narrow it down, and
-- star a server to keep it under the **Favorites** tab.
+Press and hold **Hold to play** for about a second. While the join runs, the button is replaced by the
+current step and **Cancel**; Escape cancels too, with the toast `Connection cancelled`. The
+steps, in order:
 
-Select a server and press **Connect**, or simply **double-click** a row.
+1. **Checking client mod** — the installed `NodeMP.zip` is compared with the published release.
+   When it differs you see `Downloading client mod 42%`, `Verifying client mod`, `Client mod
+   ready`. A failed check with a usable copy on disk continues with the toast `Client mod could
+   not be updated · joining with the installed copy`.
+2. The launcher asks the directory for a one-shot join ticket: your account when signed in, a
+   fresh guest name in Test Drive.
+3. **Starting BeamNG.drive** — the helper is started and starts the game with the graphics mode
+   from Settings.
+4. The moment BeamNG's window is on screen the launcher hides itself and puts the game in front
+   (or closes, if *Close the launcher once the game starts* is on). It waits up to four minutes
+   for the window, then steps aside anyway.
 
-### Direct connect
+What happens on the wire from here is described in
+[What is NodeMP](/introduction/what-is-nodemp/#how-a-session-starts); the game's loading screen
+shows the helper's progress lines (`Downloading Resource 2/5: …`) until you spawn.
 
-If a server isn't on the public list — for example a local server, or one whose port isn't
-forwarded — use the **Direct Connect** tab and enter the `host` and `port` (you can also paste
-`host:port` straight into the host field).
+A join that fails brings the launcher back with the reason as a toast: `Could not connect · …`,
+`Disconnected · …` or `The launcher stopped · …`. Every message is explained in
+[Troubleshooting](/players/troubleshooting/).
 
-## 4. Connecting, mod download, and sync
+## In the game
 
-When you connect, an overlay walks you through the steps:
+The **session panel** shows the server's name, your ping and the player count; click the count
+to unfold the roster, and a player for *spectate* or *teleport camera*. `T` opens the chat,
+`Tab` toggles the roster. Everything else is in the game's **Options → NodeMP** page; see
+[Settings and UI](/players/settings/).
 
-1. **Connecting** to the server.
-2. **Downloading mods** — if the server uses custom resources, the launcher downloads them
-   (you'll see `Downloading Resource x/y` progress).
-3. **Installing mods** — the downloaded resources are loaded into the game.
-4. **Loading world** — BeamNG loads the map and you spawn in.
+## Leaving
 
-If a server requires custom mods, you may be shown a prompt listing them; choose **Accept and
-download** to continue or **Decline** to abort. Behind the scenes the launcher fetches a
-single-use *join ticket* from the backend and hands it to the server, which verifies it before
-letting you in — you don't have to do anything for this step.
-
-## 5. You're in
-
-Once the world finishes loading you're sharing the session with everyone else on the server.
-From here you can open the [in-game chat and player list](/players/settings/) and tweak your
-[settings](/players/settings/).
-
-If a connection fails or drops, the overlay shows the reason and the launcher logs an
-`[NMP-Exxxx]` code. See [Troubleshooting](/players/troubleshooting/) and the
-[launcher error codes](/reference/error-codes/) to decode it.
+Hold **Leave** in the session panel; the game returns to its main menu. The launcher window
+comes back when BeamNG.drive closes, or at once when the server ends the session, with the
+toast `Session ended` (or `Session ended · ` followed by the reason the server gave) and the server list open. Servers cannot
+be switched from inside the game: close BeamNG.drive, then pick the next one in the launcher.

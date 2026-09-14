@@ -1,73 +1,95 @@
 ---
-title: "Settings & UI"
-description: The NodeMP options tab, in-game chat, the player list (collapse, spectate, apply config), and vehicle nametags.
+title: Settings and UI
+description: Every control in the launcher's Settings, the in-game Options → NodeMP page, the chat overlay's chat.json, and the default keys.
 ---
 
-NodeMP adds its own settings and a small set of in-game UI panels. This page covers where the
-options live and how the in-game overlay works.
+Settings live in two places: the launcher's **Settings** view for everything around a session,
+and the **NodeMP** page in BeamNG's Options for everything inside one. Both save as you change
+them.
 
-## The NodeMP options tab
+## Launcher settings
 
-All NodeMP settings live in one place: open BeamNG's **Options** and select the **NodeMP** tab
-(it's added to the options sidebar, just after *Other*). Changes save as you make them. The
-settings are grouped into sections:
+The gear at the bottom of the rail opens three pages.
 
-| Section | What it controls |
+**Game**
+
+- **Where BeamNG.drive is installed** — empty means *Found automatically*. **Browse** picks a
+  folder, **Find it** searches again; the line under the heading reports the result, for example
+  `Version 0.39.4.0` or `No Bin64\BeamNG.drive.x64.exe in this folder`.
+- **Graphics mode** — *Direct3D 12* (the default on BeamNG 0.39), *Vulkan* or *Direct3D 11*,
+  passed to the game as `-gfx`.
+
+**Launcher**
+
+- **Start with Windows** — adds a `NodeMP` entry to your user's Run key.
+- **Close the launcher once the game starts** — off by default: the window hides during the
+  session and comes back when BeamNG.drive closes or the server ends the session. On, the
+  window is closed for good while the process that carries your traffic stays.
+- **Folders → Downloaded content** — the helper's cache of content from servers, with its size;
+  **Open** opens the folder. **Folders → Logs** — where `launcher.log` is written; attach it
+  when you report a problem.
+- **Client mod** — installed version and last result; **Check now** repeats the check. See
+  [The client mod](/players/install/#the-client-mod).
+- **Reset settings** — back to defaults; favourites, recent servers and downloads are kept.
+
+**Account** — the name servers see you under. Signed in: your account id, roles and **Sign
+out**. In Test Drive: `Guest · a new name each session, and servers may refuse it` and **Sign
+in**.
+
+The **Content** view in the rail lists that cache and lets you **Remove** files (close BeamNG
+first; it holds the archives open). A server that needs a removed file downloads it again.
+
+## In-game: Options → NodeMP
+
+BeamNG's **Options** sidebar gets a **NodeMP** entry (also in the pause menu under *Mods →
+NodeMP settings*). The header shows the mod and launcher versions.
+
+| Section | Settings |
 |---|---|
-| **Gameplay & sync** | Smooth (interpolate) other players' cars; the spawn/config queue interval (lower = faster remote spawns, but more hitching). |
-| **Name tags** | Hide your own nametag, show distance on tags, hide tags behind objects, and the fade distance. |
-| **Markers** | Show markers for cars that aren't spawned yet, and for deleted cars. |
-| **Vehicle** | Show the owner's name on license plates, protect your configs (others can't clone/save them), and auto-apply other players' configs. |
-| **Chat & UI** | Toggle the floating in-game chat / player overlay. |
-| **Experimental & debug** | State-sync breadcrumb logging and other diagnostics — leave these off unless you're chasing a bug. |
+| Gameplay & sync | *Correction strength* (0.25–2×) and *Teleport threshold* (0.25–4×) for other players' cars; *Ghost cars on reset (this machine)* (1.5 s without collisions on your screen; a server can override it). |
+| Name tags | *Hide my own nametag*, *Show 'Empty' on empty cars*, *Show distance on tags*, *Hide tags behind objects*, *Fade distance* (0–2000 m, default 100). |
+| Markers | *Markers for non-spawned cars*, *Markers for deleted cars*. |
+| Vehicle | *My cars: access (0/1/2)* — 0 open, 1 passengers only, 2 only you; *Others may use my triggers*; *Name on license plates*; *Protect my configs*; *Auto-apply others' configs* (off: a player who edited their car is highlighted, click to apply); *3D player heads in cars*; *Freecam player markers*. |
+| Mods | *Use my local mods in multiplayer* — off by default; the server must allow it too. |
+| Chat & UI | *In-game chat overlay* — the extra ImGui chat and player-list window, off by default. |
+| Experimental & debug | Behind *Enable experimental features*: *Synced node grabber (Ctrl)*, *Allow others to grab my cars (Ctrl)*, *Position-sync diagnostics*, *State-sync breadcrumb logging*, *Verbose breadcrumbs*, *Disable state apply*. Leave them off unless you are chasing a bug. |
 
-There's also a **Tools** area to open the full Multiplayer screen and the diagnostics console
-(see below).
+**Tools** opens the **Diagnostics console (ImGui)**: live tabs: session, players, vehicles,
+chat, network, queue, events, settings, debug. *My cars: access*, *Others may use my triggers* and *Allow others
+to grab my cars* are sent to the server as your vehicle policy and applied to every car you
+spawn.
 
-## Chat
+## Chat and player list
 
-Turn on **In-game chat overlay** (in *Chat & UI*) to get a floating chat panel while you drive.
-Type a message and press Enter to send it to everyone on the server; messages from other players
-appear with their name and role color. NodeMP chat also supports BeamMP **caret formatting**:
-`^0`-`^9` / `^a`-`^f` colors, `^#RRGGBB` hex, `^l` bold, `^o` italic, `^n` underline, `^m`
-strikethrough, and `^r` to reset. The same chat is also available as a tab in the diagnostics
-console.
+The default in-game UI is two BeamNG UI apps: the **chat** (fading lines over the world; hover
+the corner for the history) and the **session panel** (server name, ping, player count with the
+roster underneath, hold **Leave**). Messages may use caret codes: `^0`–`^9` and `^a`–`^f` for
+colours, `^#RRGGBB`, `^l` bold, `^o` italic, `^n` underline, `^m` strike-through, `^r` reset.
 
-## The player list
+*In-game chat overlay* adds a third window, `NodeMP Chat`, with an options tab (*Theming*: a
+colour per part; *General*: *Inactive fade*, *Fade time*, *Fade when collapsed*, *Show on
+message*, *Keep active on Enter*). Its **Save** button writes these settings to a file in
+BeamNG's user folder:
 
-The in-game player list is a compact panel showing everyone on the server. Its header shows the
-player count (and the server's max), and you can do a few things with it:
+```
+%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\settings\nodemp\chat.json
+```
 
-- **Collapse it** — click the header to fold the list down to just the count, and click again to
-  expand it. Handy when you want it out of the way.
-- **Spectate a player** — click a player's row to jump your camera to them.
-- **Apply another player's vehicle config** — if *Auto-apply others' configs* is turned off, a
-  player who has edited their vehicle is highlighted in the list with a refresh (⟳) button. Click
-  it to pull in their latest vehicle configuration. (With auto-apply on, this happens
-  automatically.)
+Delete the file to return the overlay to its defaults; a file from an older build is merged
+onto the current defaults when it loads.
 
-Each row shows the player's name, their role tag, a *you* badge for yourself, and their ping
-(color-coded green/yellow/red by latency).
+## Keys
 
-## Nametags
+The mod ships these bindings in the *gameplay* category of **Options → Controls**, where you can
+change them:
 
-NodeMP draws a floating label above every other player's vehicle with their name, role, and —
-optionally — the distance to them. The labels fade out with distance so far-away cars don't
-clutter the screen. You control them from the **Name tags** section of the options:
+| Default | Action | What it does |
+|---|---|---|
+| `T` | NodeMP: Chat | Opens the chat to type. Enter sends, Esc closes. |
+| `Tab` | NodeMP: Player list | Toggles the roster, like clicking the player count. |
+| unbound | NodeMP: Diagnostics window | Opens the diagnostics console. |
+| unbound | NodeMP: Toggle debug chat | Toggles the ImGui chat window. |
+| unbound | NodeMP: Join grabbed node (alias) | Same as the game's *Node grabber: fix node*. |
 
-- hide the tag over your own vehicle,
-- show or hide the distance,
-- occlude tags behind walls and terrain, and
-- set the fade distance.
-
-NodeMP can also draw small **markers** for vehicles that aren't physically present yet (queued to
-spawn) or that have been deleted, so you always know where other cars are. A server may pin some
-of these nametag values for everyone, in which case the server's choice wins over your local
-setting.
-
-## Diagnostics console
-
-For a deep look at a session there's an ImGui **diagnostics console** (open it from the NodeMP
-options *Tools* area). It exposes live tabs for the session, players, vehicles, chat, per-packet
-network stats, the spawn/apply queue, and an event feed. It's primarily a debugging tool, but
-it's also the quickest way to confirm what the client is doing if something looks off.
+While the chat has the keyboard, the car does not: the vehicle action maps are disabled until
+you press Esc or send an empty line.

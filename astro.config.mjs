@@ -1,14 +1,34 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightLinksValidator from 'starlight-links-validator';
+import { existsSync } from 'node:fs';
+
+// scripts/import-api.mjs (prebuild/predev) has already run when Astro loads this file.
+const apiGenerated = existsSync('./src/content/docs/plugins/api/lua.md');
 
 export default defineConfig({
   site: 'https://docs.nodemp.com',
+  // Slugs removed by the phase-4 rewrite. Astro emits a meta-refresh page for each.
+  redirects: {
+    '/introduction/beammp-compatibility/': '/introduction/differences-from-beammp/',
+    '/ru/introduction/beammp-compatibility/': '/ru/introduction/differences-from-beammp/',
+    '/plugins/server-api/': '/plugins/api/lua/',
+    '/ru/plugins/server-api/': '/ru/plugins/api/lua/',
+    '/plugins/client-api/': '/plugins/client-scripting/',
+    '/ru/plugins/client-api/': '/ru/plugins/client-scripting/',
+  },
   integrations: [
     starlight({
       title: 'NodeMP',
       logo: { src: './src/assets/nmp-logo.png', alt: 'NodeMP' },
       customCss: ['./src/styles/custom.css'],
+      plugins: [starlightLinksValidator({
+        errorOnRelativeLinks: true,
+        errorOnFallbackPages: false,
+        // Without the sdk only the placeholder /plugins/api/ exists: skip links into the generated pages.
+        exclude: apiGenerated ? [] : ['/plugins/api/**', '/ru/plugins/api/**'],
+      })],
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/NodeMP-BeamNG' },
       ],
@@ -17,39 +37,50 @@ export default defineConfig({
         root: { label: 'English', lang: 'en' },
         ru: { label: 'Русский', lang: 'ru' },
       },
+      // Item labels come from the page titles (slug entries), so the RU sidebar
+      // shows the RU titles without a second list of labels here.
       sidebar: [
         { label: 'Introduction', translations: { ru: 'Введение' }, items: [
-          { label: 'What is NodeMP', slug: 'introduction/what-is-nodemp' },
-          { label: 'BeamMP compatibility', slug: 'introduction/beammp-compatibility' },
+          { slug: 'introduction/what-is-nodemp' },
+          { slug: 'introduction/differences-from-beammp' },
         ]},
-        { label: 'Framework (new stack)', translations: { ru: 'Фреймворк (новый стек)' }, items: [
-          { label: 'Overview', slug: 'framework/overview' },
-          { label: 'How synchronization works', slug: 'framework/sync' },
+        { label: 'Framework', translations: { ru: 'Фреймворк' }, items: [
+          { slug: 'framework/overview' },
+          { slug: 'framework/sync' },
         ]},
         { label: 'For players', translations: { ru: 'Игрокам' }, items: [
-          { label: 'Install the launcher', slug: 'players/install' },
-          { label: 'Join a server', slug: 'players/join' },
-          { label: 'Settings & UI', slug: 'players/settings' },
-          { label: 'Troubleshooting', slug: 'players/troubleshooting' },
+          { slug: 'players/install' },
+          { slug: 'players/join' },
+          { slug: 'players/settings' },
+          { slug: 'players/troubleshooting' },
         ]},
-        { label: 'Server hosting', translations: { ru: 'Хостинг серверов' }, items: [
-          { label: 'Quick start', slug: 'hosting/quick-start' },
-          { label: 'Configuration', slug: 'hosting/configuration' },
-          { label: 'Running the server', slug: 'hosting/running' },
-          { label: 'Registering your host', slug: 'hosting/registering' },
-          { label: 'Updating', slug: 'hosting/updating' },
-          { label: 'Resources & mods', slug: 'hosting/resources' },
+        { label: 'Server hosting', translations: { ru: 'Хостинг сервера' }, items: [
+          { slug: 'hosting/quick-start' },
+          { slug: 'hosting/configuration' },
+          { slug: 'hosting/running' },
+          { slug: 'hosting/registering' },
+          { slug: 'hosting/updating' },
+          { slug: 'hosting/resources' },
         ]},
         { label: 'Plugin development', translations: { ru: 'Разработка плагинов' }, items: [
-          { label: 'Overview', slug: 'plugins/overview' },
-          { label: 'Server Lua API', slug: 'plugins/server-api' },
-          { label: 'Wire protocol', slug: 'plugins/protocol' },
-          { label: 'Client mod API', slug: 'plugins/client-api' },
-          { label: 'Migrating BeamMP plugins', slug: 'plugins/migrating' },
+          { slug: 'plugins/overview' },
+          { slug: 'plugins/getting-started' },
+          { slug: 'plugins/resources' },
+          { slug: 'plugins/events' },
+          { slug: 'plugins/concurrency' },
+          { slug: 'plugins/client-scripting' },
+          { slug: 'plugins/native-modules' },
+          { slug: 'plugins/recipes' },
+          { slug: 'plugins/conventions' },
+          { slug: 'plugins/protocol' },
+          // Label override: the page title names BeamMP; the global navigation does not.
+          { slug: 'plugins/migrating', label: 'Migrating plugins', translations: { ru: 'Перенос плагинов' } },
+          // Generated by scripts/import-api.mjs from sdk/api.toml; never edited by hand.
+          { label: 'API reference', translations: { ru: 'Справочник API' }, items: [{ autogenerate: { directory: 'plugins/api' } }] },
         ]},
         { label: 'Reference', translations: { ru: 'Справочник' }, items: [
-          { label: 'Launcher error codes', slug: 'reference/error-codes' },
-          { label: 'Glossary', slug: 'reference/glossary' },
+          { slug: 'reference/error-codes' },
+          { slug: 'reference/glossary' },
         ]},
       ],
     }),

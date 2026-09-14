@@ -1,14 +1,31 @@
 ---
 title: NodeMP
-description: BeamMP-compatible multiplayer for BeamNG.drive.
+description: Multiplayer for BeamNG.drive with accounts, a server directory and a plugin platform.
 template: splash
 hero:
-  tagline: BeamMP-compatible multiplayer for BeamNG.drive.
+  tagline: Multiplayer for BeamNG.drive with accounts, a server directory and a plugin platform.
   actions:
-    - text: Get started
+    - text: Install the launcher
       link: /players/install/
       icon: right-arrow
     - text: Host a server
       link: /hosting/quick-start/
       variant: minimal
+    - text: Write a plugin
+      link: /plugins/overview/
+      variant: minimal
 ---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Players" icon="rocket">
+    Install the launcher, sign in or continue as Test Drive, and join a server from the list. [Install the launcher](/players/install/)
+  </Card>
+  <Card title="Server hosters" icon="setting">
+    Run `Node-Server`, create a server key in your NodeMP account and get listed in the directory. [Quick start](/hosting/quick-start/)
+  </Card>
+  <Card title="Plugin developers" icon="puzzle">
+    Write resources in Lua or JavaScript with the `node` API, or native modules in C and C++. [Plugin overview](/plugins/overview/)
+  </Card>
+</CardGrid>

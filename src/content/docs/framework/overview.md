@@ -1,97 +1,134 @@
 ---
-title: Framework overview (new stack)
-description: The backend-less, alt:V-style NodeMP framework - server core, TLS transport, native SDK, Lua resources, and the trust-on-first-use launcher.
+title: Framework overview
+description: How the NodeMP stack fits together — server core, the directory's role, TLS transport, three plugin runtimes, native modules and the relay.
 ---
 
-This documents the **new NodeMP framework stack** (repos `server`, `launcher`, `client`, `sdk`,
-`examples`). It is **backend-less**: there is no central accounts service, join-ticket flow, or
-server browser. Players connect directly to a `host:port` over TLS 1.3 with trust-on-first-use
-certificate pinning. The design is alt:V-style: a small, fast core plus an SDK, with everything
-optional shipped as a **Lua resource** or a **native module**.
+NodeMP is a small server core plus a plugin platform. The core — `Node-Server`, one process on
+one TCP and UDP port, configured by `server.toml` — does what every server needs: accepts
+players, verifies who they are, owns the vehicle registry (seats, authority, damage, tags, locks),
+delivers content and streams client scripts. Everything else — chat, rules, economy, parallel
+worlds — is a plugin: a **resource** (Lua or JavaScript) or a **native module** (C or C++). This
+page is the map; the [plugin overview](/plugins/overview/) is where you start writing one. The
+parts around the server (launcher, helper, client mod, directory) are introduced in
+[What is NodeMP](/introduction/what-is-nodemp/).
 
-## The parts
+## The directory's role
 
-- **Server** (`server`, C++20) - the core. Boost.Asio networking, a binary wire protocol
-  (`include/net/Protocol.h`), authoritative vehicle state (`include/game/VehicleRegistry.h`:
-  seats, locks, tags, damage versioning + resync, authority modes L/S/R), a native plugin host
-  (`include/plugin/PluginFramework.h`) and the Lua resource runtime. It streams each resource's
-  client Lua to players, obfuscates delivered Lua with a vendored Prometheus (BeamNG-safe step
-  whitelist, fail-closed), and can ChaCha20-encrypt content mods.
-- **Launcher** (`launcher`, C++) - a stripped BeamMP-Launcher fork with no login, backend or
-  self-update. It bridges the in-game mod (loopback TCP 4444 command / 4445 relay) to a server
-  over TLS 1.3, pinning the server certificate SHA-256 per `host:port` on first connect
-  (`cache/known_servers.json`, pre-seed via `--server-fp` / `Launcher.cfg` `ServerFingerprint`),
-  and downloads (and optionally decrypts) content mods into `mods/multiplayer`.
-- **Client mod** (`client`, Lua) - the in-game half: a headless framework (no accounts, chat,
-  HUD or server browser) with the vehicle synchronization, a local settings panel
-  (`ui/modModules/nodesettings`, backed by `MPSettingsGE.lua`), and the `node` client-scripting
-  API (see below).
-- **SDK** (`sdk`, C) - `node.h`, the native-module ABI.
-- **Examples** (`examples`) - reference Lua resources and native modules.
+- **Listing.** With `[Directory] Url`, `HostId` and `HostSecret` set, the server opens a host
+  session and sends a beacon on the interval the directory asks for (15 s by default); the
+  launcher's list is built from those beacons. `Public = false` keeps announcing, so players who
+  have the address see the server as online, but hides it from the list.
+- **Identity.** The launcher gets a one-shot join ticket for the server it is about to join and
+  sends it right after the handshake. The server redeems the ticket and takes the verified name
+  from the answer: the account's username, or the guest name the directory minted.
+  `TestDrive = false` refuses guests and ticket-less joins. `RedeemFailOpen = true` admits
+  players unverified while the directory is unreachable — only on a server that also allows
+  Test Drive; the default refuses them.
+- **Releases.** The launcher asks the directory which client mod build is current and installs it
+  before every join.
 
-## Wire protocol (v12)
+A server can run without any of this. Leave `[Directory] Url` empty and the server is not listed,
+verifies nobody and takes names as the launcher sends them — but it still runs, and anyone who
+knows its address can join through the launcher's **Direct Connect** form (`host:port`, or
+`[addr]:port` for IPv6). Direct Connect also works for listed and for `Public = false` servers.
 
-Every packet is a `(Category, SubType)` pair. TCP frames are
-`[u32 length][cat][sub][flags][body]`; the launcher<->server hop is TLS 1.3 and may zlib-compress
-(`FlagCompressed`); `StatePacket::Pos` and `HeadPose` travel over UDP with an HMAC auth trailer.
-Categories: `Handshake` (0x01), `Session` (0x02), `Content` (0x03), `Vehicle` (0x04),
-`State` (0x05), `Event` (0x06), `Command` (0x07), `Module` (0x08).
+## Transport
 
-The high-rate `StatePacket::Pos` (0x01) is a fixed 72-byte binary snapshot: position, rotation
-quaternion, linear + angular velocity as f32, plus the five driving controls
-(steering/throttle/brake/clutch/parkingbrake) and gear folded in at position rate, a timer, ping,
-sequence and a flags byte. `StatePacket::Inputs` (0x02) carries only the non-core input axes.
-Damage is persistent: the authority reports a `DamageStat` counter and uploads a `DamageBlob`, so
-a damaged vehicle spawns already-damaged and late joiners get a full `Resync`. Vehicle
-`ConfigHash` reconciliation silently auto-resyncs a client whose config marker drifts.
-
-## Native modules (the SDK)
-
-A native module is a shared library (`.dll`/`.so`) in the server's `modules/` folder that exports:
-
-```c
-NODE_EXPORT int  node_plugin_init(const NodeApi* api);  /* 0 = ok, nonzero = refuse load */
-NODE_EXPORT void node_plugin_shutdown(void);
+```
+client mod   <-- loopback TCP 4444 (commands) + 4445 (game traffic) -->  helper
+helper       <-- TLS 1.3 over TCP + UDP (position, head pose)       -->  Node-Server
+Node-Server  <-- HTTPS                                              -->  directory
 ```
 
-`NodeApi` (in `sdk/node.h`) groups the capabilities: console, players, vehicles, events, timers,
-HTTP, background jobs, and a typed module<->client binary channel. Modules observe events
-(`playerJoin`, `serverTick`, `vehicleSpawned/Deleted/DamageChanged/TagsChanged/LockChanged`) and
-can **veto** cancellable requests (`onPlayerConnectRequest`, `onVehicleSpawn/Enter/Exit/Edit/
-Paint/Coupler/Trigger/NodeGrabRequest`). All callbacks run on a single framework worker thread.
-See `examples/plugin-example` and `examples/dimensions-module`.
+Every packet is a typed `(Category, SubType)` frame; the launcher and the server must speak the
+same wire protocol version (`v17`) and refuse each other otherwise. The server generates a
+self-signed TLS certificate on first start and logs its SHA-256 fingerprint; a listed server's
+fingerprint reaches the launcher through the directory, and a direct connection pins it on first
+use. Of the game traffic, only `State::Pos` and `State::HeadPose` travel over UDP, each with an
+HMAC trailer. Details:
+[How synchronization works](/framework/sync/) and the [wire protocol](/plugins/protocol/).
 
-## Lua resources
+## Three runtimes
 
-A resource is a folder with a `resource.toml` and `server/main.lua` (server logic) and/or
-`client/main.lua` + `client/lua/**` (delivered to every player on join). The server streams the
-client files as typed `Content::ResourceChunk` packets; the mod runs them with full game access
-(alt:V-style, no sandbox - server code is trusted) and tears them down on leave. Server Lua uses
-the same event/registration model as the native SDK. See `examples/` (`chat`, `dimensions`,
-`freeroam-example`, `gatekeeper-example`, `seat-demo`, `vehicle-cleanup`, `devapi-example`).
+1. **Server Lua or JavaScript.** Each resource's `server/main.lua` gets its own Lua state with the
+   `node` API: `node.on("playerJoin", fn)`, `node.players`, `node.vehicles`, `Player` and
+   `Vehicle` objects, `node.storage`, `node.http`, timers and coroutines. Every handler of every
+   resource runs on one worker thread, so plugins never race each other. JavaScript resources
+   (`type = "js"`) need the `js-host` module and get the same API in JavaScript spelling.
+   Reference: [API reference](/plugins/api/) (Lua API and events).
+2. **Streamed client Lua.** Files under a resource's `client/` folder are pushed to every player
+   after content sync as `Content::ResourceChunk` packets and run inside the game with full game
+   access — no sandbox, because server code is trusted. Game-engine files become BeamNG extensions
+   (a returned table with `onUpdate` ticks every frame); files under `lua/vehicle/` are injected
+   into the vehicle VMs. They use the global `node` table: `node.on`, `node.off`,
+   `node.emitServer`, `node.emitLocal`, `node.log`, `node.onModule`, `node.offModule`,
+   `node.sendModule`, `node.requestVehicleTrigger`, `node.requestNodeGrab`. The client mod unloads
+   game-engine scripts when you leave; vehicle-side scripts cannot be unloaded cleanly, so ship
+   vehicle Lua as content instead. Client Lua is obfuscated with Prometheus before delivery unless
+   `[Resources] Obfuscate = false` or the resource sets `obfuscation = "none"`.
+3. **The mod SDK (`NodeMP.*`).** Locally installed BeamNG mods talk to the client mod through the
+   global `NodeMP` table (`NodeMP.isInSession()`, `NodeMP.getAccount()`, `NodeMP.players`,
+   `NodeMP.vehicles`, `NodeMP.chat`, `NodeMP.events`, `NodeMP.keys`), with a per-vehicle subset
+   in the vehicle VM. Reference: [Client scripting](/plugins/client-scripting/).
 
-## Client scripting (the `node` table)
+## Resource folder layout
 
-Inside the game mod, client scripts use the global `node` table:
+```
+resources/
+└── demo-numbers/
+    ├── resource.toml
+    ├── server/
+    │   └── main.lua        # server half: the node API
+    └── client/
+        └── main.lua        # streamed to every player
+```
 
-| Function | Meaning |
-|---|---|
-| `node.on(name, fn, source?)` | subscribe to a server/local event (`fn(data)`, pcall-guarded) |
-| `node.off(name, source?)` | unsubscribe |
-| `node.emitServer(name, data)` | send an event to the server |
-| `node.emitLocal(name, data)` | dispatch locally |
-| `node.log(msg)` | logger |
+```toml
+name = "demo-numbers"
+version = "1.0"
+type = "lua"                 # or "js" (needs the js-host module)
 
-Local user scripts drop into `lua/ge/extensions/node/` (auto-loaded GE extensions); server
-resources arrive as `resources/<name>/client/*.lua`. Vehicles are identified by a single
-server-assigned integer `globalID`; per-vehicle control mode is `L` (local driver), `S` (sync
-authority) or `R` (remote), driven entirely by server packets. `MPVehicleGE` exposes the
-scripter lookups (`getGameVehicleID`, `getVehicleOccupants`, `requestEnterVehicle`,
-`enterAsPassenger`, `getVehicleTags`, ...).
+[server]
+main = "server/main.lua"     # the default
 
-## What is intentionally gone
+[client]
+files = ["main.lua"]         # default: every .lua under client/
+obfuscation = "none"         # none | light | medium | strong; default light
+```
 
-Compared with the earlier NodeMP, the framework drops accounts/login, the central server browser,
-join tickets, in-game chat/HUD, roles/avatars and launcher self-update. Those were backend-coupled;
-the framework is self-contained. A server that wants chat, a welcome banner, roleplay economy, or a
-scoreboard ships it as a resource or module (see `examples`).
+`resources/` is scanned once at startup; a folder with neither `server/main.lua` nor client
+scripts is skipped. `node.resources.reload(name)` reloads one resource without a restart. Paths
+in `resource.toml` cannot leave the resource folder.
+
+## Native modules
+
+A module is a shared library in `modules/` next to the server executable that exports
+`node_plugin_abi`, `node_plugin_init(const NodeApi*)` and `node_plugin_shutdown`. `NodeApi`
+(declared in `node.h`) offers the Lua API's capabilities plus what only native code can do:
+register a language host for a new resource type (`js-host`), or run a relay filter inline on the
+network thread (`plugin-example` shows one; `dimensions` uses the core's visibility groups
+instead) — Lua's `node.relay.filter` runs on the worker with cached verdicts.
+Modules load before
+resources, so a language host is in place before the first resource is scanned. Reference:
+[API reference](/plugins/api/) (C ABI).
+
+## Content
+
+Zips in `content/` (`[Content] Folder`) are BeamNG mods the server distributes to joining players;
+the helper compares hashes and downloads what is missing into `mods/multiplayer/`. With
+`[Content] Encrypt = true` they travel ChaCha20-encrypted with a per-startup key and the helper
+deletes the decrypted copies when the session ends. See [Resources & mods](/hosting/resources/).
+
+## The relay
+
+Client-emitted events are server-terminal: `node.emitServer("name", data)` reaches server
+resources and nothing else. Anything that must reach other players goes through a resource. The
+`nodemp-relay` resource forwards the client mod's `vehicle:fire`, `vehicle:grab` and
+`vehicle:state` events to every other player and applies each player's vehicle policy
+(`player:policy`: lock mode, trigger and grab permissions); chat is its own `chat` resource. A
+relay filter (`node.relay.filter` in Lua, the `canRelay` hook) can veto every relayed packet per
+recipient. Parallel worlds do not need one: `dimensions` puts players and vehicles into the core's
+visibility groups (`Player:setGroup`, `Vehicle:setGroup`), and the core never relays between two
+groups. Binary payloads use the module
+channel, keyed by a `u32` channel id: `node.modules.send` on the server, `node.sendModule` and
+`node.onModule` in client scripts.
