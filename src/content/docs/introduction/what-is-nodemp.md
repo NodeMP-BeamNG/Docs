@@ -14,8 +14,8 @@ This page names the parts, walks through how a session starts and says what Node
 
 - **Launcher** — a desktop app for Windows. You sign in to your NodeMP account or continue as
   *Test Drive*, pick a server from the list and press Play. The launcher keeps the client mod up to
-  date and starts BeamNG.drive through a bundled helper (`Node-Launcher.exe`) that owns the
-  connection to the server.
+  date and starts BeamNG.drive through its helper — the same `nodemp-launcher.exe` run again with
+  `--helper` — which owns the connection to the server.
 - **Client mod** — `NodeMP.zip`, a BeamNG mod (id `multiplayernodemp`). The launcher downloads it
   from the directory into `mods/multiplayer/` in your BeamNG user folder and checks its hash
   before every join. Inside the game it synchronizes vehicles, draws the chat, the player list and

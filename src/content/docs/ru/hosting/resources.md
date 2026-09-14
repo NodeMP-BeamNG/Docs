@@ -4,7 +4,7 @@ description: Установка ресурсов в resources/ и клиентс
 ---
 
 Сервер добавляет что-то поверх игры тремя способами. Эта страница — об установке и относящихся к
-ней настройках; о написании — раздел [Разработка плагинов](/ru/plugins/overview/).
+ней настройках; о написании — раздел [Разработка плагинов](/ru/plugins/resources/).
 
 | | Ресурс | Контент | Нативный модуль |
 |---|---|---|---|
@@ -18,7 +18,7 @@ description: Установка ресурсов в resources/ и клиентс
 Скопируйте папку в `resources/` и перезапустите сервер. Лог подтверждает:
 
 ```
-demo-numbers v1.0 loaded — lua · 1 server file · 1 client file
+demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 1 resource · 0 modules loaded
 ```
 
@@ -129,6 +129,6 @@ obfuscation = "light"
 
 ## Дальше
 
-- [Разработка плагинов](/ru/plugins/overview/) — модель ресурсов, клиентская таблица `node` и
+- [Разработка плагинов](/ru/plugins/resources/) — модель ресурсов, клиентская таблица `node` и
   серверный API.
 - [Обновление](/ru/hosting/updating/) — что обновление делает с `resources/`, `content/` и кэшем.

@@ -4,7 +4,7 @@ description: Install resources under resources/ and client mods under content/; 
 ---
 
 A server adds things on top of the game in three ways. This page covers installing them and the
-settings that apply; writing them is the subject of [Plugin development](/plugins/overview/).
+settings that apply; writing them is the subject of [Plugin development](/plugins/resources/).
 
 | | Resource | Content | Native module |
 |---|---|---|---|
@@ -18,7 +18,7 @@ settings that apply; writing them is the subject of [Plugin development](/plugin
 Copy the folder into `resources/` and restart. The log confirms it:
 
 ```
-demo-numbers v1.0 loaded — lua · 1 server file · 1 client file
+demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 1 resource · 0 modules loaded
 ```
 
@@ -130,6 +130,6 @@ built on top of it.
 
 ## Next steps
 
-- [Plugin development](/plugins/overview/) — the resource model, the client `node` table and the
+- [Plugin development](/plugins/resources/) — the resource model, the client `node` table and the
   server API.
 - [Updating](/hosting/updating/) — what an update does to `resources/`, `content/` and the cache.

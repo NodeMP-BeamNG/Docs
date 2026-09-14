@@ -106,7 +106,8 @@ A module is a shared library in `modules/` next to the server executable that ex
 `node_plugin_abi`, `node_plugin_init(const NodeApi*)` and `node_plugin_shutdown`. `NodeApi`
 (declared in `node.h`) offers the Lua API's capabilities plus what only native code can do:
 register a language host for a new resource type (`js-host`), or run a relay filter inline on the
-network thread (`dimensions`) — Lua's `node.relay.filter` runs on the worker with cached verdicts.
+network thread (`plugin-example` shows one; `dimensions` uses the core's visibility groups
+instead) — Lua's `node.relay.filter` runs on the worker with cached verdicts.
 Modules load before
 resources, so a language host is in place before the first resource is scanned. Reference:
 [API reference](/plugins/api/) (C ABI).
@@ -126,6 +127,8 @@ resources and nothing else. Anything that must reach other players goes through 
 `vehicle:state` events to every other player and applies each player's vehicle policy
 (`player:policy`: lock mode, trigger and grab permissions); chat is its own `chat` resource. A
 relay filter (`node.relay.filter` in Lua, the `canRelay` hook) can veto every relayed packet per
-recipient, which is how `dimensions` builds parallel worlds. Binary payloads use the module
+recipient. Parallel worlds do not need one: `dimensions` puts players and vehicles into the core's
+visibility groups (`Player:setGroup`, `Vehicle:setGroup`), and the core never relays between two
+groups. Binary payloads use the module
 channel, keyed by a `u32` channel id: `node.modules.send` on the server, `node.sendModule` and
 `node.onModule` in client scripts.

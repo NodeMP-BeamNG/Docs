@@ -4,9 +4,9 @@ description: Transport hops, the packet categories of wire protocol v17, control
 ---
 
 This page follows the data through a NodeMP session on wire protocol **v17**: what travels
-where, at which rate, and who is allowed to send what. The byte layout of every packet is on the
-[wire protocol](/plugins/protocol/) page; the normative contract is `server/include/net/Protocol.h`,
-kept byte-identical in the helper.
+where, at which rate, and who is allowed to send what. Every packet is named, with its purpose, on
+the [wire protocol](/plugins/protocol/) page; the byte layouts are in
+`server/include/net/Protocol.h`, the normative contract, kept byte-identical in the helper.
 
 ## Transport: three hops
 
