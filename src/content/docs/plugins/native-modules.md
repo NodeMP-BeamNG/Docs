@@ -74,15 +74,15 @@ arrives at the player's client files as an ordinary wire event.
 `NodeApi` is positional: a module reads each capability at an offset fixed when it was compiled.
 Against a reordered struct it would not fail, it would call whatever now sits at that offset - so
 the layout is a contract, with a version. The header carries `NODE_ABI_VERSION_MAJOR` `1` and
-`NODE_ABI_VERSION_MINOR` `10`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`.
+`NODE_ABI_VERSION_MINOR` `11`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`.
 
 - The loader calls `node_plugin_abi()` **first**, before `node_plugin_init` and before touching any
   field. A module whose major differs is refused:
-  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.10 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.11 -- refusing to load it. Rebuild the module.`
   A module without the symbol at all is refused too:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - A module built against a **newer minor** loads with a warning
-  (`was built against a NEWER SDK (1.11 vs 1.10); it may expect capabilities this server does not have`).
+  (`was built against a NEWER SDK (1.12 vs 1.11); it may expect capabilities this server does not have`).
   A module built against an older minor loads silently: everything it knows about is where it
   expects it.
 - New capabilities are appended and bump the minor. Nothing is reordered or removed; a retired
@@ -233,6 +233,24 @@ main = "server/main.js"
 
 Without the host, the same folder is skipped with
 `session-report · resource type 'js' has no language host loaded, skipping (a native module in modules/ must register one)`.
+
+## Loading C Lua modules with `require`
+
+A resource cannot `require` a C Lua module (`probe.dll`, `probe.so`, a library with a `luaopen_*`
+entry): its Lua state has no C loaders. `package.cpath` is empty, `package.loadlib` is removed and
+the two C searchers are gone, so `require("probe")` fails with `module 'probe' not found`, listing
+only `package.preload` and the `.lua` paths it tried. `require` of a pure-Lua file is unchanged.
+The same holds for the scratch states of `node.job` and `node.await`.
+
+The reason is the build: the server links Lua 5.4.8 statically and exports no `lua_*` symbols. A
+C module that imports them from the host fails to load; one that links its own Lua - the only way
+to build against a static Lua - would run a second Lua runtime against the host's `lua_State`,
+which works for a trivial table and is undefined for anything that touches the GC, the string table
+or `luaL_error`. Rather than let that appear to work, the loaders are off.
+
+Native code takes the route this page describes: a module in `modules/` against the C ABI, or a
+language host that embeds its own runtime. For a database, `node.pg` is built in - see
+[Database access](/plugins/database/).
 
 ## Events, channels and the bus from C
 
