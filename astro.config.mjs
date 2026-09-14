@@ -68,6 +68,7 @@ export default defineConfig({
           { slug: 'plugins/resources' },
           { slug: 'plugins/events' },
           { slug: 'plugins/concurrency' },
+          { slug: 'plugins/database' },
           { slug: 'plugins/client-scripting' },
           { slug: 'plugins/native-modules' },
           { slug: 'plugins/recipes' },

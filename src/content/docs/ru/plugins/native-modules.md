@@ -76,15 +76,15 @@ NODE_EXPORT void node_plugin_shutdown(void) {
 `NodeApi` позиционна: модуль читает каждую возможность по смещению, зафиксированному при компиляции.
 При переставленной структуре он не упал бы, а вызвал то, что теперь лежит по этому смещению, -
 поэтому раскладка является контрактом, и у неё есть версия. Заголовок несёт `NODE_ABI_VERSION_MAJOR`
-`1` и `NODE_ABI_VERSION_MINOR` `10`, упакованные в `NODE_ABI_VERSION` как `major << 16 | minor`.
+`1` и `NODE_ABI_VERSION_MINOR` `11`, упакованные в `NODE_ABI_VERSION` как `major << 16 | minor`.
 
 - Загрузчик вызывает `node_plugin_abi()` **первым**, до `node_plugin_init` и до обращения к любому
   полю. Модуль с другим мажором отклоняется:
-  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.10 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.11 -- refusing to load it. Rebuild the module.`
   Модуль вовсе без этого символа тоже отклоняется:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - Модуль, собранный против **более нового минора**, загружается с предупреждением
-  (`was built against a NEWER SDK (1.11 vs 1.10); it may expect capabilities this server does not have`).
+  (`was built against a NEWER SDK (1.12 vs 1.11); it may expect capabilities this server does not have`).
   Модуль, собранный против более старого минора, загружается молча: всё, что он знает, лежит там,
   где он ожидает.
 - Новые возможности добавляются в конец и поднимают минор. Ничто не переставляется и не удаляется;
@@ -238,6 +238,25 @@ main = "server/main.js"
 
 Без хоста та же папка пропускается со строкой
 `session-report · resource type 'js' has no language host loaded, skipping (a native module in modules/ must register one)`.
+
+## Загрузка C-модулей Lua через `require`
+
+Ресурс не может подключить через `require` C-модуль Lua (`probe.dll`, `probe.so`, библиотеку с
+точкой входа `luaopen_*`): в его состоянии Lua нет C-загрузчиков. `package.cpath` пуст,
+`package.loadlib` удалён, а два C-искателя убраны, так что `require("probe")` завершается ошибкой
+`module 'probe' not found`, перечисляя только `package.preload` и пути `.lua`, которые он
+перебрал. `require` чистого Lua-файла не изменился. То же верно для черновых состояний `node.job` и
+`node.await`.
+
+Причина - в сборке: сервер линкует Lua 5.4.8 статически и не экспортирует символы `lua_*`.
+C-модуль, который импортирует их у хоста, не загружается; модуль, который линкует собственный Lua -
+единственный способ собраться против статического Lua, - запустил бы второй рантайм Lua поверх
+`lua_State` хоста, что работает для тривиальной таблицы и не определено для всего, что трогает GC,
+таблицу строк или `luaL_error`. Чтобы это не выглядело работающим, загрузчики выключены.
+
+Нативный код идёт путём, описанным на этой странице: модуль в `modules/` под C ABI или языковой
+хост, встраивающий собственный рантайм. Для базы данных `node.pg` встроен - см.
+[Доступ к базе данных](/ru/plugins/database/).
 
 ## События, каналы и шина из C
 

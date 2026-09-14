@@ -85,6 +85,11 @@ Docker-образ, и это правильное место для секрет
 | `[Directory]` | `TestDrive` | bool | `true` | `NODE_DIRECTORY_TEST_DRIVE` |
 | `[Directory]` | `RedeemFailOpen` | bool | `false` | `NODE_DIRECTORY_REDEEM_FAIL_OPEN` |
 | `[Directory]` | `AllowInsecure` | bool | `false` | `NODE_DIRECTORY_ALLOW_INSECURE` |
+| `[Database]` | `Url` | string | `""` | `NODE_DATABASE_URL` |
+| `[Database]` | `Pool` | int | `4` | `NODE_DATABASE_POOL` |
+| `[Database]` | `QueryTimeoutMs` | int | `10000` | `NODE_DATABASE_QUERY_TIMEOUT_MS` |
+| `[Database]` | `TxTimeoutMs` | int | `30000` | `NODE_DATABASE_TX_TIMEOUT_MS` |
+| `[Database]` | `MaxRows` | int | `10000` | `NODE_DATABASE_MAX_ROWS` |
 
 ### `[General]`
 
@@ -170,6 +175,35 @@ Docker-образ, и это правильное место для секрет
 - `AllowInsecure` — разрешить `Url`, начинающийся с `http://`. Оставьте выключенным: секрет
   передаётся в каждом запросе сессии, и без TLS его прочитает любой на пути. Только для своей
   директории в LAN или VPN.
+
+### `[Database]`
+
+База данных PostgreSQL для ресурсов, использующих `node.pg`; самому серверу она не нужна.
+Настройка и API описаны на странице [Доступ к базе данных](/ru/plugins/database/).
+
+- `Url` — строка подключения libpq, `postgres://user:password@host:5432/dbname?sslmode=require`
+  (форма `key=value` тоже работает). Пусто, значение по умолчанию, — драйвер выключен:
+  `node.pg.enabled()` возвращает `false`, а каждый вызов `node.pg` отвечает `pg_disabled`. Под
+  Docker задайте `NODE_DATABASE_URL`, как и остальные ключи.
+- `Pool` — открытых соединений, по одному потоку базы данных на каждое, от 1 до 32. Каждая
+  `node.pg.tx` резервирует одно на всё своё время, так что при `Pool = 1` транзакция и обычный
+  запрос не могут идти одновременно.
+- `QueryTimeoutMs` — `statement_timeout`, устанавливаемый на каждом соединении; оператор, который
+  выполняется дольше, завершается с SQLSTATE `57014`. Не меньше 100.
+- `TxTimeoutMs` — самое долгое время, которое `node.pg.tx` может оставаться открытой. По его
+  истечении сервер откатывает транзакцию, а ресурс получает `tx_timeout`, так что зависший скрипт
+  не может удерживать соединение бесконечно. Не меньше 100.
+- `MaxRows` — самое большое число строк, которое может вернуть один оператор, от 1 до 1 000 000;
+  больший результат отбрасывается с ошибкой `pg_result_cap`.
+
+Значения вне этих пределов обрезаются с предупреждением. Пароль никогда не попадает в лог: URL
+печатается как `postgres://nodemp:***@127.0.0.1:5432/nodemp`, а в написаниях `?password=` и
+`password=` — тоже как `***`. Заведите серверу собственную роль базы данных с правами только на
+одну схему, никогда не суперпользователя, и используйте `sslmode=require` в `Url`, когда база
+данных стоит на другой машине. Соединения устанавливаются в фоне с повторами (от 0,5 с до 30 с
+между ними), поэтому сервер запускается и работает, пока база данных недоступна; TCP keepalive
+(`keepalives_idle=30`, `keepalives_interval=10`, `keepalives_count=3`) и `connect_timeout` в 10 с
+задаются, если `Url` не выбирает собственные значения.
 
 ## Переменные провайдера
 
@@ -266,4 +300,11 @@ Public = true
 TestDrive = true
 RedeemFailOpen = false
 AllowInsecure = false
+
+[Database]
+Url = ""
+Pool = 4
+QueryTimeoutMs = 10000
+TxTimeoutMs = 30000
+MaxRows = 10000
 ```

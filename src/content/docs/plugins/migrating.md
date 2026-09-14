@@ -17,7 +17,7 @@ makes - and this page maps each of those to its NodeMP form. Every target name b
 |---|---|
 | `Resources/Server/<plugin>/` with every top-level `.lua` loaded into one Lua state | `resources/<name>/` with one entry point, `server/main.lua`, and an optional `resource.toml` |
 | `Resources/Client/<mod>.zip`, sent to players | `content/<mod>.zip`, downloaded by the launcher before the join; streamed Lua goes in `resources/<name>/client/` instead |
-| `ServerConfig.toml`, `[General]` with `AuthKey` | `server.toml`, `[General]`, `[Resources]`, `[Content]`, `[Network]`, `[Experimental]`, `[Directory]` - see [Configuration](/hosting/configuration/); the server key is `[Directory] HostId` and `HostSecret` |
+| `ServerConfig.toml`, `[General]` with `AuthKey` | `server.toml`, seven sections: `[General]`, `[Resources]`, `[Content]`, `[Network]`, `[Experimental]`, `[Directory]`, `[Database]` - see [Configuration](/hosting/configuration/); the server key is `[Directory] HostId` and `HostSecret` |
 | a `plugin.lua` or `main.lua` plus helper files loaded by name order | `server/main.lua`; further files with `require` after putting the folder on `package.path` ([Resources](/plugins/resources/#layout)) |
 
 The smallest manifest names the resource and its entry point; a folder without one is a Lua

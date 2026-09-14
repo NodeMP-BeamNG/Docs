@@ -83,6 +83,11 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 | `[Directory]` | `TestDrive` | bool | `true` | `NODE_DIRECTORY_TEST_DRIVE` |
 | `[Directory]` | `RedeemFailOpen` | bool | `false` | `NODE_DIRECTORY_REDEEM_FAIL_OPEN` |
 | `[Directory]` | `AllowInsecure` | bool | `false` | `NODE_DIRECTORY_ALLOW_INSECURE` |
+| `[Database]` | `Url` | string | `""` | `NODE_DATABASE_URL` |
+| `[Database]` | `Pool` | int | `4` | `NODE_DATABASE_POOL` |
+| `[Database]` | `QueryTimeoutMs` | int | `10000` | `NODE_DATABASE_QUERY_TIMEOUT_MS` |
+| `[Database]` | `TxTimeoutMs` | int | `30000` | `NODE_DATABASE_TX_TIMEOUT_MS` |
+| `[Database]` | `MaxRows` | int | `10000` | `NODE_DATABASE_MAX_ROWS` |
 
 ### `[General]`
 
@@ -164,6 +169,34 @@ Whether and how the server announces itself to the directory;
 - `AllowInsecure` — allow a `Url` that starts with `http://`. Leave it off: the secret is sent
   in every session request, and without TLS anyone on the path can read it. Only for a directory
   of your own on a LAN or VPN.
+
+### `[Database]`
+
+A PostgreSQL database for resources that use `node.pg`; the server itself never needs one.
+[Database access](/plugins/database/) covers the setup and the API.
+
+- `Url` — a libpq connection string, `postgres://user:password@host:5432/dbname?sslmode=require`
+  (the `key=value` form works too). Empty, the default, means the driver is off: `node.pg.enabled()`
+  is `false` and every `node.pg` call answers `pg_disabled`. Under Docker set `NODE_DATABASE_URL`
+  like the other keys.
+- `Pool` — connections kept open, one database thread each, 1 to 32. Each `node.pg.tx` reserves
+  one for its whole duration, so with `Pool = 1` a transaction and a plain query cannot overlap.
+- `QueryTimeoutMs` — `statement_timeout` set on every connection; a statement that runs longer
+  fails with SQLSTATE `57014`. At least 100.
+- `TxTimeoutMs` — the longest a `node.pg.tx` may stay open. Past it the server rolls the
+  transaction back and the resource gets `tx_timeout`, so a stuck script cannot hold a connection
+  forever. At least 100.
+- `MaxRows` — the most rows one statement may return, 1 to 1 000 000; a larger result is dropped
+  with `pg_result_cap`.
+
+Values outside these ranges are clamped with a warning. The password never reaches the log: the
+URL is printed as `postgres://nodemp:***@127.0.0.1:5432/nodemp`, in the `?password=` and the
+`password=` spellings as `***` too. Give the server its own database role with rights on one
+schema only, never a superuser, and use `sslmode=require` in the `Url` when the database is on
+another machine. Connections are made in the background with retries (0.5 s to 30 s apart), so the
+server starts and runs while the database is down; TCP keepalives (`keepalives_idle=30`,
+`keepalives_interval=10`, `keepalives_count=3`) and a 10 s `connect_timeout` are set unless the
+`Url` chooses its own values.
 
 ## Provider variables
 
@@ -260,4 +293,11 @@ Public = true
 TestDrive = true
 RedeemFailOpen = false
 AllowInsecure = false
+
+[Database]
+Url = ""
+Pool = 4
+QueryTimeoutMs = 10000
+TxTimeoutMs = 30000
+MaxRows = 10000
 ```
