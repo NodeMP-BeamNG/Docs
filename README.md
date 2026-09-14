@@ -22,10 +22,12 @@ reference from the `sdk` repository:
   `tools/apigen.py` into a scratch folder, runs `apigen.py docs` and writes the five pages of
   `plugins/api/` into both locales. `NODEMP_PYTHON` names the interpreter to try first.
 - **Without the sdk** — the script writes one placeholder page (`plugins/api/index.md`), so
-  `npm run dev` works and `/plugins/api/` resolves. `npm run build` does not pass without the sdk:
-  the plugin-development pages deep-link into `/plugins/api/lua/`, `/plugins/api/events/` and
-  `/plugins/api/c/`, and the link validator reports them as missing. When `CI` is set, a missing
-  sdk or Python is an error instead of the placeholder.
+  `npm run dev` and `npm run build` both work and `/plugins/api/` resolves. While only the
+  placeholder exists, `astro.config.mjs` tells the link validator to skip links into
+  `/plugins/api/**` and `/ru/plugins/api/**` (the plugin-development pages deep-link into
+  `/plugins/api/lua/`, `/plugins/api/events/` and `/plugins/api/c/`); with the sdk present nothing
+  is skipped. CI always builds the real reference: it sets `IMPORT_API_STRICT=1`, so a missing sdk,
+  Python or guide page fails the job instead of falling back.
 
 The generated pages are ignored by git (`src/content/docs/plugins/api/`,
 `src/content/docs/ru/plugins/api/`). **The API reference is generated: edit `sdk/api.toml`, never
@@ -40,14 +42,14 @@ the generated pages.** The Russian copy of the reference is the English text by 
 | `npm test` | Runs the unit tests of the scripts (`node --test "scripts/*.test.mjs"`). |
 | `npm run check` | Runs `check:locales` and `check:stale`; exit code 1 on the first problem. |
 | `npm run check:locales` | EN/RU parity: every page under `src/content/docs/` needs a twin at `ru/<same path>`, and every RU page needs an EN original. The generated `plugins/api/` is exempt. |
-| `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line. |
+| `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line. The generated `plugins/api/` is exempt. |
 | `npm run gen:api` | Runs the API import on its own (useful before `npm start`, which has no hook). |
 
 ## Gates
 
 CI (`.github/workflows/ci.yml`, on pull requests and non-`main` pushes) and the Pages deploy
 (`.github/workflows/deploy.yml`, on `main`) both check out the sdk with a read-only deploy key and
-run `npm run check` and `npm run build` with `IMPORT_API_STRICT=1`. A change fails CI when:
+run `npm test`, `npm run check` and `npm run build` with `IMPORT_API_STRICT=1`. A change fails CI when:
 
 - a page has no twin in the other locale (`check-locales`);
 - a page contains one of the stale phrases (`check-stale`);

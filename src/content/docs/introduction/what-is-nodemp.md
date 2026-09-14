@@ -70,7 +70,7 @@ cannot be moved over as it is. See [Differences from BeamMP](/introduction/diffe
 
 | Component | Version | Release |
 |---|---|---|
-| Game server (`Node-Server`) | 1.0.0 | tag `server-v1.0.0`: `Node-Server-1.0.0-linux-x64.tar.gz`, `Node-Server-1.0.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:1.0.0` |
+| Game server (`Node-Server`) | 1.0.0 | tag `server-v1.0.0`: `Node-Server-1.0.0-linux-x64.tar.gz`, `Node-Server-1.0.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.0.0` |
 | Launcher | 1.0.0 | tag `launcher-v1.0.0`: `NodeMP-Setup-1.0.0.exe` |
 | Client mod (`NodeMP.zip`) | 1.3.0 | tag `mod-v1.3.0`: `NodeMP-1.3.0.zip`, installed by the launcher |
 | Wire protocol | v17 | launcher and server must match exactly; a mismatch is refused with a reason |

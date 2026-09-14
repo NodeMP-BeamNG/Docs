@@ -29,6 +29,9 @@ export function findStale(files, phrases = DEFAULT_PHRASES, allow = DEFAULT_ALLO
   return hits;
 }
 
+// Generated API reference (scripts/import-api.mjs) is never checked, same as in check-locales.mjs.
+const GENERATED = /^(ru\/)?plugins\/api\//;
+
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -40,7 +43,10 @@ function walk(dir, out = []) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const root = process.env.CHECK_CONTENT_DIR || 'src/content/docs';
-  const files = walk(root).map((p) => ({ path: relative(root, p), text: readFileSync(p, 'utf8') }));
+  const files = walk(root)
+    .map((p) => relative(root, p))
+    .filter((p) => !GENERATED.test(p.replace(/\\/g, '/')))
+    .map((p) => ({ path: p, text: readFileSync(join(root, p), 'utf8') }));
   const hits = findStale(files);
   for (const h of hits) console.error(`${h.path}:${h.line}: stale phrase "${h.phrase}"`);
   console.log(hits.length ? `check-stale: ${hits.length} hit(s)` : `check-stale: clean (${files.length} files)`);
