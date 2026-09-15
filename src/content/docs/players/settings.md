@@ -1,11 +1,12 @@
 ---
 title: Settings and UI
-description: Every control in the launcher's Settings, the in-game Options → NodeMP page, the chat overlay's chat.json, and the default keys.
+description: The launcher's Settings, the helper's Launcher.cfg, the in-game Options → NodeMP page, the chat overlay's chat.json, and the default keys.
 ---
 
 Settings live in two places: the launcher's **Settings** view for everything around a session,
 and the **NodeMP** page in BeamNG's Options for everything inside one. Both save as you change
-them.
+them. One setting of the helper process has no control in either and lives in its
+[`Launcher.cfg`](#helper-configuration-launchercfg).
 
 ## Launcher settings
 
@@ -38,6 +39,54 @@ in**.
 
 The **Content** view in the rail lists that cache and lets you **Remove** files (close BeamNG
 first; it holds the archives open). A server that needs a removed file downloads it again.
+
+## Helper configuration: `Launcher.cfg`
+
+The helper — the process that carries your traffic — reads one JSON file from its data folder,
+written with defaults on its first run:
+
+```
+%LOCALAPPDATA%\com.nodemp.launcher\helper\Launcher.cfg
+```
+
+```json
+{
+    "Port": 4444,
+    "Name": "",
+    "DefaultServer": "",
+    "ServerFingerprint": "",
+    "CacheDirectory": "./cache",
+    "StrictRecheckMin": 10
+}
+```
+
+The launcher passes the server, your name and the ticket on the command line at every join, so
+`Name`, `DefaultServer` and `ServerFingerprint` are for people running the helper by hand;
+`Port` is the command channel the client mod connects to and `CacheDirectory` is where
+downloaded content goes. The one key worth changing is:
+
+- **`StrictRecheckMin`** — on a server with `VerifyGame = "strict"`
+  ([Strict verification](/hosting/strict-verification/)), how many minutes pass between the
+  helper's scheduled re-checks of your game files during the session. Default `10`; `0` turns
+  the schedule off; a negative or non-integer value is ignored with
+  `Ignoring StrictRecheckMin "…": expected a whole number of minutes (0 = no scheduled re-check)`
+  in `launcher.log` and the default is used. The key has no effect on servers below `strict`.
+
+A re-check is the same strict check the join ran — the game folder, every archive's table of
+contents and the user folder — with one difference: the binaries (`Bin64\`, `BinLinux\`, the
+`.exe` files in the game folder) are compared by size only, not hashed. A library the running
+game has loaded cannot change what the game does until the next start, and the next start runs
+the full check at the door again; a server can also ask for a full one at any time
+(`player:verify`), and that request always hashes everything. A re-check that finds nothing is
+not reported to the server. One that finds a change is, and the server then ends the session
+with `Game files changed while you were playing and no longer match this server's reference (N problems). …`
+([Troubleshooting](/players/troubleshooting/#strict-servers)). Besides the schedule, the
+helper re-checks when it sees files change under the install's `content\`, `scripts\`, `lua\`
+and `ui\` or the user folder's `vehicles\`, `levels\`, `lua\`, `ui\` and `art\`, at most once a
+minute; the schedule exists for what the watcher does not cover.
+
+A `Launcher.cfg` that is not valid JSON stops the helper with
+`Config failed to parse make sure it's valid JSON!` ([Error codes](/reference/error-codes/#helper-exit-codes)).
 
 ## In-game: Options → NodeMP
 

@@ -38,17 +38,104 @@ installed copy`.
 | `Could not connect · Could not reach the server` | По адресу `host:port` никто не отвечает: сервер выключен, порт закрыт, брандмауэр. | Обновите список; хост проверяет `30814` по TCP и UDP. |
 | `Could not connect · DNS Lookup Failed` | Имя хоста в адресе Direct Connect не разрешается. | Проверьте написание или используйте IP. |
 | `Could not connect · server certificate fingerprint mismatch` | Сертификат сервера, к которому вы подключались по адресу, изменился; закрепление хранится на каждый `host:port`. | Если хост подтверждает смену, удалите запись сервера из `known_servers.json` в папке кеша (**Settings → Launcher → Downloaded content → Open**). |
-| `Disconnected · Protocol version mismatch: launcher speaks v17, server speaks v16 - update the outdated side` | Лаунчер и сервер говорят на разных версиях сетевого протокола. | С лаунчером 1.0.0 устарел сервер; сообщите его хосту. |
+| `Disconnected · Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Лаунчер и сервер говорят на разных версиях сетевого протокола; оба числа — реальные. | Лаунчер 1.1.0 говорит на v18: если меньше число лаунчера, установите текущий лаунчер с [nodemp.com/download](https://nodemp.com/download); если число сервера — сообщите его хосту. |
 | `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again` | Вы в режиме Test Drive, а сервер не принимает гостей (*Account required*). | **Settings → Account → Sign in** или фильтр *No account needed*. |
 | `Disconnected · Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | Билет одноразовый и живёт меньше минуты; подключение с другого IP тоже отклоняется. | Подключитесь снова из лаунчера. |
 | `Disconnected · The server could not verify your account with the directory (…). Try again in a moment` | Сервер не смог связаться с директорией. | Повторите через минуту. |
 | `Disconnected · Server full!`, `Disconnected · You are banned from this server`, `Disconnected · The server is still starting, please try joining again later.` | То, что написано. | Фильтр *Free slots*; обратитесь к хосту; подождите минуту. |
 | `Disconnected · Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | Сервер проверяет файлы игры, а ваши отличаются от манифеста игры. | Проверьте файлы игры в Steam. |
+| `Disconnected · Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …` | **Строгий** сервер: ваша установка или ваша пользовательская папка BeamNG отличается от серверного эталона чистой игры. Число и примеры после него — реальные. | Прочитайте примеры, затем запустите диагностику из раздела [Строгие серверы](#строгие-серверы) ниже, чтобы увидеть весь список. |
+| `Disconnected · Your launcher checked your BeamNG install against a different reference manifest than this server uses (…). Reconnect so it fetches the current one.` | Лаунчер сверял с кэшированным эталоном, который сервер больше не использует (хост перегенерировал его). | Подключитесь снова. |
+| `Disconnected · This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. …`, `Disconnected · This server has integrity manifests for 2 game versions (…) and cannot tell which one you run. …` | Сервер настроен на strict, но у него нет эталона или их больше одного. С вашей стороны всё в порядке. | Сообщите хосту. |
+| `Disconnected · This server requires a check of your BeamNG install, which could not be completed: the game's user folder … does not exist` | Strict нужна пользовательская папка игры; `startup.ini` или `BeamNG.Drive.ini` указывает на несуществующую. | Исправьте путь в этом файле или запустите игру один раз, чтобы папка создалась. |
 | `Disconnected · Invalid mod "…"`, `Disconnected · Failed to verify "…"`, `Disconnected · Server cannot find …` | Файл контента, объявленный сервером, повреждён или отсутствует на сервере. | Сообщите хосту. Удаление файла в **Content** заставит скачать его заново. |
 
 Если игра уже была на экране, та же причина приходит и как `Session ended · …`, а игра
 показывает *The session has ended* с этой причиной. Все причины, которые может прислать
 сервер, перечислены в разделе [Коды ошибок](/ru/reference/error-codes/).
+
+## Строгие серверы
+
+Сервер с `VerifyGame = "strict"` сравнивает всю вашу установку BeamNG — папку игры, оглавление
+каждого архива и вашу пользовательскую папку BeamNG — с эталоном чистой установки той версии
+игры, на которой он работает ([Строгая проверка](/ru/hosting/strict-verification/) объясняет,
+что настроил хост). При подключении появляются ещё два шага,
+`Downloading the server's integrity manifest` (один раз; файл кэшируется) и
+`Checking game files`, а несовпадение отклоняет вас с
+`Disconnected · Game files do not match this server's reference (N problems). …`. Лаунчер продолжает
+проверять и во время сессии, так что изменение, сделанное во время игры, завершает её с
+`Session ended · Game files changed while you were playing and no longer match this server's reference (N problems). …`.
+
+Обычные причины на немодифицированной игре — файлы, которые проверка не может отличить от
+модификации:
+
+- **Остатки распакованных модов в пользовательской папке** — `vehicles\<model>\info_*.json`,
+  `*.materials.json`, `*.jbeam` под `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\vehicles\`,
+  оставшиеся после удаления мода из `mods\`. Там разрешены только сохранённые конфигурации
+  (`vehicles\<model>\<name>.pc` с превью `.png`/`.jpg`).
+- **Ваши собственные уровни или частицы** — уровень в `current\levels\`, отредактированный
+  `current\lua\common\particles.json`, что угодно под `current\lua\`, `ui\`, `art\` или `scripts\`,
+  что не принадлежит игре. Уберите это на время игры на строгом сервере; `mods\` и папки
+  сохранений редакторов не проверяются.
+- **Файлы, добавленные в папку игры** — лаунчер или утилита, скопированные рядом с
+  `BeamNG.drive.exe`, мод, установленный в саму установку вместо пользовательской папки.
+  Считается всё, чего нет в эталоне, кроме логов, кеша шейдеров и `desktop.ini` самой Windows.
+- **Версия игры не та, что у сервера** — после обновления BeamNG, пока хост не перегенерировал
+  эталон (или пока вы не обновились): примеры тогда называют файлы игры вроде
+  `/Bin64/BeamNG.drive.x64.exe (hash)`.
+- **Изменённый игровой архив** — перепакованный или отредактированный `.zip` в `content\`:
+  проверьте файлы игры в Steam.
+
+Отказ показывает три примера. Чтобы увидеть весь список, выполните ту же проверку сами: она
+встроена в лаунчер как `--integrity-check`, берёт эталон, который прислал сервер (кэш в
+`%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest`; по файлу на каждый
+эталон, который вы забирали), и печатает каждую проблему. Из командной строки, при закрытом
+BeamNG:
+
+```
+cd %LOCALAPPDATA%\com.nodemp.launcher\helper
+%LOCALAPPDATA%\NodeMP\nodemp-launcher.exe --helper --data-dir %LOCALAPPDATA%\com.nodemp.launcher\helper --integrity-check cache\integrity\<id>.manifest
+echo %ERRORLEVEL%
+```
+
+(`--helper` превращает исполняемый файл лаунчера в хелпер; `--data-dir` и рабочий каталог — то,
+что лаунчер передаёт сам, так что проверка читает тот же `Launcher.cfg`, что и подключение.
+Добавьте `--game-dir <folder>`, если в **Settings → Game** указана папка, как это делает
+лаунчер; `--user-path <folder>` переопределяет пользовательскую папку. Отдельная сборка
+`Node-Launcher.exe` принимает те же опции без `--helper`.) Вывод, который пишется и в
+`launcher.log`, выглядит так:
+
+```
+integrity check (strict) against C:\Users\you\AppData\Local\com.nodemp.launcher\helper\cache\integrity\e326499d….manifest
+  game folder  C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive
+  user folder  C:\Users\you\AppData\Local\BeamNG\BeamNG.drive\current
+  launcher     exe C:\Users\you\AppData\Local\NodeMP\nodemp-launcher.exe, data C:\Users\you\AppData\Local\com.nodemp.launcher\helper\, cache C:\Users\you\AppData\Local\com.nodemp.launcher\helper\cache
+  manifest     id e326499d…, format 2, game 0.39.4.0 build 20972, 14193 root files, 173 archives, generated 2026-…
+  overlay   userfolder:vehicles/bell407/info_bell407.json
+  overlay   userfolder:levels/mytrack/info.json
+  unlisted  /Node-Launcher.exe
+game files DIFFER: 14193 files checked in 1.0s (strict), 7203 hashed, 1 not part of the game, 2 user-folder overrides -- e.g. userfolder:vehicles/bell407/info_bell407.json (overlay) userfolder:levels/mytrack/info.json (overlay) /Node-Launcher.exe (unlisted)
+counts: missing 0, size 0, hash 0, unlisted 1, archive 0, userfolder 2, folders skipped 0
+```
+
+Каждая проблема — одна строка: причина, затем путь, выровненные в две колонки:
+
+| Причина | Путь | Значение | Решение |
+|---|---|---|---|
+| `overlay` | `userfolder:<path>` | Файл в `current\` вашей пользовательской папки, перекрывающий контент игры. | Уберите его из `current\`; упакованный мод должен лежать в `mods\`, которая не проверяется. |
+| `unreadable` | `userfolder:<folder>` | Папка там, которую лаунчер не смог прочитать, обычно путь длиннее, чем позволяет Windows. | Укоротите или удалите её. |
+| `unlisted` | `/<path>` | Файл в папке игры, которого в чистой установке нет. | Удалите его из папки игры. |
+| `hash`, `size`, `missing` | `/<path>` | Файл игры отредактирован, изменил размер или удалён. Много таких, включая `/Bin64/…`, означают, что ваша версия игры — не та, которую описывает эталон. | Проверьте файлы игры в Steam; обновите игру или дождитесь, пока хост перегенерирует эталон. |
+| `crc`, `size`, `extra`, `missing`, `duplicate` | `/<zip>!<entry>` | Запись игрового архива отличается от чистой. | Проверьте файлы игры в Steam. |
+| `unreadable` | `/<zip>` | Архив — не читаемый zip. | Проверьте файлы игры в Steam. |
+| `not judged` | `<path> (the launcher's own)` | Не проблема: лаунчер живёт внутри папки игры и исключил собственные файлы. | Ничего. |
+
+Последняя строка перед итогом, `counts: missing N, size N, hash N, unlisted N, archive N,
+userfolder N, folders skipped N`, — та же разбивка в виде сумм. Код выхода — `0`, когда установка
+чистая, `1`, когда есть проблемы, и `2`, когда проверку вообще не удалось выполнить —
+`cannot read the manifest file …`, `not a reference manifest: …`,
+`could not check: manifest format outdated (format 1)` (устаревший файл эталона: попросите хоста
+перегенерировать его) или `could not check: the game's user folder … does not exist`.
 
 ## Вход в аккаунт
 
@@ -58,7 +145,7 @@ installed copy`.
 | `invalid username or password` | Неверные учётные данные. | Сбросьте пароль на [nodemp.com/forgot](https://nodemp.com/forgot). |
 | `please verify your e-mail first` | Ссылка подтверждения не была открыта. | Откройте её; она действует недолго, поэтому зарегистрируйтесь заново под другим именем, если ссылка пропала. |
 | `username must be 3-24 chars [A-Za-z0-9_-]`, `password must be 8-200 chars`, `already exists` | Правила директории для нового аккаунта. | Выберите другое имя или более длинный пароль. |
-| `two-factor code required or invalid` | У аккаунта включена двухфакторная аутентификация; в лаунчере 1.0.0 нет поля для кода. | Играйте как Test Drive или используйте аккаунт без двухфакторной аутентификации. |
+| `two-factor code required or invalid` | У аккаунта включена двухфакторная аутентификация; в лаунчере нет поля для кода. | Играйте как Test Drive или используйте аккаунт без двухфакторной аутентификации. |
 | `could not reach the directory: …` | Нет связи с `https://api.nodemp.com`. | Проверьте соединение и VPN. |
 
 ## Список серверов пуст

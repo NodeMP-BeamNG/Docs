@@ -38,17 +38,102 @@ installed copy` instead.
 | `Could not connect · Could not reach the server` | Nothing answers at `host:port`: server down, port closed, firewall. | Refresh the list; the host checks `30814` TCP and UDP. |
 | `Could not connect · DNS Lookup Failed` | The hostname in a Direct Connect address does not resolve. | Check the spelling, or use the IP. |
 | `Could not connect · server certificate fingerprint mismatch` | The certificate of a server you joined by address changed; the pin is per `host:port`. | If the host confirms the change, delete the server's entry from `known_servers.json` in the cache folder (**Settings → Launcher → Downloaded content → Open**). |
-| `Disconnected · Protocol version mismatch: launcher speaks v17, server speaks v16 - update the outdated side` | Launcher and server speak different wire protocol versions. | With launcher 1.0.0 the server is outdated; tell its host. |
+| `Disconnected · Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. | Launcher 1.1.0 speaks v18: when the launcher's number is the lower one, install the current launcher from [nodemp.com/download](https://nodemp.com/download); when the server's is, tell its host. |
 | `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again` | You are in Test Drive and the server refuses guests (*Account required*). | **Settings → Account → Sign in**, or filter by *No account needed*. |
 | `Disconnected · Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | A ticket is single-use and expires within a minute; a join from another IP fails too. | Join again from the launcher. |
 | `Disconnected · The server could not verify your account with the directory (…). Try again in a moment` | The server could not reach the directory. | Try again in a moment. |
 | `Disconnected · Server full!`, `Disconnected · You are banned from this server`, `Disconnected · The server is still starting, please try joining again later.` | What they say. | Filter by *Free slots*; ask the host; wait a minute. |
 | `Disconnected · Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | The server checks game files and yours differ from the game's manifest. | Verify the game files in Steam. |
+| `Disconnected · Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …` | A **strict** server: your install or your BeamNG user folder differs from the server's reference of a clean game. The count and the examples after it are live. | Read the examples, then run the diagnostic in [Strict servers](#strict-servers) below to see the whole list. |
+| `Disconnected · Your launcher checked your BeamNG install against a different reference manifest than this server uses (…). Reconnect so it fetches the current one.` | The launcher checked against a cached reference the server no longer uses (the host regenerated it). | Join again. |
+| `Disconnected · This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. …`, `Disconnected · This server has integrity manifests for 2 game versions (…) and cannot tell which one you run. …` | The server is set to strict but has no reference, or more than one. Nothing is wrong on your side. | Tell the host. |
+| `Disconnected · This server requires a check of your BeamNG install, which could not be completed: the game's user folder … does not exist` | Strict needs the game's user folder; `startup.ini` or `BeamNG.Drive.ini` points it somewhere that does not exist. | Fix the path in that file, or start the game once so the folder is created. |
 | `Disconnected · Invalid mod "…"`, `Disconnected · Failed to verify "…"`, `Disconnected · Server cannot find …` | A content file the server announced is broken or missing on the server. | Tell the host. Removing the file in **Content** forces a fresh download. |
 
 If the game was already on screen, the same reason also arrives as `Session ended · …`, and
 the game shows *The session has ended* with it. Every reason a server can send is listed in
 [Error codes](/reference/error-codes/).
+
+## Strict servers
+
+A server with `VerifyGame = "strict"` compares your whole BeamNG install — the game folder,
+every archive's table of contents and your BeamNG user folder — with a reference of a clean
+install of the game version it runs ([Strict verification](/hosting/strict-verification/)
+explains what the host set up). Two more steps appear while you join,
+`Downloading the server's integrity manifest` (once; the file is cached) and
+`Checking game files`, and a mismatch refuses you with
+`Disconnected · Game files do not match this server's reference (N problems). …`. The launcher
+keeps checking during the session, so a change you make while playing ends it with
+`Session ended · Game files changed while you were playing and no longer match this server's reference (N problems). …`.
+
+The usual causes on an unmodified game are files the check cannot tell from a modification:
+
+- **Leftovers of unpacked mods in the user folder** — `vehicles\<model>\info_*.json`,
+  `*.materials.json`, `*.jbeam` under `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\vehicles\`,
+  left behind after a mod was removed from `mods\`. Only saved configurations
+  (`vehicles\<model>\<name>.pc` with their `.png`/`.jpg` previews) are allowed there.
+- **Your own levels or particles** — a level under `current\levels\`, an edited
+  `current\lua\common\particles.json`, anything under `current\lua\`, `ui\`, `art\` or `scripts\`
+  that is not the game's. Move it out while you play on a strict server; `mods\` and the editors'
+  own save folders are not checked.
+- **Files added to the game folder** — a launcher or tool copied next to `BeamNG.drive.exe`, a
+  mod installed into the install instead of the user folder. Anything the reference does not list
+  counts, logs, the shader cache and Windows' own `desktop.ini` excepted.
+- **A game version other than the server's** — after a BeamNG update, until the host regenerates
+  the reference (or until you update): the examples then name game files such as
+  `/Bin64/BeamNG.drive.x64.exe (hash)`.
+- **A changed game archive** — a `.zip` under `content\` repacked or edited: verify the game files
+  in Steam.
+
+The refusal shows three examples. To see the whole list, run the same check yourself: it is built
+into the launcher as `--integrity-check`, takes the reference the server sent (cached under
+`%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest`; one file per reference
+you have fetched), and prints every problem. From a Command Prompt, with BeamNG closed:
+
+```
+cd %LOCALAPPDATA%\com.nodemp.launcher\helper
+%LOCALAPPDATA%\NodeMP\nodemp-launcher.exe --helper --data-dir %LOCALAPPDATA%\com.nodemp.launcher\helper --integrity-check cache\integrity\<id>.manifest
+echo %ERRORLEVEL%
+```
+
+(`--helper` turns the launcher executable into the helper; `--data-dir` and the working
+directory are what the launcher itself passes, so the check reads the same `Launcher.cfg` as a
+join. Add `--game-dir <folder>` when **Settings → Game** names a folder, as the launcher does;
+`--user-path <folder>` overrides the user folder. A standalone `Node-Launcher.exe` build takes
+the same options without `--helper`.) The output, also written to `launcher.log`, looks like
+this:
+
+```
+integrity check (strict) against C:\Users\you\AppData\Local\com.nodemp.launcher\helper\cache\integrity\e326499d….manifest
+  game folder  C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive
+  user folder  C:\Users\you\AppData\Local\BeamNG\BeamNG.drive\current
+  launcher     exe C:\Users\you\AppData\Local\NodeMP\nodemp-launcher.exe, data C:\Users\you\AppData\Local\com.nodemp.launcher\helper\, cache C:\Users\you\AppData\Local\com.nodemp.launcher\helper\cache
+  manifest     id e326499d…, format 2, game 0.39.4.0 build 20972, 14193 root files, 173 archives, generated 2026-…
+  overlay   userfolder:vehicles/bell407/info_bell407.json
+  overlay   userfolder:levels/mytrack/info.json
+  unlisted  /Node-Launcher.exe
+game files DIFFER: 14193 files checked in 1.0s (strict), 7203 hashed, 1 not part of the game, 2 user-folder overrides -- e.g. userfolder:vehicles/bell407/info_bell407.json (overlay) userfolder:levels/mytrack/info.json (overlay) /Node-Launcher.exe (unlisted)
+counts: missing 0, size 0, hash 0, unlisted 1, archive 0, userfolder 2, folders skipped 0
+```
+
+Each problem is one line: the reason, then the path, aligned in two columns:
+
+| Reason | Path | Meaning | Fix |
+|---|---|---|---|
+| `overlay` | `userfolder:<path>` | A file in your user folder's `current\` that overlays game content. | Move it out of `current\`; a packed mod belongs in `mods\`, which is not checked. |
+| `unreadable` | `userfolder:<folder>` | A folder there the launcher could not read, usually a path longer than Windows allows. | Shorten or remove it. |
+| `unlisted` | `/<path>` | A file in the game folder that a clean install does not have. | Remove it from the game folder. |
+| `hash`, `size`, `missing` | `/<path>` | A game file was edited, resized or deleted. Many of them, `/Bin64/…` included, mean your game version is not the one the reference describes. | Verify the game files in Steam; update the game, or wait for the host to regenerate. |
+| `crc`, `size`, `extra`, `missing`, `duplicate` | `/<zip>!<entry>` | An entry of a game archive differs from the clean one. | Verify the game files in Steam. |
+| `unreadable` | `/<zip>` | The archive is not a readable zip. | Verify the game files in Steam. |
+| `not judged` | `<path> (the launcher's own)` | Not a problem: the launcher lives inside the game folder and left its own files out. | Nothing. |
+
+The last line before the summary, `counts: missing N, size N, hash N, unlisted N, archive N,
+userfolder N, folders skipped N`, is the same breakdown as totals. The exit code is `0` when the
+install is clean, `1` when there are problems, and `2` when the check could not be made at all —
+`cannot read the manifest file …`, `not a reference manifest: …`,
+`could not check: manifest format outdated (format 1)` (an outdated reference file: tell the
+host to regenerate it) or `could not check: the game's user folder … does not exist`.
 
 ## Signing in
 
@@ -58,7 +143,7 @@ the game shows *The session has ended* with it. Every reason a server can send i
 | `invalid username or password` | Wrong credentials. | Reset the password at [nodemp.com/forgot](https://nodemp.com/forgot). |
 | `please verify your e-mail first` | The verification link was not opened. | Open it; it expires after a short while, so register again under another name if it is gone. |
 | `username must be 3-24 chars [A-Za-z0-9_-]`, `password must be 8-200 chars`, `already exists` | The directory's rules for a new account. | Pick another name or a longer password. |
-| `two-factor code required or invalid` | The account has two-factor authentication on; launcher 1.0.0 has no field for the code. | Play as Test Drive, or use an account without two-factor. |
+| `two-factor code required or invalid` | The account has two-factor authentication on; the launcher has no field for the code. | Play as Test Drive, or use an account without two-factor. |
 | `could not reach the directory: …` | No connection to `https://api.nodemp.com`. | Check your connection and any VPN. |
 
 ## The server list is empty

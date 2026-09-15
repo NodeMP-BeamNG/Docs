@@ -62,7 +62,10 @@ exit code, visible only when you start the helper from a terminal yourself. The 
 | Code | Last log line | Meaning | Action |
 |---|---|---|---|
 | `0` | `game closed - launcher closing soon` | BeamNG.drive was closed. The helper ends the session, waits 5 s and exits. | Nothing; the launcher window returns with `Session ended`. |
-| `0` | none; `Node-Launcher 1.0.0 proto 17` or the `USAGE:` text on stdout | `--version` or `--help` was asked for. | Nothing. |
+| `0` | none; `Node-Launcher 1.1.0 proto 18` or the `USAGE:` text on stdout | `--version` or `--help` was asked for. | Nothing. |
+| `0` | `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed (0.912 s)` | `--integrity-check <manifest>` ran the strict check and the install is clean. | Nothing. |
+| `1` | `game files DIFFER: … (strict), …`, then `counts: missing N, size N, hash N, unlisted N, archive N, userfolder N, folders skipped N` | `--integrity-check <manifest>` found problems; every one is printed above the summary as a reason (`overlay`, `unlisted`, `hash`, `crc`, …) and a path. | Read [Strict servers](/players/troubleshooting/#strict-servers). |
+| `2` | `cannot read the manifest file …`, `not a reference manifest: …`, `could not check: manifest format outdated (format 1)`, `could not check: the game's user folder … does not exist` | `--integrity-check <manifest>` could not run the check: no such file, not a manifest, an outdated one, or the game's user folder is missing. | Check the path; ask the host for a current reference; fix the user folder. |
 | `1` | `Cannot get Local Appdata directory` | Windows did not return the Local AppData folder, so BeamNG's user folder cannot be resolved. | Check the Windows account; `%LOCALAPPDATA%` must be set. |
 | `1` | `Config failed to parse make sure it's valid JSON!`, `Failed to open Launcher.cfg!`, `Failed to write config on disk!` | `Launcher.cfg` in the helper folder is corrupt, locked or the folder is read-only. | Delete `Launcher.cfg` (it is regenerated) or fix the permissions on `%LOCALAPPDATA%\com.nodemp.launcher\helper\`. |
 | `1` | `Failed to create caching directory: …. This is a fatal error. Please make sure to configure a directory which you have permission to create, read and write from/to.` | The `cache\` folder could not be created. | Fix the permissions, or `CacheDirectory` in `Launcher.cfg`. |
@@ -71,8 +74,8 @@ exit code, visible only when you start the helper from a terminal yourself. The 
 | `2` | `Failed to find the game please launch it. Report this if the issue persists code 8` | No BeamNG.drive install was found in **Settings → Game**, `BeamNG.Drive.ini`, the BeamNG and Steam registry keys or Steam's library folders. `8` is the code of that search and the only number the helper prints. The helper exits after 10 s. | Start the game once through Steam, or set the folder in **Settings → Game**. |
 | `2` | `Failed to Launch the game! launcher closing soon.` | `Bin64\BeamNG.drive.x64.exe` could not be started, and asking Steam (`steam://run/284160`) did not bring the game up either. The helper exits after 5 s. | Verify the game files in Steam; check **Settings → Game**. |
 
-Every `1` above is a fatal log line: the helper waits a few seconds so the line can be read (5 s;
-3 s for the cache folder), then exits.
+Every `1` above except the `--integrity-check` verdict is a fatal log line: the helper waits a few
+seconds so the line can be read (5 s; 3 s for the cache folder), then exits.
 
 ## Server refusals and kick reasons
 
@@ -80,11 +83,11 @@ A server refuses or ends a session with a `Kick` frame that carries one line of 
 join the launcher shows it as `Disconnected · …`; once you are in the game it arrives as
 `Session ended · …` and the game shows the dialog *The session has ended* with the same line. The
 server logs the same text as `<name> kicked — <reason>`. Plugins may send any text of their own;
-the rows below are the texts built into `Node-Server` 1.0.0 and the defaults of the plugin API.
+the rows below are the texts built into `Node-Server` 1.1.0 and the defaults of the plugin API.
 
 | Reason | When | What to do |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v17, server speaks v16 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. | With launcher 1.0.0 the server is behind: tell its host. |
+| `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.0 and server 1.1.0 speak v18. | When the launcher's number is the lower one, install the current launcher from [nodemp.com/download](https://nodemp.com/download); when the server's is, tell its host. |
 | `Server full!` | `[General] MaxPlayers` is reached. | Filter by *Free slots*, or wait. |
 | `The server is still starting, please try joining again later.` | The server was still loading modules and resources; the handshake was held for a while and the hold ran out. | Try again in a minute. |
 | `Server shutdown` | The server is stopping; also sent to everyone in the session when it shuts down. | Wait for the host to bring it back. |
@@ -95,7 +98,15 @@ the rows below are the texts built into `Node-Server` 1.0.0 and the defaults of 
 | `Connection refused` | A plugin vetoed `onPlayerConnectRequest` without giving a reason; with a reason, that reason is shown. | Ask the host. |
 | `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | `[General] VerifyGame` is `size`, `scripts` or `full` and your install differs from the game's manifest. The count is live. | Verify the game files in Steam. |
 | `Your BeamNG install changed while you were playing, and this server requires it to match the game's own file list (1 file differs). …` | The same check, repeated during the session, found a change. | Undo what you installed; verify the game files. |
-| `This server requires a check of your BeamNG install, which could not be completed: …` | The helper could not run the check the server asked for; the text after the colon says why. | Read the detail, then try again. |
+| `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …` | `[General] VerifyGame` is `strict` and your install or your BeamNG user folder differs from the server's reference manifest. The count is live; the text after it carries what the launcher left out as its own (`excluded=…;`), how many folders it could not read (`skipped=N;`) and up to three examples as `path (reason)`. | Run the diagnostic in [Strict servers](/players/troubleshooting/#strict-servers) and remove what it names. |
+| `Game files changed while you were playing and no longer match this server's reference (1 problem). …` | The strict check, repeated during the session (a file changed, or the launcher's schedule came round), found a mismatch. | Undo the change; run the diagnostic. |
+| `Your launcher checked your BeamNG install against a different reference manifest than this server uses (checked against reference manifest … but this server uses …). Reconnect so it fetches the current one.` | The launcher's report names another manifest than the one the server sent — a cached reference the host has since replaced. The parentheses carry both ids. | Join again; the launcher fetches the current manifest. |
+| `This server requires the strict check of your BeamNG install, but your launcher ran only 'size'. Update your launcher and try again.` | A strict server received a report of a weaker level at the door. A current launcher runs the level it is asked for, so this points at a modified or broken one. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
+| `` This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. Ask the host to run `Node-Server --gen-integrity <gamedir>` and put the file in the server's integrity folder. `` | `VerifyGame = "strict"` with no `.manifest` in `[General] IntegrityDir`. | Tell the host; see [Strict verification](/hosting/strict-verification/). |
+| `This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. Ask the host to keep exactly one manifest in the server's integrity folder.` | `VerifyGame = "strict"` with more than one `.manifest` in the folder; the handshake does not carry the player's game version. | Tell the host. |
+| `Unknown integrity manifest requested` | The launcher asked for a manifest by an id the server does not serve — or by something that is not an id at all. A current launcher asks only for the id the server itself named in its `VerifyRequest`, so this points at a modified or broken launcher. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
+| `Too many integrity manifest requests` | More than four manifest transfers in one session. A current launcher fetches a manifest once per id and keeps it, so this points at a modified or broken launcher. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
+| `This server requires a check of your BeamNG install, which could not be completed: …` | The helper could not run the check the server asked for; the text after the colon says why. On a strict server: `the game's user folder … does not exist`, `could not obtain the server's reference manifest: …` (for example `the server sent nothing for 30 s during the manifest transfer`), `manifest format outdated (format 1)`. | Read the detail, then try again. |
 | `Kicked` | `player:kick()` from a resource with no reason given. A native module calling `kick_player` with no reason sends `Kicked by module`. | Ask the host. |
 | `Banned` | `player:ban()` or `node.bans.add()` with no reason given; the ban is stored with that text. | Ask the host. |
 | `Packet rate limit exceeded` | Your client sent TCP packets faster than the server's flood limit allows. | Join again; report it if it repeats. |
