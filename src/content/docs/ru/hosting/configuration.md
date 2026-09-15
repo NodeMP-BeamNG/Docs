@@ -67,6 +67,7 @@ Docker-образ, и это правильное место для секрет
 | `[General]` | `MaxPlayers` | int | `8` | `NODE_MAX_PLAYERS` |
 | `[General]` | `Map` | string | `"/levels/gridmap_v2/info.json"` | `NODE_MAP` |
 | `[General]` | `VerifyGame` | string | `"size"` | `NODE_VERIFY_GAME` |
+| `[General]` | `IntegrityDir` | string | `"integrity"` | `NODE_INTEGRITY_DIR` |
 | `[Resources]` | `Obfuscate` | bool | `true` | `NODE_OBFUSCATE` |
 | `[Content]` | `Folder` | string | `"content"` | `NODE_CONTENT_FOLDER` |
 | `[Content]` | `Encrypt` | bool | `false` | `NODE_CONTENT_ENCRYPT` |
@@ -113,7 +114,23 @@ Docker-образ, и это правильное место для секрет
   `full`: хешируется вся установка, около 50 ГБ, минуты — аудит, а не проверка перед
   подключением. Игрок, чья установка не совпадает, получает отказ с сообщением
   `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again.`
-  Любое другое значение записывается в лог как ошибка и трактуется как `scripts`.
+  `strict`: проверка сравнивает не со списком файлов самой игры, а с **эталонным манифестом**
+  чистой установки, который вы генерируете и кладёте в `IntegrityDir` — оглавление каждого
+  архива, вся папка игры и пользовательская папка игры, причём `lua/`, `ui/`, бинарники и
+  исполняемые файлы в корне хешируются SHA-256. Нужен ровно один `.manifest` в этой папке; без
+  него или с несколькими каждое подключение отклоняется с текстом, который просит игрока
+  обратиться к хосту. Несовпадение отклоняется с сообщением
+  `Game files do not match this server's reference (3 problems). …`. Что именно проверяется, как
+  сгенерировать манифест и что видят игроки — на странице
+  [Строгая проверка](/ru/hosting/strict-verification/). Любое другое значение записывается в лог
+  как ошибка и трактуется как `scripts`.
+- `IntegrityDir` — папка с эталонными файлами `*.manifest`, с которыми сверяет
+  `VerifyGame = "strict"`, относительно рабочего каталога (Docker: `/data/integrity/`). Каждый
+  `.manifest` в ней загружается при запуске независимо от `VerifyGame`, поэтому сервер на
+  `scripts` всё равно может провести строгий аудит по запросу через `player:verify("strict")`;
+  для `VerifyGame = "strict"` в папке должен лежать ровно один файл. Файл пишет
+  `Node-Server --gen-integrity <gamedir>`, по умолчанию именно туда (см.
+  [Командная строка](#командная-строка)).
 
 ### `[Resources]`
 
@@ -250,13 +267,36 @@ ARGUMENTS:
                         including the path given in --config.
     --version
                         Prints version info and exits.
+    --gen-integrity <gamedir> [--out <file>] [--game-version <v>]
+                        Writes the integrity manifest that
+                        VerifyGame = "strict" checks players
+                        against, from a CLEAN game install at
+                        <gamedir> (the folder with integrity.json):
+                        EVERY file of the install with size and
+                        SHA-256 (the game's own integrity.json omits
+                        some shipped files) plus the table of
+                        contents of every archive; hashing a few GB
+                        takes well under a minute. Default output is
+                        integrity/<game-version>.manifest under the
+                        working directory ([General] IntegrityDir);
+                        the version is read from integrity.json
+                        unless --game-version says otherwise.
+                        Prints the stats and the manifest hash, then
+                        exits. Run it on a machine with the game
+                        installed and copy the file to the server.
 
 EXAMPLES:
     Node-Server --config=../MyWestCoastServer.toml
         Runs the Node-Server and uses the server config file
         which is one directory above it and is named
         'MyWestCoastServer.toml'.
+    Node-Server --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
+        Writes integrity/0.39.4.0.manifest (for that game version).
 ```
+
+`--gen-integrity` — отдельный инструмент в том же бинарнике: он принимает папку игры позиционным
+аргументом, не нуждается в `server.toml` и завершается, записав файл.
+[Строгая проверка](/ru/hosting/strict-verification/) разбирает его по шагам.
 
 ## Пример
 
@@ -272,6 +312,7 @@ MaxCars = 1
 MaxPlayers = 8
 Map = "/levels/gridmap_v2/info.json"
 VerifyGame = "size"
+IntegrityDir = "integrity"
 
 [Resources]
 Obfuscate = true

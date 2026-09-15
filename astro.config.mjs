@@ -57,6 +57,7 @@ export default defineConfig({
         { label: 'Server hosting', translations: { ru: 'Хостинг сервера' }, items: [
           { slug: 'hosting/quick-start' },
           { slug: 'hosting/configuration' },
+          { slug: 'hosting/strict-verification' },
           { slug: 'hosting/running' },
           { slug: 'hosting/registering' },
           { slug: 'hosting/updating' },

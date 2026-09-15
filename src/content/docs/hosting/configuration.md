@@ -65,6 +65,7 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 | `[General]` | `MaxPlayers` | int | `8` | `NODE_MAX_PLAYERS` |
 | `[General]` | `Map` | string | `"/levels/gridmap_v2/info.json"` | `NODE_MAP` |
 | `[General]` | `VerifyGame` | string | `"size"` | `NODE_VERIFY_GAME` |
+| `[General]` | `IntegrityDir` | string | `"integrity"` | `NODE_INTEGRITY_DIR` |
 | `[Resources]` | `Obfuscate` | bool | `true` | `NODE_OBFUSCATE` |
 | `[Content]` | `Folder` | string | `"content"` | `NODE_CONTENT_FOLDER` |
 | `[Content]` | `Encrypt` | bool | `false` | `NODE_CONTENT_ENCRYPT` |
@@ -109,7 +110,23 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
   hashes the whole install, about 50 GB, minutes — an audit, not a pre-join check. A player
   whose install does not match is refused with
   `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again.`
-  Any other value is logged as an error and treated as `scripts`.
+  `strict`: the check compares against a **reference manifest** of a clean install that you
+  generate and put into `IntegrityDir`, not against the game's own file list — every archive's
+  table of contents, the whole game folder and the game's user folder, with `lua/`, `ui/`, the
+  binaries and the root executables hashed with SHA-256. It needs exactly one `.manifest` in that
+  folder; with none, or with several, every join is refused with a text that tells the player to
+  ask the host. A mismatch is refused with
+  `Game files do not match this server's reference (3 problems). …`. What it checks, how to
+  generate the manifest and what players see is on
+  [Strict verification](/hosting/strict-verification/). Any other value is logged as an error
+  and treated as `scripts`.
+- `IntegrityDir` — the folder with the `*.manifest` reference files that `VerifyGame = "strict"`
+  checks against, relative to the working directory (Docker: `/data/integrity/`). Every
+  `.manifest` in it is loaded at start, whatever `VerifyGame` says, so a server on `scripts`
+  can still run a strict audit on demand through `player:verify("strict")`; for
+  `VerifyGame = "strict"` the folder must hold exactly one file. Written by
+  `Node-Server --gen-integrity <gamedir>`, which puts the file there by default (see
+  [Command line](#command-line)).
 
 ### `[Resources]`
 
@@ -243,13 +260,36 @@ ARGUMENTS:
                         including the path given in --config.
     --version
                         Prints version info and exits.
+    --gen-integrity <gamedir> [--out <file>] [--game-version <v>]
+                        Writes the integrity manifest that
+                        VerifyGame = "strict" checks players
+                        against, from a CLEAN game install at
+                        <gamedir> (the folder with integrity.json):
+                        EVERY file of the install with size and
+                        SHA-256 (the game's own integrity.json omits
+                        some shipped files) plus the table of
+                        contents of every archive; hashing a few GB
+                        takes well under a minute. Default output is
+                        integrity/<game-version>.manifest under the
+                        working directory ([General] IntegrityDir);
+                        the version is read from integrity.json
+                        unless --game-version says otherwise.
+                        Prints the stats and the manifest hash, then
+                        exits. Run it on a machine with the game
+                        installed and copy the file to the server.
 
 EXAMPLES:
     Node-Server --config=../MyWestCoastServer.toml
         Runs the Node-Server and uses the server config file
         which is one directory above it and is named
         'MyWestCoastServer.toml'.
+    Node-Server --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
+        Writes integrity/0.39.4.0.manifest (for that game version).
 ```
+
+`--gen-integrity` is a separate tool sharing the binary: it takes the game folder as a positional
+argument, needs no `server.toml`, and exits after writing the file.
+[Strict verification](/hosting/strict-verification/) walks through it.
 
 ## Example
 
@@ -265,6 +305,7 @@ MaxCars = 1
 MaxPlayers = 8
 Map = "/levels/gridmap_v2/info.json"
 VerifyGame = "size"
+IntegrityDir = "integrity"
 
 [Resources]
 Obfuscate = true

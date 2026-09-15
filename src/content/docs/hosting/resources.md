@@ -115,9 +115,12 @@ determined user.
 `[General] VerifyGame` decides how much of a joining player's BeamNG install is compared with
 the game's own file list before the join goes ahead. The launcher always runs at least the
 `size` check, so the setting chooses how much more to ask for: `scripts` catches an edited game
-script, `full` hashes the whole install and is too slow for a join. A mismatch refuses the
-player with the reason. The check covers the game's own files, not the zips from `content/`.
-Values and timings are in [Configuration](/hosting/configuration/).
+script, `full` hashes the whole install and is too slow for a join, `strict` compares the whole
+install, every archive's table of contents and the player's user folder with a reference
+manifest of a clean game that you generate with `Node-Server --gen-integrity`
+([Strict verification](/hosting/strict-verification/)). A mismatch refuses the player with the
+reason. The check covers the game's own files, not the zips from `content/`. Values and timings
+are in [Configuration](/hosting/configuration/).
 
 ## Native modules
 
