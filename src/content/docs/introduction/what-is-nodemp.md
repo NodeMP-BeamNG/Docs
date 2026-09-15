@@ -41,7 +41,11 @@ This page names the parts, walks through how a session starts and says what Node
    helper over two local TCP channels: `4444` for commands and `4445` for game traffic.
 5. The server redeems the ticket with the directory and takes the verified name from the answer.
    A server with `TestDrive = false` refuses guests and players without a ticket.
-6. The server sends the map and its content list, the helper downloads missing content into
+6. The helper checks your BeamNG install as strictly as the server asks (`VerifyGame`: file
+   sizes, the game's scripts, everything, or — on a *strict* server — the whole install and your
+   user folder against the host's reference of a clean game) and reports; a mismatch is refused
+   with the reason.
+7. The server sends the map and its content list, the helper downloads missing content into
    `mods/multiplayer/`, the server streams its client scripts, and you spawn.
 
 A server without a server key skips step 5: it accepts anyone who knows its address and takes
@@ -70,10 +74,10 @@ cannot be moved over as it is. See [Differences from BeamMP](/introduction/diffe
 
 | Component | Version | Release |
 |---|---|---|
-| Game server (`Node-Server`) | 1.0.0 | tag `server-v1.0.0`: `Node-Server-1.0.0-linux-x64.tar.gz`, `Node-Server-1.0.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.0.0` |
-| Launcher | 1.0.0 | tag `launcher-v1.0.0`: `NodeMP-Setup-1.0.0.exe` |
-| Client mod (`NodeMP.zip`) | 1.3.0 | tag `mod-v1.3.0`: `NodeMP-1.3.0.zip`, installed by the launcher |
-| Wire protocol | v17 | launcher and server must match exactly; a mismatch is refused with a reason |
+| Game server (`Node-Server`) | 1.1.0 | tag `server-v1.1.0`: `Node-Server-1.1.0-linux-x64.tar.gz`, `Node-Server-1.1.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.1.0` |
+| Launcher | 1.1.0 | tag `launcher-v1.1.0`: `NodeMP-Setup-1.1.0.exe` |
+| Client mod (`NodeMP.zip`) | 1.4.0 | tag `mod-v1.4.0`: `NodeMP-1.4.0.zip`, installed by the launcher |
+| Wire protocol | v18 | launcher and server must match exactly; a mismatch is refused with a reason |
 
 All releases are published at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).

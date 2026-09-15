@@ -1,6 +1,6 @@
 ---
 title: Быстрый старт
-description: Запустите Node-Server 1.0.0 из архива релиза или Docker-образа, откройте порт 30814, задайте имя и карту и выведите сервер в список лаунчера.
+description: Запустите Node-Server 1.1.0 из архива релиза или Docker-образа, откройте порт 30814, задайте имя и карту и выведите сервер в список лаунчера.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -26,9 +26,9 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 <Tabs>
 <TabItem label="Бинарник">
 
-Архивы релиза приложены к тегу `server-v1.0.0` на
+Архивы релиза приложены к тегу `server-v1.1.0` на
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases):
-`Node-Server-1.0.0-linux-x64.tar.gz` и `Node-Server-1.0.0-windows-x64.zip`, к каждому — файл
+`Node-Server-1.1.0-linux-x64.tar.gz` и `Node-Server-1.1.0-windows-x64.zip`, к каждому — файл
 `.sha256`. Оба содержат исполняемый файл и папку `tools/`, которая обфусцирует клиентские
 скрипты. В архиве для Windows есть и интерпретатор Lua 5.1, нужный обфускатору
 (`tools\lua515\lua5.1.exe`); в архиве для Linux его нет — установите пакет `lua5.1` из
@@ -40,10 +40,10 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
 cd /opt/nodemp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.0.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.0.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.1.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.1.0-linux-x64.tar.gz
 sudo apt install -y lua5.1
 export NODE_LUA=/usr/bin/lua5.1
 ./Node-Server
@@ -54,10 +54,10 @@ export NODE_LUA=/usr/bin/lua5.1
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-windows-x64.zip -OutFile Node-Server-1.0.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-windows-x64.zip.sha256 -OutFile Node-Server-1.0.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.0.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.0.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.0.0-windows-x64.zip -DestinationPath .
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-windows-x64.zip -OutFile Node-Server-1.1.0-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-windows-x64.zip.sha256 -OutFile Node-Server-1.1.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.1.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.1.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.1.0-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
@@ -104,7 +104,7 @@ MaxCars = 2
 </TabItem>
 <TabItem label="Docker">
 
-Образ `ghcr.io/nodemp-beamng/server:v1.0.0` запускает тот же бинарник на Ubuntu 24.04 с
+Образ `ghcr.io/nodemp-beamng/server:v1.1.0` запускает тот же бинарник на Ubuntu 24.04 с
 установленным Lua 5.1 (`latest` следует за новейшей сборкой ветки main и может опережать
 последний релиз — закрепляйте тег версии). В нём нет `server.toml`: образ задаёт
 `NODE_PROVIDER_DISABLE_CONFIG=true`, поэтому каждая настройка — переменная окружения:
@@ -126,7 +126,7 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  ghcr.io/nodemp-beamng/server:v1.0.0
+  ghcr.io/nodemp-beamng/server:v1.1.0
 docker logs -f nodemp-server
 ```
 
@@ -165,7 +165,11 @@ docker logs -f nodemp-server
 Запустите лаунчер, откройте **Servers** и найдите сервер по имени или воспользуйтесь
 **Direct Connect** с адресом `203.0.113.10:30814` (ваш публичный адрес). Direct Connect работает
 и для сервера без ключа. Первое подключение длится дольше: лаунчер проверяет файлы игры игрока
-(`VerifyGame`) и скачивает контент, который вы положили в `content/`.
+(`VerifyGame`) и скачивает контент, который вы положили в `content/`. Проверка `size` по умолчанию
+сравнивает размеры файлов со списком самой игры; `scripts` и `full` хешируют больше; `strict`
+сравнивает всю установку и пользовательскую папку игрока с эталонным манифестом чистой игры,
+который вы сначала генерируете — шаги на странице
+[Строгая проверка](/ru/hosting/strict-verification/).
 
 ## Дальше
 

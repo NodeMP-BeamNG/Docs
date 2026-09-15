@@ -74,15 +74,15 @@ arrives at the player's client files as an ordinary wire event.
 `NodeApi` is positional: a module reads each capability at an offset fixed when it was compiled.
 Against a reordered struct it would not fail, it would call whatever now sits at that offset - so
 the layout is a contract, with a version. The header carries `NODE_ABI_VERSION_MAJOR` `1` and
-`NODE_ABI_VERSION_MINOR` `11`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`.
+`NODE_ABI_VERSION_MINOR` `12`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`.
 
 - The loader calls `node_plugin_abi()` **first**, before `node_plugin_init` and before touching any
   field. A module whose major differs is refused:
-  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.11 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.12 -- refusing to load it. Rebuild the module.`
   A module without the symbol at all is refused too:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - A module built against a **newer minor** loads with a warning
-  (`was built against a NEWER SDK (1.12 vs 1.11); it may expect capabilities this server does not have`).
+  (`was built against a NEWER SDK (1.13 vs 1.12); it may expect capabilities this server does not have`).
   A module built against an older minor loads silently: everything it knows about is where it
   expects it.
 - New capabilities are appended and bump the minor. Nothing is reordered or removed; a retired

@@ -1,6 +1,6 @@
 ---
 title: Install the launcher
-description: Download and install the NodeMP launcher 1.0.0 on Windows, let it install the client mod, and sign in or continue as Test Drive.
+description: Download and install the NodeMP launcher 1.1.0 on Windows, let it install the client mod, and sign in or continue as Test Drive.
 ---
 
 The **launcher** is the Windows app that runs NodeMP for you: it signs you in, keeps the
@@ -18,8 +18,8 @@ mod is installed and updated by the launcher, never by hand. The parts are intro
 
 ## Download and install
 
-1. Download `NodeMP-Setup-1.0.0.exe` from [nodemp.com/download](https://nodemp.com/download)
-   (the *Launcher (Windows)* card). The same file is attached to tag `launcher-v1.0.0` at
+1. Download `NodeMP-Setup-1.1.0.exe` from [nodemp.com/download](https://nodemp.com/download)
+   (the *Launcher (Windows)* card). The same file is attached to tag `launcher-v1.1.0` at
    [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).
 2. Run it. The installer installs for the current user only, into `%LOCALAPPDATA%\NodeMP`, and
    does not ask for administrator rights.
@@ -71,7 +71,7 @@ even if you disabled it in the game's mod manager.
   `Could not join · client mod is not installed and the directory is unreachable`.
 
 **Settings → Launcher → Client mod** shows the installed version and the last result
-(`Up to date · v1.3.0`, `Not installed yet; it is downloaded before the first join`, …);
+(`Up to date · v1.4.0`, `Not installed yet; it is downloaded before the first join`, …);
 **Check now** repeats the check without joining.
 
 Do not copy `NodeMP.zip` into the folder yourself. Developers who keep the mod's source

@@ -8,7 +8,7 @@ that greets each player and counts them once a minute, and a client half that re
 ten seconds. It mirrors `demo-numbers`, the smallest end-to-end example, and adds the calls you
 will use on day one. Nothing needs installing beyond the server: Lua is built in.
 
-You need a running `Node-Server` 1.0.0 ([Quick start](/hosting/quick-start/)), the launcher on a
+You need a running `Node-Server` 1.1.0 ([Quick start](/hosting/quick-start/)), the launcher on a
 machine that can join it, and the [Lua API reference](/plugins/api/lua/) open in another tab. Two
 of the calls below - `player:tell` and `node.chat.say` - speak through the `chat` resource from the
 examples; copy `chat` into `resources/` as well, or watch the server console instead of the chat.

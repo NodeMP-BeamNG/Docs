@@ -1,6 +1,6 @@
 ---
 title: Установка лаунчера
-description: Скачайте и установите лаунчер NodeMP 1.0.0 на Windows, дайте ему установить клиентский мод и войдите в аккаунт или продолжите как Test Drive.
+description: Скачайте и установите лаунчер NodeMP 1.1.0 на Windows, дайте ему установить клиентский мод и войдите в аккаунт или продолжите как Test Drive.
 ---
 
 **Лаунчер** — это приложение для Windows, которое запускает NodeMP за вас: выполняет вход,
@@ -18,8 +18,8 @@ description: Скачайте и установите лаунчер NodeMP 1.0.
 
 ## Скачивание и установка
 
-1. Скачайте `NodeMP-Setup-1.0.0.exe` с [nodemp.com/download](https://nodemp.com/download)
-   (карточка *Launcher (Windows)*). Тот же файл приложен к тегу `launcher-v1.0.0` на
+1. Скачайте `NodeMP-Setup-1.1.0.exe` с [nodemp.com/download](https://nodemp.com/download)
+   (карточка *Launcher (Windows)*). Тот же файл приложен к тегу `launcher-v1.1.0` на
    [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).
 2. Запустите его. Установщик ставит лаунчер только для текущего пользователя, в
    `%LOCALAPPDATA%\NodeMP`, и не запрашивает права администратора.
@@ -75,7 +75,7 @@ launch the game once so Steam writes its path.`, нажмите **Browse** и в
   `Could not join · client mod is not installed and the directory is unreachable`.
 
 **Settings → Launcher → Client mod** показывает установленную версию и результат последней
-проверки (`Up to date · v1.3.0`, `Not installed yet; it is downloaded before the first join`, …);
+проверки (`Up to date · v1.4.0`, `Not installed yet; it is downloaded before the first join`, …);
 **Check now** повторяет проверку без подключения.
 
 Не копируйте `NodeMP.zip` в эту папку сами. Разработчиков, которые держат распакованный

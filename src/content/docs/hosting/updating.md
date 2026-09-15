@@ -13,17 +13,17 @@ stays.
 ./Node-Server --version
 ```
 
-prints `Node-Server v1.0.0`. The startup banner shows the same number on its `version` line, and
+prints `Node-Server v1.1.0`. The startup banner shows the same number on its `version` line, and
 a listed server reports it to the directory in every beacon.
 
 ## Where releases are
 
 Server releases are tags `server-v*` at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Each carries
-the two archives named after the version (`Node-Server-1.0.0-linux-x64.tar.gz`,
-`Node-Server-1.0.0-windows-x64.zip`), their `.sha256` files, and the release notes in the
+the two archives named after the version (`Node-Server-1.1.0-linux-x64.tar.gz`,
+`Node-Server-1.1.0-windows-x64.zip`), their `.sha256` files, and the release notes in the
 release body. The Docker image of the same build carries the tag with the `v`
-(`ghcr.io/nodemp-beamng/server:v1.0.0`); `latest` follows the newest main-branch build, which
+(`ghcr.io/nodemp-beamng/server:v1.1.0`); `latest` follows the newest main-branch build, which
 may be ahead of the latest release — pin a version tag.
 
 ## Binary
@@ -33,11 +33,11 @@ Linux, with the layout from the [quick start](/hosting/quick-start/) and the sys
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.0.0/Node-Server-1.0.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.0.0-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.1.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.0.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.1.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -79,6 +79,12 @@ the same commands.
   until they clear the pin; listed servers get a new fingerprint recorded by the directory's
   probe within a couple of minutes.
 - **`resources/`, `content/`, `storage/`, `bans.json`** are yours and untouched.
+- **`integrity/`** — the reference manifest of a strict server — is yours too. It is tied to a
+  game version, not to a server version: a server update leaves it alone, a **BeamNG** update
+  makes it stale, and you regenerate it then
+  ([Strict verification](/hosting/strict-verification/#after-a-game-update)). 1.1.0 adds the
+  `[General] IntegrityDir` key, which appears in `server.toml` at its default `"integrity"`
+  after the first start.
 - **`.obfcache/`** is keyed by the obfuscator's revision, so a new build rebuilds it as needed.
   Deleting it is always safe.
 - **Native modules** in `modules/` are checked against the server's plugin ABI at load. A module
@@ -92,9 +98,10 @@ and rewrites the file without them.
 
 ## Protocol versions
 
-Launcher and server speak a versioned wire protocol, `v17` in this release. When a release
-changes it, a launcher on the old version is refused at the handshake with
-`Protocol version mismatch: launcher speaks v16, server speaks v17 - update the outdated side`
+Launcher and server speak a versioned wire protocol, `v18` in this release (1.1.0 raised it from
+`v17` for the strict install check; server, launcher 1.1.0 and client mod 1.4.0 ship together).
+When a release changes it, a launcher on the old version is refused at the handshake with
+`Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
 (the two numbers are the live values). Players fix that by installing the current launcher from
 [nodemp.com/download](https://nodemp.com/download); the client mod is kept current by the
 launcher automatically before every join. As a host, update the server soon after such a

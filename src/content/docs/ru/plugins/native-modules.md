@@ -76,15 +76,15 @@ NODE_EXPORT void node_plugin_shutdown(void) {
 `NodeApi` позиционна: модуль читает каждую возможность по смещению, зафиксированному при компиляции.
 При переставленной структуре он не упал бы, а вызвал то, что теперь лежит по этому смещению, -
 поэтому раскладка является контрактом, и у неё есть версия. Заголовок несёт `NODE_ABI_VERSION_MAJOR`
-`1` и `NODE_ABI_VERSION_MINOR` `11`, упакованные в `NODE_ABI_VERSION` как `major << 16 | minor`.
+`1` и `NODE_ABI_VERSION_MINOR` `12`, упакованные в `NODE_ABI_VERSION` как `major << 16 | minor`.
 
 - Загрузчик вызывает `node_plugin_abi()` **первым**, до `node_plugin_init` и до обращения к любому
   полю. Модуль с другим мажором отклоняется:
-  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.11 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.12 -- refusing to load it. Rebuild the module.`
   Модуль вовсе без этого символа тоже отклоняется:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - Модуль, собранный против **более нового минора**, загружается с предупреждением
-  (`was built against a NEWER SDK (1.12 vs 1.11); it may expect capabilities this server does not have`).
+  (`was built against a NEWER SDK (1.13 vs 1.12); it may expect capabilities this server does not have`).
   Модуль, собранный против более старого минора, загружается молча: всё, что он знает, лежит там,
   где он ожидает.
 - Новые возможности добавляются в конец и поднимают минор. Ничто не переставляется и не удаляется;
