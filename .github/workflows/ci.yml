@@ -17,13 +17,30 @@ jobs:
       IMPORT_API_STRICT: "1"
     steps:
       - uses: actions/checkout@v5
+      # The API reference is generated from the sdk, so the sdk this job reads
+      # decides which anchors exist. An API change lands as a pair of PRs -- sdk
+      # first, then the pages -- so when the sdk has a branch NAMED LIKE THIS ONE
+      # that is what the pages were written against; otherwise main, as deploy.yml
+      # does. The deploy key stays configured on the sdk clone for the second step.
       - name: Checkout sdk (read-only deploy key)
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/sdk
           ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
           path: sdk
-          persist-credentials: false
+          persist-credentials: true
+      - name: Use the sdk branch named like this one, when there is one
+        working-directory: sdk
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          if [ "$BRANCH" != "main" ] && git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git fetch --depth 1 origin "$BRANCH"
+            git checkout --detach FETCH_HEAD
+            echo "sdk: branch $BRANCH ($(git rev-parse HEAD))"
+          else
+            echo "sdk: main ($(git rev-parse HEAD))"
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
