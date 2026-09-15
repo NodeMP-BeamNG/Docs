@@ -134,14 +134,14 @@ channel (4444).
 | `PlayerVehicle` | S→G | The seat a player occupies: vehicle and role, or on foot. |
 | `Resync` | S→G | A full cached-state push with the body of `Spawn`; the client re-applies it. |
 | `ResyncReq` | G→S | A client asks for a resync of one vehicle or of all. |
-| `Trigger` | G↔S | A controller call (doors, couplers) from any client, gated by `onVehicleCouplerRequest` and echoed to everyone including the sender. |
+| `Trigger` | G↔S | A controller call (doors, couplers) from any client, gated by `vehicleCouplerRequest` and echoed to everyone including the sender. |
 | `DamageStat` | G→S | The authority's periodic damage version; server-terminal. |
 | `DamageBlob` | G→S | The authority's deformation blob after the counter settled; server-terminal, replayed inside later spawns. |
 | `CouplerSet` | S→G | A server-driven coupler or door actuation, applied by every client. |
 | `Tag` | S→G | One server-assigned key/value tag; an empty value removes it. |
 | `Lock` | S→G | The vehicle's lock mode and whitelist. |
 | `ConfigHash` | G↔S | The config marker: broadcast by the server on every change, reported back by clients; a mismatch triggers a silent targeted resync. |
-| `TriggerReq` | G→S | Ask the vehicle's sync authority to run a controller call; gated by `onVehicleTriggerRequest`, forwarded as a targeted `Trigger`. |
+| `TriggerReq` | G→S | Ask the vehicle's sync authority to run a controller call; gated by `vehicleTriggerRequest`, forwarded as a targeted `Trigger`. |
 | `NodeGrab` | G→S | The experimental node grabber's request; dropped unless enabled and allowed. |
 | `NodeGrabSet` | S→one | An allowed grab, forwarded to the vehicle's sync authority. |
 
@@ -212,8 +212,8 @@ what you see on the console.
 3. The server holds the handshake while it is still starting, refuses a full server
    (`Server full!`), and only then redeems the ticket with the directory: the verified name replaces
    the requested one, a ticket-less or Test Drive join is admitted or refused by `[Directory] TestDrive`, an unreachable directory by `RedeemFailOpen`. A ticket is spent when redeemed, which is why identity is decided last.
-4. The player id is assigned and the name de-duplicated. `onPlayerConnectRequest` runs; a veto is a
-   `Kick` with the plugin's reason. `playerConnecting` fires.
+4. The player id is assigned and the name de-duplicated. `playerConnectRequest` runs; a veto is a
+   `Kick` with the plugin's reason. `playerAuthenticated` fires.
 5. `Welcome` carries the client id, `VerifyRequest` the install check level - and, for strict,
    the id of the reference manifest. A server set to strict that has no manifest to name, or
    more than one, refuses here instead (`Kick` with a reason that tells the player to ask the
@@ -237,7 +237,7 @@ what you see on the console.
 9. The roster is followed by a `player:identity` event for each player - id, name, verified, guest,
    roles, account id - which is what `NodeMP.account.get()` reads. Idle vehicles with no simulating
    client are handed to the joiner. The console prints `Alice synced`.
-10. The client resources are streamed (`ResourceChunk` … `ResourceDone`), then `playerJoin` fires
+10. The client resources are streamed (`ResourceChunk` … `ResourceDone`), then `playerJoined` fires
     on the server - the first event at which the player is a normal participant.
 
 ## Content delivery
@@ -253,7 +253,7 @@ sends `SyncDone`. A `VerifyReport` may arrive at any point during this phase and
 and so may an `IntegrityManifestRequest`, which is served in place.
 
 **Client resources** (the `client/` files of every resource), after the world replay and right before
-`playerJoin`: one or more `ResourceChunk` packets per resource, then exactly one `ResourceDone`. The
+`playerJoined`: one or more `ResourceChunk` packets per resource, then exactly one `ResourceDone`. The
 body of a chunk is JSON:
 
 ```json

@@ -127,7 +127,7 @@ node.pg.exec("UPDATE wallets SET balance = balance + $2 WHERE account_id = $1", 
 значения:
 
 ```lua
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     if not player.accountId then
         return -- a Test Drive guest has no account to key a wallet by
     end
@@ -505,7 +505,7 @@ local function transfer(key, fromId, toId, amount)
     end)
 end
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     if not player.accountId or not schemaReady then
         return
     end

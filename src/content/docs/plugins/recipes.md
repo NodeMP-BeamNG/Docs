@@ -63,7 +63,7 @@ local function promote(player)
     end
 end
 
-node.on("playerJoin", promote)
+node.on("playerJoined", promote)
 for _, p in ipairs(node.players.all()) do promote(p) end -- players already here after a reload
 
 -- opts.role: the prelude refuses the command for everyone else
@@ -169,7 +169,7 @@ and in Bob's `beamng.log`, under `node.events`: `teleported to 15.3 -45.6 8.3`.
 -- resources/playtime/server/main.lua
 local sessions = {} -- [player.id] = { since, account }; ids are reused, so this table is per session
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     sessions[player.id] = { since = node.server.unixTime(), account = player.accountId }
     if not player.accountId then return end -- a guest has no durable identity
     local visits = node.storage.get("visits:" .. player.accountId, 0) + 1
@@ -238,7 +238,7 @@ local function post(text)
         end)
 end
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     post(string.format("%s joined (%d online)", player.name, node.players.count()))
 end)
 

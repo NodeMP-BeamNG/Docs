@@ -14,10 +14,14 @@ machinery - it is the shape of what the other pages describe, collected in one p
   `modules`; a resource picks a domain of its own, usually its name. `node:` is reserved for the
   framework. Event names carry no version: a renamed event does not fail, it goes quiet - so keep
   names once published and add new ones beside them.
-- **Engine hooks** are camelCase and never cross the wire: `playerJoin`, `vehicleSpawned`. A
-  cancellable request is `on…Request`; a notification is past tense (`vehicleEdited`,
-  `playerSeatChanged`); a stream is `…Changed`. Two spellings, two kinds - a reader can tell a
-  network message from a server hook at a glance.
+- **Engine hooks** are camelCase and never cross the wire: `playerJoined`, `vehicleSpawned`. A
+  notification is `<subject><Verb-ed>` - past tense, after the subject (`vehicleEdited`,
+  `playerSeatChanged`, `serverShutdown`); a stream is `…Changed`; a request a handler can deny is
+  `<subject><Action>Request` (`vehicleSpawnRequest`, `relayRequest`) - no `on` prefix, `node.on`
+  already says it. Two spellings, two kinds - a reader can tell a network message from a server
+  hook at a glance. The spellings servers before 1.2.0 used (`playerJoin`, `onVehicleSpawnRequest`,
+  `canRelay`) are deprecated aliases that still work and warn once per resource; see
+  [Events → Naming](/plugins/events/#naming).
 - **Bus messages** between resources follow the wire rule: `chat:say`, `chat:command`,
   `dimensions:changed`.
 - **Resource names** use letters, digits, `_`, `-` and `.`, starting with a letter or digit. The
@@ -47,7 +51,7 @@ vehicle's global id (unique for the life of the server). The `node` face wraps t
 - Every `node` call that takes a player or a vehicle accepts the object or the id:
   `node.send(target, ...)`, `node.players.get(id)`, `vehicle:seat(player)`, `node.bans.add(who)`.
 - Where speed matters the ids stay: `node.raw.on` hands raw arguments, and the relay filter
-  (`canRelay`) receives `(fromPid, toPid, category, subtype, globalId)` because it runs per packet.
+  (`relayRequest`) receives `(fromPid, toPid, category, subtype, globalId)` because it runs per packet.
 - A raw name is the C name in camelCase: `kick_player` is `node.raw.kickPlayer`,
   `get_vehicle_transform_json` is `node.raw.getVehicleTransform` returning the decoded table.
 

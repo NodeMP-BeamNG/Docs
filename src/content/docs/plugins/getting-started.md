@@ -59,7 +59,7 @@ calls them as things happen.
 node.log("hello loaded, players online: %d", node.players.count())
 
 -- an engine event: the handler receives a Player object
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     node.log("%s joined from %s", tostring(player), player.ip)
     player:tell("Welcome, %s", player.name)
     player:send("hello:greet", { name = player.name })
@@ -84,7 +84,7 @@ What each line relies on:
 
 - `node.log(msg, ...)` prints under the resource's name; extra arguments are `string.format`
   arguments.
-- `node.on("playerJoin", fn)` subscribes to an engine event. The handler gets a `Player`: `player.id`,
+- `node.on("playerJoined", fn)` subscribes to an engine event. The handler gets a `Player`: `player.id`,
   `player.name`, `player.ip` are fields, `player:tell` and `player:send` are methods, and
   `tostring(player)` reads `Player#0 Alice`. The [events reference](/plugins/api/events/) lists
   every name with its arguments.
@@ -108,7 +108,7 @@ local acc = 0 -- seconds since the last send
 
 node.log("hello client script loaded")
 
--- sent by server/main.lua on playerJoin; data is the JSON text of the table it sent
+-- sent by server/main.lua on playerJoined; data is the JSON text of the table it sent
 node.on("hello:greet", function(data)
     local greeting = jsonDecode(data)
     node.log("server greets " .. tostring(greeting.name))

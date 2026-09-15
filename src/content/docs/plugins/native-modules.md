@@ -55,7 +55,7 @@ NODE_EXPORT int node_plugin_init(const NodeApi* a) {
         api->log_error("hello_module: this server is older than the SDK it was built against");
         return -1;
     }
-    api->register_builtin_event("playerJoin", on_join, NULL);
+    api->register_builtin_event("playerJoined", on_join, NULL);
     api->log_info("hello_module loaded");
     return 0;
 }
@@ -260,15 +260,22 @@ The same four event kinds a resource sees, by registration function:
   Answer with `emit_client(id, event, data)`, `emit_all(event, data)` or
   `emit_others(except_id, event, data)`; the `_bytes` variants (`emit_client_bytes`,
   `emit_all_bytes`) carry payloads with NUL bytes.
-- `register_builtin_event(name, cb, user)` - the observer form of engine events (`playerJoin`,
+- `register_builtin_event(name, cb, user)` - the observer form of engine events (`playerJoined`,
   `vehicleSpawned`, `serverTick`, ...); `cb(id)` carries a player id or, for vehicle events, the
   vehicle's global id. Cancellable names can be observed here too, without a veto.
 - `register_vehicle_event(name, cb, user)` - `vehicleEdited`, `vehicleReset`, `vehiclePainted`,
   `playerSeatChanged` with `(player_id, global_id, data)`.
-- `register_cancellable_event(name, cb, user)` - a verdict callback for the nine `on…Request`
+- `register_cancellable_event(name, cb, user)` - a verdict callback for the nine `…Request`
   names; return nonzero to deny and write a reason into the buffer you are given. Every handler
-  runs; one veto denies. `onVehicleNodeGrabRequest` is fail-closed: registering a handler that
+  runs; one veto denies. `vehicleNodeGrabRequest` is fail-closed: registering a handler that
   returns `0` is how a module opts the grabber in.
+- Event names cross the C ABI as strings, and the spellings servers before 1.2.0 used
+  (`"playerJoin"`, `"onPlayerConnectRequest"`, `"onVehicleSpawnRequest"`, ...) are accepted by every
+  `register_*_event` / `unregister_*_event` entry as deprecated aliases: the server maps them to
+  the canonical name and logs one warning per module per old name (`[deprecated] event
+  "playerJoin" is now "playerJoined" (a native module)`). A module built against an older SDK keeps
+  working; rebuild with the new names when you next touch it - the aliases go away in 2.0. See
+  [Events → Naming](/plugins/events/#naming).
 - `register_module_channel(channel, cb, user)` and `send_module(player_id, channel, data, len)` -
   the binary channel; `player_id` `-1` broadcasts to every synced client, through the relay filter.
 - `register_resource_event(name, cb, user)` and `emit_resource_event(name, data)` - the bus shared

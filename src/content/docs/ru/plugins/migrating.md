@@ -41,28 +41,38 @@ main = "server/main.lua"
 
 ### События
 
-| BeamMP | NodeMP |
-|---|---|
-| `onInit` | Код верхнего уровня `server/main.lua`; выполняется один раз при загрузке и снова при каждой перезагрузке. |
-| `onShutdown` | `node.on("onShutdown", function() ... end)` |
-| `onPlayerAuth(name, role, isGuest, identifiers)` - `return 1` или строка отклоняет | `node.on("onPlayerConnectRequest", function(player, name) return false, "reason" end)`; читайте `player.guest`, `player.verified`, `player.accountRoles`, `player.identifiers`. Баны проверяются до его срабатывания. |
-| `onPlayerConnecting(pid)` | `node.on("playerConnecting", function(player) ... end)` |
-| `onPlayerJoining(pid)` | Эквивалента нет - между `playerConnecting` и `playerJoin` ничего не срабатывает. |
-| `onPlayerJoin(pid)` | `node.on("playerJoin", function(player) ... end)` |
-| `onPlayerDisconnect(pid)` | `node.on("playerLeft", function(player) ... end)`; `player.name` ещё известно. |
-| `onChatMessage(pid, name, message)` - `return 1` блокирует | `node.on("chat:send", function(player, data) ... end)`, где `data` - JSON-текст `{ scope, text }`. Доставкой владеет ресурс `chat`; см. [разбор](#разбор-перенос-чат-плагина). |
-| `onVehicleSpawn(pid, vid, data)` - `return 1` отклоняет | `node.on("onVehicleSpawnRequest", function(player, requestedId, config) return false, "reason" end)`; `vehicleSpawned(vehicle)` срабатывает после. |
-| `onVehicleEdited(pid, vid, data)` - `return 1` отклоняет | `onVehicleEditRequest(player, vehicle, config)`, возвращающий `false, reason`; `vehicleEdited(player, vehicle, config)` после. |
-| `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - записи уже нет; значим только `vehicle.id`. |
-| `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - только наблюдение, отклонить нельзя. |
-| `onVehiclePaintChanged(pid, vid, data)` | `onVehiclePaintRequest(player, vehicle, paints)`, чтобы решить, `vehiclePainted`, чтобы наблюдать. |
-| `onFileChanged(path)` | Эквивалента нет. |
-| `onConsoleInput(cmd)` | Эквивалента нет: у сервера нет консольного ввода. Используйте команды чата (`node.commands.add`). |
+Имена NodeMP следуют двум правилам: уведомление - `<subject><Verb-ed>` (`playerJoined`), запрос,
+который обработчик может отклонить, - `<subject><Action>Request` (`vehicleSpawnRequest`) - без
+префикса `on`, его уже говорит `node.on(...)`. Последний столбец - написание, которое использовали
+серверы до 1.2.0; оно продолжает работать как устаревший псевдоним (одно предупреждение на ресурс
+на старое имя, удаляется в 2.0), так что ресурс, перенесённый под старый сервер, продолжает
+работать - но пишите новое имя.
+
+| BeamMP | NodeMP | До 1.2.0 |
+|---|---|---|
+| `onInit` | Код верхнего уровня `server/main.lua`; выполняется один раз при загрузке и снова при каждой перезагрузке. | |
+| `onShutdown` | `node.on("serverShutdown", function() ... end)` | `onShutdown` |
+| `onPlayerAuth(name, role, isGuest, identifiers)` - `return 1` или строка отклоняет | `node.on("playerConnectRequest", function(player, name) return false, "reason" end)`; читайте `player.guest`, `player.verified`, `player.accountRoles`, `player.identifiers`. Баны проверяются до его срабатывания. | `onPlayerConnectRequest` |
+| `onPlayerConnecting(pid)` | `node.on("playerAuthenticated", function(player) ... end)` | `playerConnecting` |
+| `onPlayerJoining(pid)` | Эквивалента нет - между `playerAuthenticated` и `playerJoined` ничего не срабатывает. | |
+| `onPlayerJoin(pid)` | `node.on("playerJoined", function(player) ... end)` | `playerJoin` |
+| `onPlayerDisconnect(pid)` | `node.on("playerLeft", function(player) ... end)`; `player.name` ещё известно. | |
+| `onChatMessage(pid, name, message)` - `return 1` блокирует | `node.on("chat:send", function(player, data) ... end)`, где `data` - JSON-текст `{ scope, text }`. Доставкой владеет ресурс `chat`; см. [разбор](#разбор-перенос-чат-плагина). | |
+| `onVehicleSpawn(pid, vid, data)` - `return 1` отклоняет | `node.on("vehicleSpawnRequest", function(player, requestedId, config) return false, "reason" end)`; `vehicleSpawned(vehicle)` срабатывает после. | `onVehicleSpawnRequest` |
+| `onVehicleEdited(pid, vid, data)` - `return 1` отклоняет | `vehicleEditRequest(player, vehicle, config)`, возвращающий `false, reason`; `vehicleEdited(player, vehicle, config)` после. | `onVehicleEditRequest` |
+| `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - записи уже нет; значим только `vehicle.id`. | |
+| `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - только наблюдение, отклонить нельзя. | |
+| `onVehiclePaintChanged(pid, vid, data)` | `vehiclePaintRequest(player, vehicle, paints)`, чтобы решить, `vehiclePainted`, чтобы наблюдать. | `onVehiclePaintRequest` |
+| `onFileChanged(path)` | Эквивалента нет. | |
+| `onConsoleInput(cmd)` | Эквивалента нет: у сервера нет консольного ввода. Используйте команды чата (`node.commands.add`). | |
 
 Каждый отменяемый обработчик выполняется даже после того, как один уже отказал, а обработчик с
 ошибкой никогда не отказывает. Остальные виды, которых у плагина BeamMP не было, - смена мест,
-запросы сцепок и триггеров, потоки позиций и electrics, закрытый по умолчанию захват нод - на
-странице [События](/ru/plugins/events/).
+запросы сцепок и триггеров (`vehicleEnterRequest`, `vehicleExitRequest`, `vehicleCouplerRequest`,
+`vehicleTriggerRequest`), потоки позиций и electrics, закрытый по умолчанию захват нод
+(`vehicleNodeGrabRequest`), фильтр ретрансляции (`relayRequest`, прежде `canRelay`) - на странице
+[События](/ru/plugins/events/), а [полный список переименованных событий](/ru/plugins/api/events/#renamed-events) -
+в справочнике.
 
 ### Игроки
 
@@ -198,7 +208,7 @@ node.commands.add("online", function(player, args, raw)
     player:tell("Online: %d", node.players.count())
 end)
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     node.chat.say("%s joined", player.name)
 end)
 ```

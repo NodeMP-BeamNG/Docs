@@ -41,27 +41,36 @@ not a global's name, and the event name decides what it receives.
 
 ### Events
 
-| BeamMP | NodeMP |
-|---|---|
-| `onInit` | The top-level code of `server/main.lua`; it runs once at load and again on each reload. |
-| `onShutdown` | `node.on("onShutdown", function() ... end)` |
-| `onPlayerAuth(name, role, isGuest, identifiers)` - `return 1` or a string refuses | `node.on("onPlayerConnectRequest", function(player, name) return false, "reason" end)`; read `player.guest`, `player.verified`, `player.accountRoles`, `player.identifiers`. Bans are checked before it fires. |
-| `onPlayerConnecting(pid)` | `node.on("playerConnecting", function(player) ... end)` |
-| `onPlayerJoining(pid)` | No equivalent - nothing fires between `playerConnecting` and `playerJoin`. |
-| `onPlayerJoin(pid)` | `node.on("playerJoin", function(player) ... end)` |
-| `onPlayerDisconnect(pid)` | `node.on("playerLeft", function(player) ... end)`; `player.name` is still known. |
-| `onChatMessage(pid, name, message)` - `return 1` blocks | `node.on("chat:send", function(player, data) ... end)` with `data` as JSON text `{ scope, text }`. The `chat` resource owns delivery; see the [walkthrough](#walkthrough-porting-a-chat-plugin). |
-| `onVehicleSpawn(pid, vid, data)` - `return 1` refuses | `node.on("onVehicleSpawnRequest", function(player, requestedId, config) return false, "reason" end)`; `vehicleSpawned(vehicle)` fires after the fact. |
-| `onVehicleEdited(pid, vid, data)` - `return 1` refuses | `onVehicleEditRequest(player, vehicle, config)` returning `false, reason`; `vehicleEdited(player, vehicle, config)` after. |
-| `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - the record is gone; only `vehicle.id` is meaningful. |
-| `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - observe only, it cannot be denied. |
-| `onVehiclePaintChanged(pid, vid, data)` | `onVehiclePaintRequest(player, vehicle, paints)` to decide, `vehiclePainted` to observe. |
-| `onFileChanged(path)` | No equivalent. |
-| `onConsoleInput(cmd)` | No equivalent: the server has no console input. Use chat commands (`node.commands.add`). |
+NodeMP names follow two rules: a notification is `<subject><Verb-ed>` (`playerJoined`), a request
+a handler can deny is `<subject><Action>Request` (`vehicleSpawnRequest`) - there is no `on` prefix,
+`node.on(...)` already says it. The last column is the spelling servers before 1.2.0 used; it still
+works as a deprecated alias (one warning per resource per old name, removed in 2.0), so a resource
+ported against an older server keeps running - but write the new name.
+
+| BeamMP | NodeMP | Before 1.2.0 |
+|---|---|---|
+| `onInit` | The top-level code of `server/main.lua`; it runs once at load and again on each reload. | |
+| `onShutdown` | `node.on("serverShutdown", function() ... end)` | `onShutdown` |
+| `onPlayerAuth(name, role, isGuest, identifiers)` - `return 1` or a string refuses | `node.on("playerConnectRequest", function(player, name) return false, "reason" end)`; read `player.guest`, `player.verified`, `player.accountRoles`, `player.identifiers`. Bans are checked before it fires. | `onPlayerConnectRequest` |
+| `onPlayerConnecting(pid)` | `node.on("playerAuthenticated", function(player) ... end)` | `playerConnecting` |
+| `onPlayerJoining(pid)` | No equivalent - nothing fires between `playerAuthenticated` and `playerJoined`. | |
+| `onPlayerJoin(pid)` | `node.on("playerJoined", function(player) ... end)` | `playerJoin` |
+| `onPlayerDisconnect(pid)` | `node.on("playerLeft", function(player) ... end)`; `player.name` is still known. | |
+| `onChatMessage(pid, name, message)` - `return 1` blocks | `node.on("chat:send", function(player, data) ... end)` with `data` as JSON text `{ scope, text }`. The `chat` resource owns delivery; see the [walkthrough](#walkthrough-porting-a-chat-plugin). | |
+| `onVehicleSpawn(pid, vid, data)` - `return 1` refuses | `node.on("vehicleSpawnRequest", function(player, requestedId, config) return false, "reason" end)`; `vehicleSpawned(vehicle)` fires after the fact. | `onVehicleSpawnRequest` |
+| `onVehicleEdited(pid, vid, data)` - `return 1` refuses | `vehicleEditRequest(player, vehicle, config)` returning `false, reason`; `vehicleEdited(player, vehicle, config)` after. | `onVehicleEditRequest` |
+| `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - the record is gone; only `vehicle.id` is meaningful. | |
+| `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - observe only, it cannot be denied. | |
+| `onVehiclePaintChanged(pid, vid, data)` | `vehiclePaintRequest(player, vehicle, paints)` to decide, `vehiclePainted` to observe. | `onVehiclePaintRequest` |
+| `onFileChanged(path)` | No equivalent. | |
+| `onConsoleInput(cmd)` | No equivalent: the server has no console input. Use chat commands (`node.commands.add`). | |
 
 Every cancellable handler runs even after one has denied, and an erroring handler never denies.
-The other kinds a BeamMP plugin never had - seat changes, coupler and trigger requests, the position
-and electrics streams, the fail-closed node grabber - are on [Events](/plugins/events/).
+The other kinds a BeamMP plugin never had - seat changes, coupler and trigger requests
+(`vehicleEnterRequest`, `vehicleExitRequest`, `vehicleCouplerRequest`, `vehicleTriggerRequest`),
+the position and electrics streams, the fail-closed node grabber (`vehicleNodeGrabRequest`), the
+relay filter (`relayRequest`, formerly `canRelay`) - are on [Events](/plugins/events/), with the
+[full list of renamed events](/plugins/api/events/#renamed-events) in the reference.
 
 ### Players
 
@@ -197,7 +206,7 @@ node.commands.add("online", function(player, args, raw)
     player:tell("Online: %d", node.players.count())
 end)
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     node.chat.say("%s joined", player.name)
 end)
 ```

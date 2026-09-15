@@ -121,7 +121,7 @@ half rate, and nobody beyond it. The default `0` relays every snapshot to everyo
 
 Client-emitted `Event` packets are **server-terminal**: they reach server resources only. Wire
 event names are `<domain>:<verb>` in lowercase (`chat:send`, `vehicle:fire`, `player:policy`,
-`modules:request`); camelCase names (`playerJoin`, `onVehicleSpawnRequest`) are server-side hooks
+`modules:request`); camelCase names (`playerJoined`, `vehicleSpawnRequest`) are server-side hooks
 that never cross the wire. The client mod's peer features — fire sync, node grabbing, optional
 full-state blobs — ride `vehicle:*` events that the `nodemp-relay` server resource forwards to
 every other player; the same resource applies each player's `player:policy`. Chat is the `chat`
@@ -138,7 +138,7 @@ below. Every client — the grabber included — runs the same spring on its cop
 deformation is identical for everyone. The wire also has a typed, server-arbitrated path:
 `node.requestNodeGrab` in a client script sends `Vehicle::NodeGrab`, which the server forwards as
 `NodeGrabSet` to the vehicle's **sync authority** only when `[Experimental] NodeGrab = true` and a
-resource allows the request through the fail-closed `onVehicleNodeGrabRequest` hook.
+resource allows the request through the fail-closed `vehicleNodeGrabRequest` hook.
 
 ## Head poses
 

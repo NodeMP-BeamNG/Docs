@@ -95,7 +95,7 @@ guaranteed order - never rely on another resource having loaded before yours; ta
 
 When the scan ends, `2 resources · 0 modules loaded` sums it up and the worker thread starts:
 from here on timers fire, `serverTick` runs every 100 ms and players can join. A player's join
-streams every resource's client files after the content sync, then `playerJoin` fires.
+streams every resource's client files after the content sync, then `playerJoined` fires.
 
 ## The client half
 
@@ -183,7 +183,7 @@ functions become `null`; nesting stops at 32 levels). Keys are strings of up to 
 local visits = node.storage.get("visits", 0) + 1
 node.storage.set("visits", visits)
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     if player.accountId then
         node.storage.set("lastSeen:" .. player.accountId, node.server.unixTime())
     end

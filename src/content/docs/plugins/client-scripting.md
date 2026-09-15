@@ -13,7 +13,7 @@ condenses the second, and ends with [when to use which](#which-surface).
 ## Resource client files
 
 Every `.lua` under `client/` - or the `[client] files` list of `resource.toml` - reaches each
-joining player after the world replay and before `playerJoin` fires on the server. The client mod
+joining player after the world replay and before `playerJoined` fires on the server. The client mod
 compiles the files, runs them, and confirms in `beamng.log` with
 `Activated server resource "race" (1 ge file(s), 0 vehicle file(s))` per resource and
 `Server resources ready: 2 resource(s), 3 ge file(s), 0 vehicle file(s)` once the delivery is
@@ -38,8 +38,8 @@ source behind the scenes, so the signatures you call are these:
 | `node.onModule(channel, fn)` | Subscribes `fn(data)` to binary payloads the server sends on a `u32` channel; `data` is a byte string. One handler per channel per resource. |
 | `node.offModule(channel)` | Drops this resource's subscription on the channel. |
 | `node.sendModule(channel, data)` | Sends bytes to the server on a channel; they reach `node.modules.on` subscribers and native modules, never other players. |
-| `node.requestVehicleTrigger(globalId, call)` | Asks the server to have the vehicle's sync authority run one controller call; `call` is a table or JSON text with `controllerName`, `functionName` and the variables. Gated by `onVehicleTriggerRequest` on the server. |
-| `node.requestNodeGrab(globalId, action, nodeId, x, y, z, force)` | The experimental node grabber: `action` is `"grab"`, `"move"` or `"release"`. Dropped unless `[Experimental] NodeGrab` is on and a resource allows `onVehicleNodeGrabRequest`. |
+| `node.requestVehicleTrigger(globalId, call)` | Asks the server to have the vehicle's sync authority run one controller call; `call` is a table or JSON text with `controllerName`, `functionName` and the variables. Gated by `vehicleTriggerRequest` on the server. |
+| `node.requestNodeGrab(globalId, action, nodeId, x, y, z, force)` | The experimental node grabber: `action` is `"grab"`, `"move"` or `"release"`. Dropped unless `[Experimental] NodeGrab` is on and a resource allows `vehicleNodeGrabRequest`. |
 
 A bad argument - an empty name, a non-function handler, a channel outside the `u32` range - logs an
 `E` line under `node.events` such as `node.on: given event name is not a valid string`, and the
@@ -240,7 +240,7 @@ session panel refused. Nothing of it runs unless a server resource switches it o
 with the `strict` key of the `session:config` wire event:
 
 ```lua
--- server side, any resource; usually from a playerJoin handler
+-- server side, any resource; usually from a playerJoined handler
 player:send("session:config", { strict = {
     actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
     photoMode   = "admins",   -- "admins" | "all" | "none"

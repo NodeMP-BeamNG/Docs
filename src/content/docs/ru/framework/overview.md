@@ -52,7 +52,7 @@ Node-Server  <-- HTTPS                                              -->  directo
 ## Три среды выполнения
 
 1. **Серверный Lua или JavaScript.** `server/main.lua` каждого ресурса получает собственное
-   состояние Lua с API `node`: `node.on("playerJoin", fn)`, `node.players`, `node.vehicles`,
+   состояние Lua с API `node`: `node.on("playerJoined", fn)`, `node.players`, `node.vehicles`,
    объекты `Player` и `Vehicle`, `node.storage`, `node.http`, таймеры и корутины. Все обработчики
    всех ресурсов выполняются в одном рабочем потоке, поэтому плагины никогда не конкурируют за
    данные. Ресурсам на JavaScript (`type = "js"`) нужен нативный модуль `js-host`; они получают
@@ -130,7 +130,7 @@ Zip-архивы в `content/` (`[Content] Folder`) — это моды BeamNG, 
 через ресурс. Ресурс `nodemp-relay` пересылает события клиентского мода `vehicle:fire`,
 `vehicle:grab` и `vehicle:state` всем остальным игрокам и применяет политику каждого игрока для
 его машин (`player:policy`: режим блокировки, разрешения на триггеры и захват узлов); чат —
-отдельный ресурс `chat`. Фильтр ретрансляции (`node.relay.filter` в Lua, хук `canRelay`) может
+отдельный ресурс `chat`. Фильтр ретрансляции (`node.relay.filter` в Lua, хук `relayRequest`) может
 запретить любой ретранслируемый пакет для конкретного получателя. Параллельным мирам он не
 нужен: `dimensions` раскладывает игроков и машины по группам видимости ядра (`Player:setGroup`,
 `Vehicle:setGroup`), а ядро никогда не ретранслирует между двумя группами. Двоичные данные идут

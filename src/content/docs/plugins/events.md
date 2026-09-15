@@ -12,15 +12,48 @@ name with its exact arguments.
 
 | Kind | Names | Handler receives | Return value |
 |---|---|---|---|
-| Engine events (observe) | camelCase, fired by the server after something happened: `playerJoin`, `vehicleSpawned`, `serverTick` | the subject - a `Player` or a `Vehicle` - or nothing | ignored |
+| Engine events (observe) | `<subject><Verb-ed>`, fired by the server after something happened: `playerJoined`, `vehicleSpawned`, `serverTick` | the subject - a `Player` or a `Vehicle` - or nothing | ignored |
 | Vehicle notifications (observe, with data) | fired after the server relayed and cached a player's action: `vehicleEdited`, `playerSeatChanged` | `(player, vehicle, payload)` | ignored |
-| Cancellable requests (decide) | `on…Request`, fired before the server performs what a client asked: `onVehicleSpawnRequest` | `(player, vehicle, payload)` - or a name, or a proposed id, in the second slot | `false[, reason]` denies |
+| Cancellable requests (decide) | `<subject><Action>Request`, fired before the server performs what a client asked: `vehicleSpawnRequest` | `(player, vehicle, payload)` - or a name, or a proposed id, in the second slot | `false[, reason]` denies |
 | Wire events from clients | any other name, by convention `<domain>:<verb>`: `chat:send` | `(player, data)` with `data` as the string the client sent | ignored |
 
 Two more channels have their own subscribe calls: the bus between resources (`node.bus.on`) and
-the binary module channel (`node.modules.on`). The relay filter, `canRelay`, is installed with
+the binary module channel (`node.modules.on`). The relay filter, `relayRequest`, is installed with
 `node.relay.filter`. All handlers run on the plugin worker thread, one at a time, in registration
 order; several resources may subscribe to the same name.
+
+## Naming
+
+Two rules cover every server event name:
+
+1. **A notification reads `<subject><Verb-ed>`** - what happened, in the past tense, after the
+   subject it happened to: `playerJoined`, `playerLeft`, `vehicleSpawned`, `vehicleDeleted`,
+   `vehicleEdited`, `playerSeatChanged`, `serverShutdown`. The handler observes; its return value
+   is ignored.
+2. **A request a handler can deny reads `<subject><Action>Request`** - what the client asks for,
+   before the server does it: `playerConnectRequest`, `vehicleSpawnRequest`, `vehicleEnterRequest`.
+   `false[, reason]` denies. The relay filter is a request too, `relayRequest`: `false` hides one
+   packet from one recipient.
+
+There is no `on` prefix - `node.on(...)` already says it - and no present tense. Wire events keep
+their own rule, `<domain>:<verb>` (`chat:send`); module channels and bus events are unchanged.
+
+Servers before 1.2.0 used other spellings, and every one of them still works as a **deprecated
+alias**: `playerJoin` → `playerJoined`, `playerConnecting` → `playerAuthenticated`, `onShutdown` →
+`serverShutdown`, `onPlayerConnectRequest` → `playerConnectRequest`, `onVehicle…Request` →
+`vehicle…Request` (spawn, enter, exit, coupler, edit, paint, trigger, node grab), `canRelay` →
+`relayRequest`. An old name subscribes to the same event as the new one and logs one warning per
+resource per old name, the first time the resource uses it:
+
+```text
+[deprecated] event "onPlayerConnectRequest" is now "playerConnectRequest"
+```
+
+Both spellings are one event: `node.off` accepts either for a handler subscribed under either, two
+different functions under the two spellings are two handlers (both run), and the same function
+under both spellings is one subscription (`node.on` replaces, so it runs once). The C ABI accepts
+the old names the same way. The aliases will be removed in 2.0 - rename when you next touch the
+resource; the [events reference](/plugins/api/events/#renamed-events) lists every pair.
 
 ## What a handler receives
 
@@ -50,9 +83,9 @@ where you do not want objects built.
 
 Fired by the server after something happened; return values are ignored.
 
-- **Lifecycle.** `playerConnecting` (authenticated, about to receive the world), `playerJoin`
+- **Lifecycle.** `playerAuthenticated` (authenticated, about to receive the world), `playerJoined`
   (the usual place to greet, assign a role, restore state), `playerLeft` (its vehicles go around
-  the same time), `serverTick` (every 100 ms, no argument - keep it cheap), `onShutdown` (flush
+  the same time), `serverTick` (every 100 ms, no argument - keep it cheap), `serverShutdown` (flush
   what you must; timers will not run again).
 - **Registry.** `vehicleSpawned`, `vehicleDeleted` (the record is gone by then; only `vehicle.id`
   is meaningful), `vehicleTagsChanged`, `vehicleLockChanged`, `vehicleDamageChanged`.
@@ -69,7 +102,7 @@ Fired by the server after something happened; return values are ignored.
 ```lua
 local greeted = {}
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     player:tell("Welcome, %s. %d online.", player.name, node.players.count())
     greeted[player.id] = true
 end)
@@ -109,18 +142,18 @@ Fired before the server performs an action a client asked for. Handlers get
 `(player, vehicle, payload)` with the payload decoded where it is JSON; a handler that returns
 `false` - optionally with a reason string as a second value - denies the action, and the first
 denial wins. Every cancellable name can also be observed: a handler that returns nothing sees the
-request and changes nothing. Names start with `on` and end in `Request`.
+request and changes nothing. Names read `<subject><Action>Request`.
 
 Every handler runs even after one has denied, so observers still see the request. A handler that
 raises an error never denies. The reason travels where the wire can carry it - the connect refusal
 is shown to the player as the kick text - and is logged otherwise.
 
-The nine names: `onPlayerConnectRequest` (second argument: the requested name; bans are checked
-before it fires), `onVehicleSpawnRequest` (second argument: the id the client proposed, not the
-final one; third: the spawn config), `onVehicleEnterRequest` and `onVehicleExitRequest` (the
-role), `onVehicleCouplerRequest`, `onVehicleEditRequest` and `onVehiclePaintRequest` (the client
+The nine names: `playerConnectRequest` (second argument: the requested name; bans are checked
+before it fires), `vehicleSpawnRequest` (second argument: the id the client proposed, not the
+final one; third: the spawn config), `vehicleEnterRequest` and `vehicleExitRequest` (the
+role), `vehicleCouplerRequest`, `vehicleEditRequest` and `vehiclePaintRequest` (the client
 applied these optimistically, so a denial rolls the initiator back to the server's cached
-config or paint), `onVehicleTriggerRequest` (default allow), `onVehicleNodeGrabRequest`
+config or paint), `vehicleTriggerRequest` (default allow), `vehicleNodeGrabRequest`
 (fail-closed: with no handler at all the grab is denied, so the experimental node grabber needs a
 resource that says yes - `nodemp-relay` does).
 
@@ -129,21 +162,21 @@ A worked example, from `gatekeeper-example`: cap the vehicles a player may spawn
 ```lua
 local MAX_CARS_PER_PLAYER = 2
 
-node.on("onVehicleSpawnRequest", function(player, requestedId, config)
+node.on("vehicleSpawnRequest", function(player, requestedId, config)
     if #player:vehicles() >= MAX_CARS_PER_PLAYER then
         return false, "Vehicle limit reached (" .. MAX_CARS_PER_PLAYER .. " per player)"
     end
     node.log("%s spawns a %s", tostring(player), tostring(config.jbm))
 end)
 
-node.on("onVehicleCouplerRequest", function(player, vehicle, call)
+node.on("vehicleCouplerRequest", function(player, vehicle, call)
     if vehicle.spawner and vehicle.spawner ~= player then
         return false -- only the spawner opens this car's doors
     end
 end)
 ```
 
-`onVehicleSpawnRequest` fires before the vehicle exists, so `player:vehicles()` counts what the
+`vehicleSpawnRequest` fires before the vehicle exists, so `player:vehicles()` counts what the
 player already has; the denied client removes the car it created locally. The server's own
 `[General] MaxCars` limit and `node.server.setMaxCars` do the same job without a resource; the
 example shows the shape. What the server does itself - `vehicle:seat`, `vehicle:setCoupler`,
@@ -151,8 +184,10 @@ example shows the shape. What the server does itself - `vehicle:seat`, `vehicle:
 
 ## The relay filter
 
-`canRelay` is neither an event nor a request: a question the relay asks per packet. Install it with
-`node.relay.filter(fn)`; `fn(fromPid, toPid, category, subtype, globalId)` receives ids, not
+`relayRequest` is neither an event nor an action request: a question the relay asks per packet,
+named like the requests because `false` from the handler decides something. Install it with
+`node.relay.filter(fn)` (the same as `node.on("relayRequest", fn)`); `fn(fromPid, toPid, category,
+subtype, globalId)` receives ids, not
 objects, because it sits on the hot path, and returns `false` to hide that packet from that
 recipient. Verdicts are cached until `node.relay.invalidate()`, so call it whenever the data your
 hook reads has changed. `node.relay.unfilter(fn?)` removes it.
@@ -246,8 +281,8 @@ module owns channel `0x44494D53`.
 ## Unsubscribing
 
 `node.off(name, fn?)` removes this resource's handlers for a name - all of them, or only `fn` - and
-returns how many. A reload drops every subscription the resource made, so there is nothing to
-clean up at that point.
+returns how many; a deprecated spelling names the same event as its canonical name here too. A
+reload drops every subscription the resource made, so there is nothing to clean up at that point.
 
 ## Next
 

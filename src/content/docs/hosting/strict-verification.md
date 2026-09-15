@@ -208,7 +208,7 @@ Three additions to the server API (ABI 1.12) belong to strict:
   `"strict"`. It returns `true` when the request went out, or `nil` and `"unknown player"`,
   `"unsupported"` (a level not on offer — `"strict"` on a server without exactly one loaded
   manifest) or `"pending"` (one request per player per 60 s; the check every join runs does not
-  count, so a call from `playerJoin` goes out at once). A strict request from a resource hashes
+  count, so a call from `playerJoined` goes out at once). A strict request from a resource hashes
   the binaries, unlike the launcher's own re-checks.
 - [`playerVerifyReported`](/plugins/api/events/#playerverifyreported) fires for every report —
   the one at the door and every mid-session one — **after** the server's verdict, with

@@ -64,11 +64,11 @@ Plugins written for other multiplayer servers do not run here as they are; see
    is where you subscribe to events and set up state. The console confirms each resource with
    `demo-numbers v1.0 loaded — lua · server 1 file · 1 client file`.
 2. **Run.** The worker thread starts; events, timers and coroutines run on it. A joining player
-   receives every resource's client files after the content sync, then `playerJoin` fires.
+   receives every resource's client files after the content sync, then `playerJoined` fires.
 3. **Reload.** `node.resources.reload(name)` drops a resource's handlers, timers and coroutines and
    runs its server half again without a restart. `node.storage` survives; client files do not
    change until a restart.
-4. **Stop.** `onShutdown` fires once, pending asynchronous file writes are flushed, each storage
+4. **Stop.** `serverShutdown` fires once, pending asynchronous file writes are flushed, each storage
    store is folded into one JSON file, and the client mod unloads the streamed scripts when the
    player leaves.
 

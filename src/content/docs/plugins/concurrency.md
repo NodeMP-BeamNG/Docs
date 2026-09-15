@@ -35,7 +35,7 @@ Lua state; results come back to the worker as plain data and a callback.
 
 Timers are serviced after each batch of handlers, so a timer never interrupts a handler; the
 worker wakes for the earliest deadline, and `serverTick` fires every 100 ms alongside them. A
-timer belongs to the resource that set it and dies with a reload; at shutdown `onShutdown` fires
+timer belongs to the resource that set it and dies with a reload; at shutdown `serverShutdown` fires
 and timers do not run again.
 
 ```lua
@@ -151,7 +151,7 @@ About 15 s timeout, an 8 MB body cap, up to five redirects, and TLS without peer
 do not send secrets to hosts you do not control.
 
 ```lua
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     node.http.get("https://example.com/motd.txt", function(status, body)
         if status == 200 and player:isConnected() then
             player:tell(body)

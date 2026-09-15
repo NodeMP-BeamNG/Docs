@@ -61,7 +61,7 @@ obfuscation = "none"
 node.log("hello loaded, players online: %d", node.players.count())
 
 -- an engine event: the handler receives a Player object
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     node.log("%s joined from %s", tostring(player), player.ip)
     player:tell("Welcome, %s", player.name)
     player:send("hello:greet", { name = player.name })
@@ -86,7 +86,7 @@ end)
 
 - `node.log(msg, ...)` печатает под именем ресурса; дополнительные аргументы - это аргументы
   `string.format`.
-- `node.on("playerJoin", fn)` подписывается на событие движка. Обработчик получает `Player`:
+- `node.on("playerJoined", fn)` подписывается на событие движка. Обработчик получает `Player`:
   `player.id`, `player.name`, `player.ip` - поля, `player:tell` и `player:send` - методы, а
   `tostring(player)` читается как `Player#0 Alice`. В [справочнике событий](/ru/plugins/api/events/)
   перечислено каждое имя с его аргументами.
@@ -111,7 +111,7 @@ local acc = 0 -- seconds since the last send
 
 node.log("hello client script loaded")
 
--- sent by server/main.lua on playerJoin; data is the JSON text of the table it sent
+-- sent by server/main.lua on playerJoined; data is the JSON text of the table it sent
 node.on("hello:greet", function(data)
     local greeting = jsonDecode(data)
     node.log("server greets " .. tostring(greeting.name))

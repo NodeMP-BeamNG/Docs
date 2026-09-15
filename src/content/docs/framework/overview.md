@@ -51,7 +51,7 @@ HMAC trailer. Details:
 ## Three runtimes
 
 1. **Server Lua or JavaScript.** Each resource's `server/main.lua` gets its own Lua state with the
-   `node` API: `node.on("playerJoin", fn)`, `node.players`, `node.vehicles`, `Player` and
+   `node` API: `node.on("playerJoined", fn)`, `node.players`, `node.vehicles`, `Player` and
    `Vehicle` objects, `node.storage`, `node.http`, timers and coroutines. Every handler of every
    resource runs on one worker thread, so plugins never race each other. JavaScript resources
    (`type = "js"`) need the `js-host` module and get the same API in JavaScript spelling.
@@ -126,7 +126,7 @@ resources and nothing else. Anything that must reach other players goes through 
 `nodemp-relay` resource forwards the client mod's `vehicle:fire`, `vehicle:grab` and
 `vehicle:state` events to every other player and applies each player's vehicle policy
 (`player:policy`: lock mode, trigger and grab permissions); chat is its own `chat` resource. A
-relay filter (`node.relay.filter` in Lua, the `canRelay` hook) can veto every relayed packet per
+relay filter (`node.relay.filter` in Lua, the `relayRequest` hook) can veto every relayed packet per
 recipient. Parallel worlds do not need one: `dimensions` puts players and vehicles into the core's
 visibility groups (`Player:setGroup`, `Vehicle:setGroup`), and the core never relays between two
 groups. Binary payloads use the module

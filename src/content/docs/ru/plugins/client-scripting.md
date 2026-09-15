@@ -13,7 +13,7 @@ description: Две клиентские поверхности - передав
 ## Клиентские файлы ресурса
 
 Каждый `.lua` в `client/` - или список `[client] files` из `resource.toml` - доходит до каждого
-подключающегося игрока после повтора мира и до того, как на сервере сработает `playerJoin`.
+подключающегося игрока после повтора мира и до того, как на сервере сработает `playerJoined`.
 Клиентский мод компилирует файлы, выполняет их и подтверждает в `beamng.log` строкой
 `Activated server resource "race" (1 ge file(s), 0 vehicle file(s))` для каждого ресурса и
 `Server resources ready: 2 resource(s), 3 ge file(s), 0 vehicle file(s)`, когда доставка
@@ -38,8 +38,8 @@ description: Две клиентские поверхности - передав
 | `node.onModule(channel, fn)` | Подписывает `fn(data)` на двоичные данные, которые сервер шлёт по каналу `u32`; `data` - строка байтов. Один обработчик на канал на ресурс. |
 | `node.offModule(channel)` | Снимает подписку этого ресурса на канал. |
 | `node.sendModule(channel, data)` | Шлёт байты серверу по каналу; они доходят до подписчиков `node.modules.on` и нативных модулей, но никогда до других игроков. |
-| `node.requestVehicleTrigger(globalId, call)` | Просит сервер, чтобы авторитет синхронизации машины выполнил один вызов контроллера; `call` - таблица или JSON-текст с `controllerName`, `functionName` и переменными. На сервере проходит через `onVehicleTriggerRequest`. |
-| `node.requestNodeGrab(globalId, action, nodeId, x, y, z, force)` | Экспериментальный захват нод: `action` - `"grab"`, `"move"` или `"release"`. Отбрасывается, если не включён `[Experimental] NodeGrab` и ни один ресурс не разрешил `onVehicleNodeGrabRequest`. |
+| `node.requestVehicleTrigger(globalId, call)` | Просит сервер, чтобы авторитет синхронизации машины выполнил один вызов контроллера; `call` - таблица или JSON-текст с `controllerName`, `functionName` и переменными. На сервере проходит через `vehicleTriggerRequest`. |
+| `node.requestNodeGrab(globalId, action, nodeId, x, y, z, force)` | Экспериментальный захват нод: `action` - `"grab"`, `"move"` или `"release"`. Отбрасывается, если не включён `[Experimental] NodeGrab` и ни один ресурс не разрешил `vehicleNodeGrabRequest`. |
 
 Плохой аргумент - пустое имя, обработчик не функция, канал вне диапазона `u32` - пишет строку
 `E` под `node.events`, например `node.on: given event name is not a valid string`, и вызов ничего
@@ -245,7 +245,7 @@ NodeMP.events.off("race:start")                                             -- y
 включит его, для каждого игрока отдельно, ключом `strict` сетевого события `session:config`:
 
 ```lua
--- server side, any resource; usually from a playerJoin handler
+-- server side, any resource; usually from a playerJoined handler
 player:send("session:config", { strict = {
     actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
     photoMode   = "admins",   -- "admins" | "all" | "none"

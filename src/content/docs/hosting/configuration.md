@@ -153,7 +153,7 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 ### `[Experimental]`
 
 - `NodeGrab` — accept node-grabber requests over the wire. Off, the server drops them. On, every
-  grab still needs an explicit allow from a resource's `onVehicleNodeGrabRequest` handler; the
+  grab still needs an explicit allow from a resource's `vehicleNodeGrabRequest` handler; the
   `nodegrab-allow` example is the smallest one.
 
 ### `[Directory]`

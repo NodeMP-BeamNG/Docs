@@ -64,7 +64,7 @@ local function promote(player)
     end
 end
 
-node.on("playerJoin", promote)
+node.on("playerJoined", promote)
 for _, p in ipairs(node.players.all()) do promote(p) end -- players already here after a reload
 
 -- opts.role: the prelude refuses the command for everyone else
@@ -172,7 +172,7 @@ tp · Player#1 Bob -> Player#0 Alice (12.3, -45.6, 7.8)
 -- resources/playtime/server/main.lua
 local sessions = {} -- [player.id] = { since, account }; ids are reused, so this table is per session
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     sessions[player.id] = { since = node.server.unixTime(), account = player.accountId }
     if not player.accountId then return end -- a guest has no durable identity
     local visits = node.storage.get("visits:" .. player.accountId, 0) + 1
@@ -241,7 +241,7 @@ local function post(text)
         end)
 end
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     post(string.format("%s joined (%d online)", player.name, node.players.count()))
 end)
 

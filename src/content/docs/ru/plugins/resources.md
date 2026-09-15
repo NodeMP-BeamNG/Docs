@@ -99,7 +99,7 @@ maxCars = 2
 Когда обход заканчивается, `2 resources · 0 modules loaded` подводит итог, и запускается рабочий
 поток: с этого момента срабатывают таймеры, `serverTick` идёт каждые 100 мс, и игроки могут
 подключаться. Подключение игрока передаёт клиентские файлы каждого ресурса после синхронизации
-контента, затем срабатывает `playerJoin`.
+контента, затем срабатывает `playerJoined`.
 
 ## Клиентская половина
 
@@ -194,7 +194,7 @@ JSON: строки, числа, логические значения, табл�
 local visits = node.storage.get("visits", 0) + 1
 node.storage.set("visits", visits)
 
-node.on("playerJoin", function(player)
+node.on("playerJoined", function(player)
     if player.accountId then
         node.storage.set("lastSeen:" .. player.accountId, node.server.unixTime())
     end

@@ -57,7 +57,7 @@ NODE_EXPORT int node_plugin_init(const NodeApi* a) {
         api->log_error("hello_module: this server is older than the SDK it was built against");
         return -1;
     }
-    api->register_builtin_event("playerJoin", on_join, NULL);
+    api->register_builtin_event("playerJoined", on_join, NULL);
     api->log_info("hello_module loaded");
     return 0;
 }
@@ -266,15 +266,22 @@ C-модуль, который импортирует их у хоста, не �
   Отвечайте через `emit_client(id, event, data)`, `emit_all(event, data)` или
   `emit_others(except_id, event, data)`; варианты `_bytes` (`emit_client_bytes`,
   `emit_all_bytes`) несут нагрузки с байтами NUL.
-- `register_builtin_event(name, cb, user)` - наблюдающая форма событий движка (`playerJoin`,
+- `register_builtin_event(name, cb, user)` - наблюдающая форма событий движка (`playerJoined`,
   `vehicleSpawned`, `serverTick`, ...); `cb(id)` несёт идентификатор игрока или, для событий машин,
   глобальный идентификатор машины. Отменяемые имена тоже можно наблюдать здесь, без права вето.
 - `register_vehicle_event(name, cb, user)` - `vehicleEdited`, `vehicleReset`, `vehiclePainted`,
   `playerSeatChanged` с `(player_id, global_id, data)`.
-- `register_cancellable_event(name, cb, user)` - колбэк-вердикт для девяти имён `on…Request`;
+- `register_cancellable_event(name, cb, user)` - колбэк-вердикт для девяти имён `…Request`;
   верните ненулевое значение, чтобы отказать, и запишите причину в данный вам буфер. Выполняются все
-  обработчики; одного вето достаточно для отказа. `onVehicleNodeGrabRequest` закрыт по умолчанию:
+  обработчики; одного вето достаточно для отказа. `vehicleNodeGrabRequest` закрыт по умолчанию:
   регистрация обработчика, возвращающего `0`, - способ, которым модуль включает захват нод.
+- Имена событий пересекают C ABI строками, и написания серверов до 1.2.0 (`"playerJoin"`,
+  `"onPlayerConnectRequest"`, `"onVehicleSpawnRequest"`, ...) принимаются каждым входом
+  `register_*_event` / `unregister_*_event` как устаревшие псевдонимы: сервер отображает их на
+  каноническое имя и пишет одно предупреждение на модуль на старое имя (`[deprecated] event
+  "playerJoin" is now "playerJoined" (a native module)`). Модуль, собранный против старого SDK,
+  продолжает работать; пересоберите с новыми именами при следующем изменении - псевдонимы уходят в
+  2.0. См. [События → Именование](/ru/plugins/events/#именование).
 - `register_module_channel(channel, cb, user)` и `send_module(player_id, channel, data, len)` -
   двоичный канал; `player_id` `-1` рассылает всем синхронизированным клиентам через фильтр
   ретрансляции.
