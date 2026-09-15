@@ -86,7 +86,10 @@ Fired by the server after something happened; return values are ignored.
 - **Lifecycle.** `playerAuthenticated` (authenticated, about to receive the world), `playerJoined`
   (the usual place to greet, assign a role, restore state), `playerLeft` (its vehicles go around
   the same time), `serverTick` (every 100 ms, no argument - keep it cheap), `serverShutdown` (flush
-  what you must; timers will not run again).
+  what you must; timers will not run again), `resourceUnload(reason)` (this resource is about to
+  be unloaded - `"reload"` before a reload replaces it, `"shutdown"` after `serverShutdown`; fired
+  for the unloading resource only, with `serverShutdown`'s limitations - see
+  [Resources → Reload](/plugins/resources/#reload)).
 - **Registry.** `vehicleSpawned`, `vehicleDeleted` (the record is gone by then; only `vehicle.id`
   is meaningful), `vehicleTagsChanged`, `vehicleLockChanged`, `vehicleDamageChanged`.
 - **Streams.** `vehiclePositionChanged`, `vehicleInputsChanged`, `vehicleElectricsChanged`,

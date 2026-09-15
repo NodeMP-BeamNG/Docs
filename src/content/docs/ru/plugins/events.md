@@ -89,7 +89,11 @@ paint, trigger, node grab), `canRelay` → `relayRequest`. Старое имя �
 - **Жизненный цикл.** `playerAuthenticated` (аутентифицирован, вот-вот получит мир), `playerJoined`
   (обычное место, чтобы поприветствовать, назначить роль, восстановить состояние), `playerLeft`
   (его машины уходят примерно в то же время), `serverTick` (каждые 100 мс, без аргумента - держите
-  его дешёвым), `serverShutdown` (сбросьте на диск, что должны; таймеры больше не сработают).
+  его дешёвым), `serverShutdown` (сбросьте на диск, что должны; таймеры больше не сработают),
+  `resourceUnload(reason)` (этот ресурс вот-вот будет выгружен - `"reload"` перед тем, как его
+  заменит перезагрузка, `"shutdown"` после `serverShutdown`; срабатывает только для выгружаемого
+  ресурса, с ограничениями `serverShutdown` - см.
+  [Ресурсы → Перезагрузка](/ru/plugins/resources/#перезагрузка)).
 - **Реестр.** `vehicleSpawned`, `vehicleDeleted` (запись к этому моменту уже удалена; значим только
   `vehicle.id`), `vehicleTagsChanged`, `vehicleLockChanged`, `vehicleDamageChanged`.
 - **Потоки.** `vehiclePositionChanged`, `vehicleInputsChanged`, `vehicleElectricsChanged`,

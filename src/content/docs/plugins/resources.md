@@ -146,6 +146,25 @@ does not: Lua variables and everything the resource registered. `node.config` is
 the manifest, so a settings change takes effect. A background job or HTTP request already in
 flight is not cancelled, and client files are not re-packaged.
 
+**A hook before the unload** (server 1.2.0): `node.on("resourceUnload", function(reason) ... end)`
+runs in the old instance right before its state is dropped, synchronously and only for the
+resource being unloaded - another resource's reload never fires yours. `reason` is `"reload"`
+here; at a server stop it is `"shutdown"`, after `serverShutdown` ran for everyone. It has the
+limitations of `serverShutdown`: a `node.storage` write made in it is kept (the new instance
+reads it at load; at a stop it is flushed to disk), a plain `node.pg.exec` or `node.pg.query`
+is delivered, but no callback, timer or coroutine started there runs again - so write what you
+must and return, and put nothing after an `await`.
+
+```lua
+local session = { started = node.server.uptime(), joins = 0 }
+
+node.on("playerJoined", function() session.joins = session.joins + 1 end)
+
+node.on("resourceUnload", function(reason)
+    node.storage.set("lastSession", { reason = reason, joins = session.joins })
+end)
+```
+
 ## Files: node.fs
 
 `node.fs` reads and writes inside your folder and nowhere else. A path is relative to the folder,
