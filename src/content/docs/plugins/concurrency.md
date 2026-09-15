@@ -38,8 +38,9 @@ worker wakes for the earliest deadline, and `serverTick` fires every 100 ms alon
 timer belongs to the resource that set it and dies with a reload; at shutdown `serverShutdown` fires,
 then each resource's own `resourceUnload("shutdown")`, and timers do not run again. The same hook
 fires as `resourceUnload("reload")` right before a reload drops the state - the place to flush
-what a timer was accumulating; a `node.storage` write or a plain `node.pg.exec` made there is
-kept, a callback, timer or coroutine started there never runs ([Resources](/plugins/resources/#reload)).
+what a timer was accumulating; a `node.storage` write or a plain `node.pg.exec` (callback form)
+made there is kept, a callback, timer or coroutine started there never runs
+([Resources](/plugins/resources/#reload)).
 
 ```lua
 local ticks = 0
@@ -145,8 +146,10 @@ resumes with `nil, "background pool is full"`.
 
 - `node.http.request(method, url, opts?, cb)` is the general form (server 1.2.0): any method -
   `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`, `"HEAD"` or a custom token the service
-  understands - with `opts.headers` (a table) and `opts.body` (a table is JSON-encoded, a string
-  is sent as is, `nil` sends none). `cb(status, body, headers)` runs on the worker.
+  understands; a token is letters A–Z only, at most 16, and the prelude upper-cases it for you
+  (anything else calls back with `-1` and `invalid HTTP method`) - with `opts.headers` (a table)
+  and `opts.body` (a table is JSON-encoded, a string is sent as is, `nil` sends none).
+  `cb(status, body, headers)` runs on the worker.
 - `node.http.get(url, headers?, cb)`, `node.http.post(url, body, headers?, cb)`,
   `node.http.put(url, body?, headers?, cb)`, `node.http.patch(url, body?, headers?, cb)`,
   `node.http.delete(url, body?, headers?, cb)` and `node.http.head(url, headers?, cb)` are
@@ -163,8 +166,10 @@ About 15 s timeout, an 8 MB body cap, up to five redirects. TLS peer verificatio
 the hoster sets `[Http] CaFile` in `server.toml` ([Configuration](/hosting/configuration/#http)):
 then every `https://` request is verified against that CA bundle and the host name, and a
 certificate that does not check out is a `-1` whose body starts with
-`TLS handshake failed (peer verification against [Http] CaFile)`. Without it, do not send secrets
-to hosts you do not control.
+`TLS handshake failed (peer verification against [Http] CaFile)`, and a redirect that would take a
+verified `https://` request down to plain `http://` is not followed (`-1`,
+`redirect to plain http refused (verified request)`). Without it, do not send secrets to hosts you
+do not control.
 
 ```lua
 node.on("playerJoined", function(player)

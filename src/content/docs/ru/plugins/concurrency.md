@@ -41,8 +41,9 @@ description: Один рабочий поток для обработчиков;
 остановке срабатывает `serverShutdown`, затем собственный `resourceUnload("shutdown")` каждого
 ресурса, и таймеры больше не выполняются. Тот же хук срабатывает как `resourceUnload("reload")`
 прямо перед тем, как перезагрузка сбросит состояние, - место, чтобы сохранить то, что накапливал
-таймер; запись `node.storage` или обычный `node.pg.exec`, сделанные там, сохраняются, а колбэк,
-таймер или корутина, запущенные там, никогда не выполнятся ([Ресурсы](/ru/plugins/resources/#перезагрузка)).
+таймер; запись `node.storage` или обычный `node.pg.exec` (в форме с колбэком), сделанные там,
+сохраняются, а колбэк, таймер или корутина, запущенные там, никогда не выполнятся
+([Ресурсы](/ru/plugins/resources/#перезагрузка)).
 
 ```lua
 local ticks = 0
@@ -152,9 +153,10 @@ end)
 
 - `node.http.request(method, url, opts?, cb)` - общая форма (сервер 1.2.0): любой метод -
   `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`, `"HEAD"` или свой токен, который понимает
-  сервис, - с `opts.headers` (таблица) и `opts.body` (таблица кодируется в JSON, строка
-  отправляется как есть, `nil` не отправляет тела). `cb(status, body, headers)` выполняется в
-  рабочем потоке.
+  сервис; токен - только буквы A–Z, не более 16, и прелюдия сама переводит его в верхний регистр
+  (всё остальное отвечает `-1` и `invalid HTTP method`), - с `opts.headers` (таблица) и
+  `opts.body` (таблица кодируется в JSON, строка отправляется как есть, `nil` не отправляет
+  тела). `cb(status, body, headers)` выполняется в рабочем потоке.
 - `node.http.get(url, headers?, cb)`, `node.http.post(url, body, headers?, cb)`,
   `node.http.put(url, body?, headers?, cb)`, `node.http.patch(url, body?, headers?, cb)`,
   `node.http.delete(url, body?, headers?, cb)` и `node.http.head(url, headers?, cb)` - это
@@ -172,8 +174,10 @@ end)
 собеседника **выключена**, если хост не задал `[Http] CaFile` в `server.toml`
 ([Конфигурация](/ru/hosting/configuration/#http)): тогда каждый `https://`-запрос проверяется по
 этому набору CA и по имени хоста, а сертификат, не прошедший проверку, - это `-1`, тело которого
-начинается с `TLS handshake failed (peer verification against [Http] CaFile)`. Без него не
-отправляйте секреты хостам, которые вы не контролируете.
+начинается с `TLS handshake failed (peer verification against [Http] CaFile)`, а редирект, который
+увёл бы проверенный `https://`-запрос на обычный `http://`, не выполняется (`-1`,
+`redirect to plain http refused (verified request)`). Без него не отправляйте секреты хостам,
+которые вы не контролируете.
 
 ```lua
 node.on("playerJoined", function(player)

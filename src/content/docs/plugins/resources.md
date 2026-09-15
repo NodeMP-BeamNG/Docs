@@ -154,7 +154,9 @@ limitations of `serverShutdown`: a `node.storage` write made in it is kept (the 
 reads it at load; at a stop it is flushed to disk), a plain `node.pg.exec` or `node.pg.query` in
 the callback form is delivered (a handler is not a coroutine, so the suspending form raises), but
 no callback, timer or coroutine started there runs again - so write what you must and return, and
-put nothing after an `await`.
+put nothing after an `await`. Do not call `node.resources.reload` on yourself from it: on a reload
+that queues another reload of the fresh instance, an endless loop; at a stop the request is dropped
+(`false`), because nothing is loaded again while the server shuts down.
 
 ```lua
 local session = { started = node.server.uptime(), joins = 0 }
