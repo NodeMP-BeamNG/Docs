@@ -233,12 +233,14 @@ local function post(text)
         node.log.warn("no [config] url in resource.toml, webhook disabled")
         return
     end
-    node.http.post(url, { content = text }, { ["Content-Type"] = "application/json" },
-        function(status, body, headers)
-            if status < 200 or status >= 300 then
-                node.log.warn("webhook failed (%d): %s", status, body)
-            end
-        end)
+    node.http.request("POST", url, {
+        headers = { ["Content-Type"] = "application/json" },
+        body = { content = text },
+    }, function(status, body, headers)
+        if status < 200 or status >= 300 then
+            node.log.warn("webhook failed (%d): %s", status, body)
+        end
+    end)
 end
 
 node.on("playerJoined", function(player)
@@ -250,13 +252,17 @@ node.on("playerLeft", function(player)
 end)
 ```
 
-`node.http.post(url, body, headers?, cb)` выполняет запрос в фоновом потоке пула и вызывает
-`cb(status, body, headers)` в рабочем потоке; тело-таблица кодируется в JSON за вас. `Content-Type`
-задавайте сами - без него тело уходит как `application/octet-stream`. Клиент следует не более чем
-пяти перенаправлениям, сдаётся примерно через 15 секунд, ограничивает ответ 8 МБ и не проверяет
-TLS-сертификат собеседника. Запрос, так и не получивший ответа, вызывает колбэк со статусом `-1` и
-текстом ошибки в `body`; сам `node.http.post` возвращает `false` только тогда, когда запрос не
-удалось поставить в очередь. Большинство вебхуков отвечают `200` или `204` с пустым телом, так что
+`node.http.request(method, url, { headers?, body? }, cb)` выполняет запрос в фоновом потоке пула и
+вызывает `cb(status, body, headers)` в рабочем потоке; тело-таблица кодируется в JSON за вас, а
+метод - тот, которого хочет сервис: здесь `"POST"`, в другом месте `"PUT"`, `"PATCH"`, `"DELETE"`
+или `"HEAD"` (`node.http.post(url, body, headers?, cb)` и его собратья - тот же вызов с
+фиксированным методом). `Content-Type` задавайте сами - без него тело уходит как
+`application/octet-stream`. Клиент следует не более чем пяти перенаправлениям, сдаётся примерно
+через 15 секунд и ограничивает ответ 8 МБ; TLS-сертификат собеседника он проверяет только тогда,
+когда хост задал `[Http] CaFile` ([Конфигурация](/ru/hosting/configuration/#http)). Запрос, так и
+не получивший ответа, вызывает колбэк со статусом `-1` и текстом ошибки в `body`; сам
+`node.http.request` возвращает `false` только тогда, когда запрос не удалось поставить в очередь.
+Большинство вебхуков отвечают `200` или `204` с пустым телом, так что
 здоровый прогон ничего не логирует; недоступный хост логирует транспортную ошибку с префиксом
 отказавшего шага (`resolve failed`, `connect failed`, `TLS handshake failed`) и сообщением самой
 операционной системы:

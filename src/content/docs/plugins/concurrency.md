@@ -35,8 +35,11 @@ Lua state; results come back to the worker as plain data and a callback.
 
 Timers are serviced after each batch of handlers, so a timer never interrupts a handler; the
 worker wakes for the earliest deadline, and `serverTick` fires every 100 ms alongside them. A
-timer belongs to the resource that set it and dies with a reload; at shutdown `serverShutdown` fires
-and timers do not run again.
+timer belongs to the resource that set it and dies with a reload; at shutdown `serverShutdown` fires,
+then each resource's own `resourceUnload("shutdown")`, and timers do not run again. The same hook
+fires as `resourceUnload("reload")` right before a reload drops the state - the place to flush
+what a timer was accumulating; a `node.storage` write or a plain `node.pg.exec` made there is
+kept, a callback, timer or coroutine started there never runs ([Resources](/plugins/resources/#reload)).
 
 ```lua
 local ticks = 0
@@ -140,15 +143,28 @@ resumes with `nil, "background pool is full"`.
 
 `node.http` runs requests on the background pool and calls you back on the worker.
 
-- `node.http.get(url, headers?, cb)` and `node.http.post(url, body, headers?, cb)` call
-  `cb(status, body, headers)`; `body` is a string, a table given to `post` is JSON-encoded. A
-  failed request calls back with status `-1` and the error text in `body`; `node.http.fetch`
-  returns `0` when the request could not be queued.
+- `node.http.request(method, url, opts?, cb)` is the general form (server 1.2.0): any method -
+  `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`, `"HEAD"` or a custom token the service
+  understands - with `opts.headers` (a table) and `opts.body` (a table is JSON-encoded, a string
+  is sent as is, `nil` sends none). `cb(status, body, headers)` runs on the worker.
+- `node.http.get(url, headers?, cb)`, `node.http.post(url, body, headers?, cb)`,
+  `node.http.put(url, body?, headers?, cb)`, `node.http.patch(url, body?, headers?, cb)`,
+  `node.http.delete(url, body?, headers?, cb)` and `node.http.head(url, headers?, cb)` are
+  `request` with the method fixed; a `HEAD` answer carries the status and the headers and an
+  empty body. A failed request calls back with status `-1` and the error text in `body`
+  (`resolve failed`, `connect failed`, `TLS handshake failed`, …); every one of them returns
+  `false` only when the request could not be queued, and then `cb` never runs.
 - `node.http.fetch(url, opts?)` is the coroutine form, inside `node.async` only:
-  `local status, body, headers = node.http.fetch(url, { method = "POST", body = t, headers = h })`.
+  `local status, body, headers = node.http.fetch(url, { method = "DELETE", body = t, headers = h })`.
+  `opts.method` is any method `request` accepts (before 1.2.0 anything but `POST` was sent as
+  `GET`); `status` is `0` with body `"request not queued"` when the request could not be queued.
 
-About 15 s timeout, an 8 MB body cap, up to five redirects, and TLS without peer verification -
-do not send secrets to hosts you do not control.
+About 15 s timeout, an 8 MB body cap, up to five redirects. TLS peer verification is **off** unless
+the hoster sets `[Http] CaFile` in `server.toml` ([Configuration](/hosting/configuration/#http)):
+then every `https://` request is verified against that CA bundle and the host name, and a
+certificate that does not check out is a `-1` whose body starts with
+`TLS handshake failed (peer verification against [Http] CaFile)`. Without it, do not send secrets
+to hosts you do not control.
 
 ```lua
 node.on("playerJoined", function(player)

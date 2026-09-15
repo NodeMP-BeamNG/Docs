@@ -278,8 +278,9 @@ C-модуль, который импортирует их у хоста, не �
 - Имена событий пересекают C ABI строками, и написания серверов до 1.2.0 (`"playerJoin"`,
   `"onPlayerConnectRequest"`, `"onVehicleSpawnRequest"`, ...) принимаются каждым входом
   `register_*_event` / `unregister_*_event` как устаревшие псевдонимы: сервер отображает их на
-  каноническое имя и пишет одно предупреждение на модуль на старое имя (`[deprecated] event
-  "playerJoin" is now "playerJoined" (a native module)`). Модуль, собранный против старого SDK,
+  каноническое имя и пишет одно предупреждение на модуль на старое имя за всё время работы
+  процесса сервера (`[deprecated] event "playerJoin" is now "playerJoined" (module my_module.dll)` -
+  модуль тот, чей `node_plugin_init` выполняется). Модуль, собранный против старого SDK,
   продолжает работать; пересоберите с новыми именами при следующем изменении - псевдонимы уходят в
   2.0. См. [События → Именование](/ru/plugins/events/#именование).
 - `register_module_channel(channel, cb, user)` и `send_module(player_id, channel, data, len)` -

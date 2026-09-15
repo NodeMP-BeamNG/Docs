@@ -272,8 +272,9 @@ The same four event kinds a resource sees, by registration function:
 - Event names cross the C ABI as strings, and the spellings servers before 1.2.0 used
   (`"playerJoin"`, `"onPlayerConnectRequest"`, `"onVehicleSpawnRequest"`, ...) are accepted by every
   `register_*_event` / `unregister_*_event` entry as deprecated aliases: the server maps them to
-  the canonical name and logs one warning per module per old name (`[deprecated] event
-  "playerJoin" is now "playerJoined" (a native module)`). A module built against an older SDK keeps
+  the canonical name and logs one warning per module per old name, for the life of the server
+  process (`[deprecated] event "playerJoin" is now "playerJoined" (module my_module.dll)` - the
+  module is the one whose `node_plugin_init` is running). A module built against an older SDK keeps
   working; rebuild with the new names when you next touch it - the aliases go away in 2.0. See
   [Events → Naming](/plugins/events/#naming).
 - `register_module_channel(channel, cb, user)` and `send_module(player_id, channel, data, len)` -

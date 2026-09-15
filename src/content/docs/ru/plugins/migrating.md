@@ -17,7 +17,7 @@ description: Перенос серверного плагина BeamMP на Node
 |---|---|
 | `Resources/Server/<plugin>/`, все `.lua` верхнего уровня загружаются в одно Lua-состояние | `resources/<name>/` с одной точкой входа, `server/main.lua`, и необязательным `resource.toml` |
 | `Resources/Client/<mod>.zip`, отправляемый игрокам | `content/<mod>.zip`, скачиваемый лаунчером до подключения; передаваемый Lua лежит в `resources/<name>/client/` |
-| `ServerConfig.toml`, `[General]` с `AuthKey` | `server.toml`, семь секций: `[General]`, `[Resources]`, `[Content]`, `[Network]`, `[Experimental]`, `[Directory]`, `[Database]` - см. [Конфигурацию](/ru/hosting/configuration/); ключ сервера - это `[Directory] HostId` и `HostSecret` |
+| `ServerConfig.toml`, `[General]` с `AuthKey` | `server.toml`, восемь секций: `[General]`, `[Resources]`, `[Content]`, `[Network]`, `[Experimental]`, `[Directory]`, `[Database]`, `[Http]` - см. [Конфигурацию](/ru/hosting/configuration/); ключ сервера - это `[Directory] HostId` и `HostSecret` |
 | `plugin.lua` или `main.lua` плюс вспомогательные файлы, загружаемые по порядку имён | `server/main.lua`; остальные файлы через `require` после добавления папки в `package.path` ([Ресурсы](/ru/plugins/resources/#структура)) |
 
 Самый маленький манифест называет ресурс и его точку входа; папка без него - Lua-ресурс с именем

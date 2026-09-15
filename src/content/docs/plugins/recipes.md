@@ -230,12 +230,14 @@ local function post(text)
         node.log.warn("no [config] url in resource.toml, webhook disabled")
         return
     end
-    node.http.post(url, { content = text }, { ["Content-Type"] = "application/json" },
-        function(status, body, headers)
-            if status < 200 or status >= 300 then
-                node.log.warn("webhook failed (%d): %s", status, body)
-            end
-        end)
+    node.http.request("POST", url, {
+        headers = { ["Content-Type"] = "application/json" },
+        body = { content = text },
+    }, function(status, body, headers)
+        if status < 200 or status >= 300 then
+            node.log.warn("webhook failed (%d): %s", status, body)
+        end
+    end)
 end
 
 node.on("playerJoined", function(player)
@@ -247,13 +249,17 @@ node.on("playerLeft", function(player)
 end)
 ```
 
-`node.http.post(url, body, headers?, cb)` runs the request on a background pool thread and calls
-`cb(status, body, headers)` on the worker; a table body is JSON-encoded for you. Set the
-`Content-Type` yourself - without it the body is sent as `application/octet-stream`. The client
-follows up to five redirects, gives up after about 15 seconds, caps the response at 8 MB and does
-not verify the peer's TLS certificate. A request that never got an answer calls back with status
-`-1` and the error text in `body`; `node.http.post` itself returns `false` only when the request
-could not be queued. Most webhook endpoints answer `200` or `204` with an empty body, so a healthy
+`node.http.request(method, url, { headers?, body? }, cb)` runs the request on a background pool
+thread and calls `cb(status, body, headers)` on the worker; a table body is JSON-encoded for you,
+and the method is whatever the service wants - `"POST"` here, `"PUT"`, `"PATCH"`, `"DELETE"` or
+`"HEAD"` elsewhere (`node.http.post(url, body, headers?, cb)` and its siblings are the same call
+with the method fixed). Set the `Content-Type` yourself - without it the body is sent as
+`application/octet-stream`. The client follows up to five redirects, gives up after about 15
+seconds and caps the response at 8 MB; it verifies the peer's TLS certificate only when the hoster
+set `[Http] CaFile` ([Configuration](/hosting/configuration/#http)). A request that never got an
+answer calls back with status `-1` and the error text in `body`; `node.http.request` itself
+returns `false` only when the request could not be queued. Most webhook endpoints answer `200` or
+`204` with an empty body, so a healthy
 run logs nothing; an unreachable host logs the transport error, prefixed by the step that failed
 (`resolve failed`, `connect failed`, `TLS handshake failed`) and followed by the operating
 system's own message:

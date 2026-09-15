@@ -89,6 +89,7 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 | `[Database]` | `QueryTimeoutMs` | int | `10000` | `NODE_DATABASE_QUERY_TIMEOUT_MS` |
 | `[Database]` | `TxTimeoutMs` | int | `30000` | `NODE_DATABASE_TX_TIMEOUT_MS` |
 | `[Database]` | `MaxRows` | int | `10000` | `NODE_DATABASE_MAX_ROWS` |
+| `[Http]` | `CaFile` | string | `""` | `NODE_HTTP_CA_FILE` |
 
 ### `[General]`
 
@@ -214,6 +215,24 @@ another machine. Connections are made in the background with retries (0.5 s to 3
 server starts and runs while the database is down; TCP keepalives (`keepalives_idle=30`,
 `keepalives_interval=10`, `keepalives_count=3`) and a 10 s `connect_timeout` are set unless the
 `Url` chooses its own values.
+
+### `[Http]`
+
+The HTTPS requests resources make with `node.http` (and native modules with `http_request`).
+Server 1.2.0.
+
+- `CaFile` — path to a PEM CA bundle. Empty, the default, keeps peer verification **off**, as it
+  always was: a resource can fetch a public feed from any host, and nothing protects a secret it
+  sends. Set, every `https://` request a plugin makes verifies the server certificate against
+  this bundle - and only this bundle, not the operating system's store - and the certificate's
+  name against the host; a request that fails verification reaches the resource as status `-1`
+  with the body `TLS handshake failed (peer verification against [Http] CaFile): …`. Plain
+  `http://` requests are unaffected. A bundle that cannot be read fails every `https://` request
+  with a message naming the file rather than verifying against nothing. A relative path is
+  resolved from the server's working directory; under Docker, mount the bundle and set
+  `NODE_HTTP_CA_FILE`. To verify against the public CAs, point it at the system bundle
+  (`/etc/ssl/certs/ca-certificates.crt` on Debian and Ubuntu); to verify a self-hosted service,
+  at its own CA (or, for a self-signed certificate, at the certificate itself).
 
 ## Provider variables
 
@@ -341,4 +360,7 @@ Pool = 4
 QueryTimeoutMs = 10000
 TxTimeoutMs = 30000
 MaxRows = 10000
+
+[Http]
+CaFile = ""
 ```
