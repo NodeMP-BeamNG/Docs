@@ -151,9 +151,10 @@ runs in the old instance right before its state is dropped, synchronously and on
 resource being unloaded - another resource's reload never fires yours. `reason` is `"reload"`
 here; at a server stop it is `"shutdown"`, after `serverShutdown` ran for everyone. It has the
 limitations of `serverShutdown`: a `node.storage` write made in it is kept (the new instance
-reads it at load; at a stop it is flushed to disk), a plain `node.pg.exec` or `node.pg.query`
-is delivered, but no callback, timer or coroutine started there runs again - so write what you
-must and return, and put nothing after an `await`.
+reads it at load; at a stop it is flushed to disk), a plain `node.pg.exec` or `node.pg.query` in
+the callback form is delivered (a handler is not a coroutine, so the suspending form raises), but
+no callback, timer or coroutine started there runs again - so write what you must and return, and
+put nothing after an `await`.
 
 ```lua
 local session = { started = node.server.uptime(), joins = 0 }
