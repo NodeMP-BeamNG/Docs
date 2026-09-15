@@ -151,7 +151,7 @@ into the client mod's internal modules, which move between versions. For it, the
 publishes one stable global table, `NodeMP`, in both Lua states - the game engine and every
 vehicle. Every function resolves its target when called, so a mod that runs before the client mod
 has started, or while nobody is in a session, gets `nil`, `false` or an empty table instead of an
-error. `NodeMP.VERSION` is the mod version, `1.3.0`. Client files can call the same table; the
+error. `NodeMP.VERSION` is the mod version, `1.4.0`. Client files can call the same table; the
 [example above](#events-and-payloads) uses `NodeMP.ui.notify`.
 
 ### Namespaces
@@ -173,6 +173,7 @@ error. `NodeMP.VERSION` is the mod version, `1.3.0`. Client files can call the s
 | `NodeMP.util` | `translate`, `b64encode`, `b64decode`, `hex2rgb`, `jsonEncode`, `jsonDecode` |
 | `NodeMP.modules` | the client module framework: `register`, `list`, `isEnabled`, `getConfig`, `setLocalPref`, `onChanged`, `requestManifest` |
 | `NodeMP.dimensions` | the client view of parallel worlds: `isActive`, `get`, `refresh`, `set` (sends `/dim n` through chat, so the server stays in charge), `onChanged` |
+| `NodeMP.strict` | the strict session a server declared through `session:config` ([below](#strict-sessions-sessionconfigstrict)): `isActive`, `getConfig`, `getFilters`, `isGrabAllowed`, `isPhotoAllowed`, `onChanged` |
 
 The original flat helpers - `NodeMP.isInSession`, `NodeMP.getCurrentServer`, `NodeMP.getAccount`,
 `NodeMP.isLoggedIn`, `NodeMP.getLocalPlayerID`, `NodeMP.translate` and the rest - remain as
@@ -206,8 +207,9 @@ The client mod raises its own lifecycle events for mods, listed in `NodeMP.event
 `onNodeMPPlayerRoleChanged` (`{ id, role }`), `onNodeMPVehicleSpawned` (a vehicle table),
 `onNodeMPVehicleDeleted` (`{ vehicleId }`), `onNodeMPVehicleSyncOwnerChanged`
 (`{ vehicleId, syncOwnerId }`), `onNodeMPSynced` (no data, after the initial world sync),
-`ChatMessageSent` (the text) and `ChatMessageReceived` (text, username). Subscribe to them with
-`NodeMP.events.on`; they are local and never cross the wire.
+`onNodeMPStrictChanged` (`{ active, config }`, whenever a strict session starts, is
+reconfigured or ends), `ChatMessageSent` (the text) and `ChatMessageReceived` (text, username).
+Subscribe to them with `NodeMP.events.on`; they are local and never cross the wire.
 
 ### Vehicle engine (VE)
 
@@ -227,6 +229,117 @@ Lua state - a content mod's vehicle script, or a streamed `vehicle` file:
 `NodeMP.vehicleType`, `NodeMP.isRemote`, `NodeMP.isLocal` and `NodeMP.triggerServer` are the flat
 aliases. Most write helpers only make sense on a local vehicle: check `NodeMP.vehicle.isLocal()`
 first.
+
+## Strict sessions: `session:config.strict`
+
+Client mod 1.4.0 can run a player's session under **strict** rules - the client half of what
+[Strict verification](/hosting/strict-verification/) describes for the server: no free camera,
+no switching into cars the server did not seat the player in, no console, editor, pause, time
+scale or teleport actions, node grabber only on foot in first person, the spectate rows of the
+session panel refused. Nothing of it runs unless a server resource switches it on, per player,
+with the `strict` key of the `session:config` wire event:
+
+```lua
+-- server side, any resource; usually from a playerJoin handler
+player:send("session:config", { strict = {
+    actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
+    photoMode   = "admins",   -- "admins" | "all" | "none"
+    canPhoto    = false,      -- this player's photo-mode / free-camera permission
+    nodeGrab    = "walking",  -- "walking" | "off"
+    heartbeatMs = 2000,
+} })
+player:send("session:config", { strict = false })   -- off again
+```
+
+| Field | Values | Default | Effect |
+|---|---|---|---|
+| `actions` | array of input action names | the mod's list of 44 names | The names handed to the game's action filter (group `nodemp_strict`): free camera, vehicle switching, console and reloads, editor, pause and slow motion, recover and teleport, the vehicle menus, the "fun stuff" and traffic actions. `{}` filters nothing. A name that is one of the game's `core_input_actionFilter` templates (`vehicleTeleporting`, `editor`, `funStuff`, …) expands to that template. |
+| `photoMode` | `"admins"`, `"all"`, `"none"` | `"admins"` | Who may use photo mode and, with it, the free camera and the pause it asks for: `all` everyone, `none` nobody, `admins` the players whose `canPhoto` is true. When it is not allowed, `photomode` is added to the filtered actions. |
+| `canPhoto` | boolean | `false` | This player's permission; read only when `photoMode` is `"admins"`. |
+| `nodeGrab` | `"walking"`, `"off"` | `"walking"` | `walking`: grabbing nodes only while on foot and in first person. `off`: never; the six `nodegrabber*` actions are added to the filtered ones. |
+| `heartbeatMs` | number | `2000` | The heartbeat period, clamped to 500-60000. |
+
+Only the `strict` key is looked at. A table, or `true` (the defaults), switches strict on - or
+re-applies it in place when it is already on, so a resource can change `canPhoto` mid-session;
+`false` switches it off and restores everything; a `session:config` **without** the key changes
+nothing, so another resource's `{ allowClientMods = false }` cannot switch strict off; any other
+value (`"false"`, a number) is ignored with
+`W node.strict session:config.strict is a string ("false"), expected a table, true or false -- ignored`.
+A table that arrives before the client's session is live is kept and applied at session start.
+While strict, the player's local mods are switched off and stay off whatever `allowClientMods`
+says; one second after activation the mod also lists the game's VFS overrides and reports any
+file under `vehicles/`, `lua/`, `ui/` or `levels/` that is shadowed from the user folder
+(outside `mods/multiplayer/` and NodeMP's own zip). Leaving the server ends it all: the filter
+group is removed, every hook restored.
+
+A mod or client file that offers a camera, teleport or spectate feature should hide it while
+strict: `NodeMP.strict.isActive()` says so, `getConfig()` returns the normalised table (or
+`nil`), `getFilters()` a copy of the action names the group blocks, `isGrabAllowed()` and
+`isPhotoAllowed()` the two permissions as they stand right now, and
+`onChanged(fn, id)` subscribes to `onNodeMPStrictChanged` (`{ active, config }`).
+
+### The heartbeat and the violations
+
+While strict, the mod sends two ordinary wire events that a server resource handles with
+`node.on(name, fn(player, data))` and `node.json.decode`. Every `heartbeatMs`:
+
+```json
+{ "seq": 1, "filtersHash": "7b41bb4e", "filtersCount": 6, "filters": ["toggleCamera", "…"],
+  "camera": "orbit", "vehicleId": 100, "walking": false, "timeScale": 1, "checksum": "b05ec1a4" }
+```
+
+`rp:strict.heartbeat` - `seq` counts from 1 per activation (it continues across a reconfigure and
+a Lua reload); `filtersHash` is the FNV-1a32 of the blocked action names, sorted and joined with
+`,`, and `filtersCount` their number, both on every beat; `filters`, the names the game
+**really** blocks right now, only on `seq == 1` and on a beat whose hash differs from the
+previous one (the server keeps the last list). Two encoding rules for a judge: an empty list is
+a Lua `{}` and encodes as `{}`, not `[]`, so key on `filtersCount` (`0` = nothing blocked) and
+treat `filters` as absent-or-a-list; `timeScale` is `be:getSimulationTimeScale()` at the beat
+and is `0` during an **allowed** pause (photo mode of a player who may use it), so the rule is
+"`timeScale` ≠ 1 while not in an allowed pause". `camera` is what the player sees - the active
+global camera (`free`, `observer`, `bigMap`, …), `unicycle` on foot, else the vehicle camera
+(`orbit`, `onboard.driver`, `passenger`, …); `vehicleId` is the server id of the player's
+vehicle, `-1` when none; `walking` is `gameplay_walk.isWalking()`.
+
+`rp:strict.violation` - `{ "kind": "camera", "details": { "camera": "free", "restored": "orbit", "suppressed": 3 } }`
+on every **observed** breach, at most one per `kind` every 2 s (the repeats swallowed in between
+arrive as `details.suppressed` on the next one). A refused request - the pause the ESC menu asks
+for, a `simTimeAuthority.set` - is enforcement and is not reported; what is reported is a state
+the mod had to undo or could only watch: `camera`, `vehicle_switch`, `console`, `editor`,
+`pause`, `timescale`, `vehicle_reset`, `reset_action`, `recover`, `teleport`, `node_grab`,
+`spectate`, `camera_to_player`, `filter_tamper`, `vfs_override`. Each is also a
+`W node.strict violation <kind> <json>` line in `beamng.log`. Sanctions are the resource's
+business; the mod only reports.
+
+What the heartbeat proves: that the client mod's strict module is loaded and running - a beat
+that stops coming is a client whose module stopped, and what follows from that is the
+resource's decision, not the platform's - and that it runs with the configuration this server
+sent, because `checksum` echoes it:
+
+```
+checksum        = FNV-1a32( sourceHash .. "\n" .. canonicalConfig )        -- 8 lowercase hex digits
+canonicalConfig = "actions=" .. <resolved action list, comma-separated, in order>
+               .. "|photoMode=" .. photoMode .. "|nodeGrab=" .. nodeGrab
+               .. "|heartbeatMs=" .. heartbeatMs .. "|canPhoto=" .. ("true" | "false")
+sourceHash      = FNV-1a32( the bytes of lua/ge/extensions/nodemp/sys/strict.lua as loaded )
+```
+
+The resolved list is the server's `actions` (or the default) with templates expanded and
+duplicates dropped, then `photomode` when photo mode is not allowed, then the six `nodegrabber*`
+names when `nodeGrab` is `"off"` - send plain names and the list is easy to mirror. `sourceHash`
+is one constant per mod release: the mod's CI prints it in the job summary of every run as
+`release sourceHash (FNV-1a32 of the LF bytes of sys/strict.lua): 849af14b (46402 bytes)` -
+`849af14b` is the value for 1.4.0 - and the client logs it at load as
+`source hash 849af14b for the heartbeat checksum (…)`. Take it from the CI summary of the
+release you deploy, never from a local pack: a checkout with CRLF line endings hashes to another
+value. When the mod cannot read its own source at load, it hashes a fixed string instead, logs
+`W node.strict own source not readable …`, and `sourceHash` is `4368a6a9` - accept it but log
+it. Any other value is a modified `strict.lua` or another release.
+
+What the heartbeat does **not** prove is the integrity of the game: the checksum is computed by
+the client, and a modified client can send anything. The install is the launcher's business -
+`VerifyGame = "strict"` and `player:verify` on the server side - and the heartbeat is the
+liveness and configuration echo of the client rules on top of it.
 
 ## Which surface
 

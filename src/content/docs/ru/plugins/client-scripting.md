@@ -154,7 +154,7 @@ cannot be cleanly unloaded and are best shipped as content mods`. Прислуш
 клиентский мод публикует одну стабильную глобальную таблицу, `NodeMP`, в обоих Lua-состояниях -
 игрового движка и каждой машины. Каждая функция находит свою цель в момент вызова, так что мод,
 который выполняется до старта клиентского мода или пока никто не в сессии, получает `nil`, `false`
-или пустую таблицу вместо ошибки. `NodeMP.VERSION` - версия мода, `1.3.0`. Клиентские файлы могут
+или пустую таблицу вместо ошибки. `NodeMP.VERSION` - версия мода, `1.4.0`. Клиентские файлы могут
 вызывать ту же таблицу; [пример выше](#события-и-полезные-нагрузки) использует `NodeMP.ui.notify`.
 
 ### Пространства имён
@@ -176,6 +176,7 @@ cannot be cleanly unloaded and are best shipped as content mods`. Прислуш
 | `NodeMP.util` | `translate`, `b64encode`, `b64decode`, `hex2rgb`, `jsonEncode`, `jsonDecode` |
 | `NodeMP.modules` | клиентский фреймворк модулей: `register`, `list`, `isEnabled`, `getConfig`, `setLocalPref`, `onChanged`, `requestManifest` |
 | `NodeMP.dimensions` | клиентский взгляд на параллельные миры: `isActive`, `get`, `refresh`, `set` (шлёт `/dim n` через чат, так что сервер остаётся главным), `onChanged` |
+| `NodeMP.strict` | строгая сессия, объявленная сервером через `session:config` ([ниже](#строгие-сессии-sessionconfigstrict)): `isActive`, `getConfig`, `getFilters`, `isGrabAllowed`, `isPhotoAllowed`, `onChanged` |
 
 Исходные плоские помощники - `NodeMP.isInSession`, `NodeMP.getCurrentServer`, `NodeMP.getAccount`,
 `NodeMP.isLoggedIn`, `NodeMP.getLocalPlayerID`, `NodeMP.translate` и остальные - остаются
@@ -210,8 +211,10 @@ NodeMP.events.off("race:start")                                             -- y
 `onNodeMPPlayerRoleChanged` (`{ id, role }`), `onNodeMPVehicleSpawned` (таблица машины),
 `onNodeMPVehicleDeleted` (`{ vehicleId }`), `onNodeMPVehicleSyncOwnerChanged`
 (`{ vehicleId, syncOwnerId }`), `onNodeMPSynced` (без данных, после начальной синхронизации мира),
-`ChatMessageSent` (текст) и `ChatMessageReceived` (текст, имя пользователя). Подписывайтесь на них
-через `NodeMP.events.on`; они локальные и никогда не уходят в сеть.
+`onNodeMPStrictChanged` (`{ active, config }`, всякий раз, когда строгая сессия начинается,
+перенастраивается или заканчивается), `ChatMessageSent` (текст) и `ChatMessageReceived` (текст,
+имя пользователя). Подписывайтесь на них через `NodeMP.events.on`; они локальные и никогда не
+уходят в сеть.
 
 ### Движок автомобиля (VE)
 
@@ -231,6 +234,118 @@ NodeMP.events.off("race:start")                                             -- y
 `NodeMP.vehicleType`, `NodeMP.isRemote`, `NodeMP.isLocal` и `NodeMP.triggerServer` - плоские
 псевдонимы. Большинство пишущих помощников имеют смысл только на локальной машине: сначала
 проверяйте `NodeMP.vehicle.isLocal()`.
+
+## Строгие сессии: `session:config.strict`
+
+Клиентский мод 1.4.0 умеет вести сессию игрока по **строгим** правилам - клиентская половина
+того, что [Строгая проверка](/ru/hosting/strict-verification/) описывает для сервера: ни свободной
+камеры, ни пересадки в машины, в которые сервер игрока не сажал, ни консоли, редактора, паузы,
+масштаба времени и действий телепорта, node grabber только пешком и от первого лица, строки
+наблюдения в панели сессии отклоняются. Ничего из этого не работает, пока серверный ресурс не
+включит его, для каждого игрока отдельно, ключом `strict` сетевого события `session:config`:
+
+```lua
+-- server side, any resource; usually from a playerJoin handler
+player:send("session:config", { strict = {
+    actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
+    photoMode   = "admins",   -- "admins" | "all" | "none"
+    canPhoto    = false,      -- this player's photo-mode / free-camera permission
+    nodeGrab    = "walking",  -- "walking" | "off"
+    heartbeatMs = 2000,
+} })
+player:send("session:config", { strict = false })   -- off again
+```
+
+| Поле | Значения | По умолчанию | Действие |
+|---|---|---|---|
+| `actions` | массив имён действий ввода | список мода из 44 имён | Имена, передаваемые фильтру действий игры (группа `nodemp_strict`): свободная камера, переключение машин, консоль и перезагрузки, редактор, пауза и замедление, восстановление и телепорт, меню машин, действия «fun stuff» и трафика. `{}` не фильтрует ничего. Имя, совпадающее с одним из шаблонов `core_input_actionFilter` игры (`vehicleTeleporting`, `editor`, `funStuff`, …), раскрывается в этот шаблон. |
+| `photoMode` | `"admins"`, `"all"`, `"none"` | `"admins"` | Кому можно фото-режим и вместе с ним свободную камеру и паузу, которую он запрашивает: `all` - всем, `none` - никому, `admins` - игрокам, у которых `canPhoto` истинно. Когда фото-режим не разрешён, `photomode` добавляется к фильтруемым действиям. |
+| `canPhoto` | boolean | `false` | Разрешение этого игрока; читается только при `photoMode` равном `"admins"`. |
+| `nodeGrab` | `"walking"`, `"off"` | `"walking"` | `walking`: хватать ноды только пешком и от первого лица. `off`: никогда; шесть действий `nodegrabber*` добавляются к фильтруемым. |
+| `heartbeatMs` | число | `2000` | Период сердцебиения, ограничен диапазоном 500-60000. |
+
+Смотрится только ключ `strict`. Таблица или `true` (значения по умолчанию) включает strict - или
+переприменяет его на месте, когда он уже включён, так что ресурс может сменить `canPhoto` посреди
+сессии; `false` выключает и восстанавливает всё; `session:config` **без** ключа ничего не меняет,
+так что `{ allowClientMods = false }` другого ресурса не может выключить strict; любое другое
+значение (`"false"`, число) игнорируется с записью
+`W node.strict session:config.strict is a string ("false"), expected a table, true or false -- ignored`.
+Таблица, пришедшая до того, как сессия клиента стала живой, сохраняется и применяется при старте
+сессии. Пока действует strict, локальные моды игрока выключаются и остаются выключенными, что бы ни
+говорил `allowClientMods`; через секунду после активации мод также перечисляет перекрытия VFS игры и
+сообщает о любом файле под `vehicles/`, `lua/`, `ui/` или `levels/`, который затенён из
+пользовательской папки (вне `mods/multiplayer/` и собственного zip NodeMP). Выход с сервера
+заканчивает всё: группа фильтра снимается, каждый хук восстанавливается.
+
+Мод или клиентский файл, предлагающий функцию камеры, телепорта или наблюдения, должен скрывать её,
+пока действует strict: `NodeMP.strict.isActive()` говорит об этом, `getConfig()` возвращает
+нормализованную таблицу (или `nil`), `getFilters()` - копию имён действий, которые блокирует группа,
+`isGrabAllowed()` и `isPhotoAllowed()` - два разрешения, как они стоят сейчас, а `onChanged(fn, id)`
+подписывает на `onNodeMPStrictChanged` (`{ active, config }`).
+
+### Сердцебиение и нарушения
+
+Пока действует strict, мод шлёт два обычных сетевых события, которые серверный ресурс обрабатывает
+через `node.on(name, fn(player, data))` и `node.json.decode`. Каждые `heartbeatMs`:
+
+```json
+{ "seq": 1, "filtersHash": "7b41bb4e", "filtersCount": 6, "filters": ["toggleCamera", "…"],
+  "camera": "orbit", "vehicleId": 100, "walking": false, "timeScale": 1, "checksum": "b05ec1a4" }
+```
+
+`rp:strict.heartbeat` - `seq` считает с 1 на каждую активацию (продолжается через перенастройку и
+перезагрузку Lua); `filtersHash` - FNV-1a32 заблокированных имён действий, отсортированных и
+соединённых через `,`, а `filtersCount` - их число, оба в каждом такте; `filters`, имена, которые
+игра **действительно** блокирует сейчас, - только на `seq == 1` и в такте, чей хеш отличается от
+предыдущего (сервер хранит последний список). Два правила кодирования для судьи: пустой список -
+это Lua `{}` и кодируется как `{}`, а не `[]`, так что опирайтесь на `filtersCount` (`0` = ничего
+не заблокировано) и трактуйте `filters` как «отсутствует или список»; `timeScale` - это
+`be:getSimulationTimeScale()` в момент такта, и он равен `0` во время **разрешённой** паузы
+(фото-режим игрока, которому он можно), так что правило - «`timeScale` ≠ 1, пока не в разрешённой
+паузе». `camera` - то, что видит игрок: активная глобальная камера (`free`, `observer`, `bigMap`,
+…), `unicycle` пешком, иначе камера машины (`orbit`, `onboard.driver`, `passenger`, …);
+`vehicleId` - серверный идентификатор машины игрока, `-1`, когда её нет; `walking` -
+`gameplay_walk.isWalking()`.
+
+`rp:strict.violation` - `{ "kind": "camera", "details": { "camera": "free", "restored": "orbit", "suppressed": 3 } }`
+на каждое **наблюдённое** нарушение, не чаще одного на `kind` за 2 с (повторы, проглоченные между
+ними, приходят как `details.suppressed` в следующем). Отклонённый запрос - пауза, которую просит
+меню ESC, `simTimeAuthority.set` - это принуждение, и о нём не сообщается; сообщается о состоянии,
+которое моду пришлось откатить или которое он мог только наблюдать: `camera`, `vehicle_switch`,
+`console`, `editor`, `pause`, `timescale`, `vehicle_reset`, `reset_action`, `recover`, `teleport`,
+`node_grab`, `spectate`, `camera_to_player`, `filter_tamper`, `vfs_override`. Каждое - ещё и строка
+`W node.strict violation <kind> <json>` в `beamng.log`. Санкции - дело ресурса; мод только сообщает.
+
+Что доказывает сердцебиение: что строгий модуль клиентского мода загружен и работает - такт,
+который перестал приходить, это клиент, чей модуль остановился, а что из этого следует, решает
+ресурс, а не платформа, - и что он работает с той конфигурацией, которую прислал этот сервер,
+потому что `checksum` её отражает:
+
+```
+checksum        = FNV-1a32( sourceHash .. "\n" .. canonicalConfig )        -- 8 lowercase hex digits
+canonicalConfig = "actions=" .. <resolved action list, comma-separated, in order>
+               .. "|photoMode=" .. photoMode .. "|nodeGrab=" .. nodeGrab
+               .. "|heartbeatMs=" .. heartbeatMs .. "|canPhoto=" .. ("true" | "false")
+sourceHash      = FNV-1a32( the bytes of lua/ge/extensions/nodemp/sys/strict.lua as loaded )
+```
+
+Разрешённый список - это `actions` сервера (или список по умолчанию) с раскрытыми шаблонами и
+убранными дубликатами, затем `photomode`, когда фото-режим не разрешён, затем шесть имён
+`nodegrabber*`, когда `nodeGrab` равен `"off"`, - шлите простые имена, и список легко повторить.
+`sourceHash` - одна константа на релиз мода: CI мода печатает её в сводке задания каждого прогона
+как `release sourceHash (FNV-1a32 of the LF bytes of sys/strict.lua): 849af14b (46402 bytes)` -
+`849af14b` - значение для 1.4.0, - а клиент пишет её в лог при загрузке как
+`source hash 849af14b for the heartbeat checksum (…)`. Берите её из сводки CI того релиза, который
+разворачиваете, и никогда из локальной сборки: чекаут с окончаниями строк CRLF хешируется в другое
+значение. Когда мод не может прочитать собственный исходник при загрузке, он хеширует вместо него
+фиксированную строку, пишет `W node.strict own source not readable …`, и `sourceHash` равен
+`4368a6a9` - принимайте, но записывайте в лог. Любое другое значение - изменённый `strict.lua` или
+другой релиз.
+
+Чего сердцебиение **не** доказывает - целостности игры: контрольную сумму вычисляет клиент, и
+изменённый клиент может прислать что угодно. Установка - дело лаунчера (`VerifyGame = "strict"` и
+`player:verify` на стороне сервера), а сердцебиение - живость и отражение конфигурации клиентских
+правил поверх этого.
 
 ## Какую поверхность выбрать
 

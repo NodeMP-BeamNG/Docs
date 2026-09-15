@@ -1,10 +1,10 @@
 ---
 title: Wire protocol
-description: Wire protocol v17 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
+description: Wire protocol v18 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
-This is the protocol between the launcher's helper and a NodeMP server, **v17**
-(`Wire::ProtoVersion = 17`). Resources never see it: they send and receive events. Native module
+This is the protocol between the launcher's helper and a NodeMP server, **v18**
+(`Wire::ProtoVersion = 18`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the
 frames and orders them; it does not give byte layouts. The normative definition, field by field,
@@ -33,9 +33,11 @@ on [How synchronization works](/framework/sync/); here are the rules the frames 
   before inflating. The helper normalizes frames, so the game mod never sees a compressed body.
 - **Limits.** A frame is capped at 4 KB before `Welcome` and 1 MB after it; a UDP datagram at
   10 KB. Handshake, session, state and content-control bodies are capped at 4 KB (a `FileRequest`
-  name at 1 KB); vehicle, event, module and resource-chunk bodies at the frame cap; a vehicle
-  config at 768 KB so that its join-replay wrapper still fits. An oversized frame is dropped after
-  the handshake and kills the connection before it.
+  name at 1 KB), with one exception: an `IntegrityManifestChunk` body may be
+  `IntegrityChunkBodyCap` = 32 KiB + 8 bytes, one slice of `IntegrityChunkBytes` = 32 KiB plus
+  its two counters. Vehicle, event, module and resource-chunk bodies are capped at the frame
+  cap; a vehicle config at 768 KB so that its join-replay wrapper still fits. An oversized frame
+  is dropped after the handshake and kills the connection before it.
 
 ## Frames: (Category, SubType)
 
@@ -66,7 +68,7 @@ channel (4444).
 
 ## Packets by category
 
-### Handshake (11)
+### Handshake (14)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -78,9 +80,12 @@ channel (4444).
 | `UdpHello` | L→S, U | Binds the client's UDP endpoint: a nonce and an HMAC-SHA256 over the token, the client id and the nonce. Accepted only from the address the TLS session came from, and only once. |
 | `MapInfo` | S→L, T | The level the game must load. |
 | `JoinWorld` | L→S, T | The map is loaded; stream the world. |
-| `VerifyRequest` | S→L, T | How strictly the game install must be checked (`[General] VerifyGame`): off, size, scripts or full. |
-| `VerifyReport` | L→S, T | What the launcher checked and found; sent again during the session when the install changes. |
+| `VerifyRequest` | S→L, T | How strictly the game install must be checked (`[General] VerifyGame`): `u8 level` - off, size, scripts, full or, since v18, strict (`VerifyLevel::Strict = 4`) - followed by `tail:str manifest_hash`, the id of the reference manifest to judge against (SHA-256 of the manifest file, 64 lowercase hex digits), empty for every level but strict. Sent on every join, and since v18 also mid-session when a resource calls `player:verify`. |
+| `VerifyReport` | L→S, T | What the launcher checked and found: `u8 level_run, u8 outcome, u32 problems, tail:str detail`. A strict report's `detail` starts with `manifest=<id>;` naming the manifest it was judged against, then `excluded=N:a,b;` (what the launcher left out as its own) and `skipped=N;` (folders it could not read) when they apply, then up to three examples as `path (reason)`. Sent again during the session when the install changes, on the launcher's schedule, and in answer to a mid-session `VerifyRequest`. |
 | `Identity` | L→S, T | The join ticket from the directory, always the frame after `Hello`; an empty body means no ticket. |
+| `IntegrityManifestRequest` | L→S, T | `0x0C` (v18). `tail:str hash`: the launcher has no cached reference manifest with the id the `VerifyRequest` named and asks for its body. An id the server does not serve - or a string that is not an id - is answered with `Kick` (`Unknown integrity manifest requested`); more than four transfers in one session too (`Too many integrity manifest requests`). |
+| `IntegrityManifestChunk` | S→L, T | `0x0D` (v18). `u32 index, u32 total, tail:bytes part`: one slice of the zstd-compressed manifest, at most `IntegrityChunkBytes` (32 KiB), sent in order, `index` from `0` to `total - 1`. An empty manifest is one empty chunk. TCP only, never cached; the one handshake body that outgrows the 4 KB cap. |
+| `IntegrityManifestDone` | S→L, T | `0x0E` (v18). `tail:str hash`: every chunk was sent; the SHA-256 of the reassembled compressed bytes, which the launcher recomputes and compares before it caches the file under that id (`cache/integrity/<id>.manifest`) and runs the check. |
 
 ### Session (7)
 
@@ -201,7 +206,7 @@ The order in which a player enters, packet by packet. The server's log lines in 
 what you see on the console.
 
 1. The helper opens the TLS connection and sends `Hello` with the protocol version and the name the
-   player asked for. A different version is answered with `Kick` (`Protocol version mismatch: launcher speaks v17, server speaks v16 - update the outdated side`).
+   player asked for. A different version is answered with `Kick` (`Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`).
 2. The helper sends `Identity`, always: the join ticket, or an empty body. The server reads it before
    deciding anything, so the stream stays in step even when the answer is a refusal.
 3. The server holds the handshake while it is still starting, refuses a full server
@@ -209,7 +214,14 @@ what you see on the console.
    the requested one, a ticket-less or Test Drive join is admitted or refused by `[Directory] TestDrive`, an unreachable directory by `RedeemFailOpen`. A ticket is spent when redeemed, which is why identity is decided last.
 4. The player id is assigned and the name de-duplicated. `onPlayerConnectRequest` runs; a veto is a
    `Kick` with the plugin's reason. `playerConnecting` fires.
-5. `Welcome` carries the client id, `VerifyRequest` the install check level. The content phase
+5. `Welcome` carries the client id, `VerifyRequest` the install check level - and, for strict,
+   the id of the reference manifest. A server set to strict that has no manifest to name, or
+   more than one, refuses here instead (`Kick` with a reason that tells the player to ask the
+   host). A launcher asked for strict that has no cached manifest of that id fetches it first:
+   `IntegrityManifestRequest`, the `IntegrityManifestChunk` frames, `IntegrityManifestDone`.
+   It then runs the check and answers `VerifyReport`; the server judges it at once - a strict
+   report naming another manifest than the one served is judged as a mismatch whatever its
+   outcome - and a refusal is a `Kick` before any content is downloaded. The content phase
    follows ([below](#content-delivery)) until the helper sends `SyncDone`.
 6. `UdpToken` and `MapInfo` are sent; the console prints `Alice connected (id 0)`. The helper starts
    the game, or hands the session to a running one, and the game loads the map.
@@ -237,7 +249,8 @@ Two deliveries happen on a join, over the reliable channel, in this order.
 on, the 32-byte session key as a raw field inside TLS. For each file it does not already have, the
 helper sends `FileRequest` and receives `FileBegin` - the exact size and, when encrypted, the nonce -
 followed by that many raw bytes, unframed; or `FileDeny` with a reason. When the helper is done it
-sends `SyncDone`. A `VerifyReport` may arrive at any point during this phase and is judged at once.
+sends `SyncDone`. A `VerifyReport` may arrive at any point during this phase and is judged at once,
+and so may an `IntegrityManifestRequest`, which is served in place.
 
 **Client resources** (the `client/` files of every resource), after the world replay and right before
 `playerJoin`: one or more `ResourceChunk` packets per resource, then exactly one `ResourceDone`. The
@@ -268,6 +281,11 @@ side of this is on [Client scripting](/plugins/client-scripting/).
 is exact match, because all components ship together. Event names carry no version of their own,
 which is why the v16 rename of every wire event to `<domain>:<verb>` was a protocol bump: a stale
 peer with a renamed event does not fail, it goes quiet. v17 added `Identity` and nothing else.
+v18 added the strict level and the reference manifest: `VerifyLevel::Strict = 4`, the
+`manifest_hash` tail of `VerifyRequest`, the `manifest=<id>;` prefix of a strict `VerifyReport`,
+the three `IntegrityManifest*` frames (`0x0C`-`0x0E`) with their 32 KiB chunk, and a
+`VerifyRequest` that may arrive mid-session. A v17 launcher is refused with the protocol-mismatch
+text, as the exact-match policy says.
 
 The header is the only description. `sdk/tools/wiregen.py` parses it and regenerates the mirrors
 that must match it byte for byte: the Python taxonomy the server's tests use, and the taxonomy block

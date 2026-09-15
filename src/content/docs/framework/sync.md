@@ -1,9 +1,9 @@
 ---
 title: How synchronization works
-description: Transport hops, the packet categories of wire protocol v17, control modes, the position snapshot, seats, damage, identity, events and the relay.
+description: Transport hops, the packet categories of wire protocol v18, control modes, the position snapshot, seats, damage, identity, events and the relay.
 ---
 
-This page follows the data through a NodeMP session on wire protocol **v17**: what travels
+This page follows the data through a NodeMP session on wire protocol **v18**: what travels
 where, at which rate, and who is allowed to send what. Every packet is named, with its purpose, on
 the [wire protocol](/plugins/protocol/) page; the byte layouts are in
 `server/include/net/Protocol.h`, the normative contract, kept byte-identical in the helper.
@@ -31,7 +31,7 @@ Every packet is identified by a `(Category, SubType)` pair. Subtype names, from 
 
 | Category | Subtypes | Names |
 |---|---:|---|
-| `Handshake` | 11 | `Hello`, `Welcome`, `Ping`, `Pong`, `UdpToken`, `UdpHello`, `MapInfo`, `JoinWorld`, `VerifyRequest`, `VerifyReport`, `Identity` |
+| `Handshake` | 14 | `Hello`, `Welcome`, `Ping`, `Pong`, `UdpToken`, `UdpHello`, `MapInfo`, `JoinWorld`, `VerifyRequest`, `VerifyReport`, `Identity`, `IntegrityManifestRequest`, `IntegrityManifestChunk`, `IntegrityManifestDone` |
 | `Session` | 7 | `Kick`, `SelfInfo`, `PlayerJoined`, `PlayerLeft`, `PlayerList`, `SessionEnd`, `ClientId` |
 | `Content` | 8 | `ModsRequest`, `ModsInfo`, `FileRequest`, `FileBegin`, `FileDeny`, `SyncDone`, `ResourceChunk`, `ResourceDone` |
 | `Vehicle` | 28 | `SpawnReq`, `Spawn`, `SpawnDeny`, `Edit`, `Delete`, `Reset`, `Coupler`, `Paint`, `Camera`, `SeatClaim`, `SeatVerdict`, `Driver`, `SeatFree`, `Authority`, `AuthRevoke`, `PlayerVehicle`, `Resync`, `ResyncReq`, `Trigger`, `DamageStat`, `DamageBlob`, `CouplerSet`, `Tag`, `Lock`, `ConfigHash`, `TriggerReq`, `NodeGrab`, `NodeGrabSet` |
@@ -48,7 +48,11 @@ end at the helper; everything else is relayed to the game.
 The helper sends `Hello` (protocol version and requested name) and then, always, `Identity` with
 the join ticket — empty when there is none. A version mismatch is refused with a reason naming
 both versions; `VerifyRequest`/`VerifyReport` then check the game install at the strictness of
-`[General] VerifyGame`, before any content is downloaded. Identity is decided last, because a
+`[General] VerifyGame`, before any content is downloaded. At the `strict` level (v18) the request
+also names the server's reference manifest by its SHA-256 id; a helper without that manifest in
+its cache fetches it in between (`IntegrityManifestRequest`, 32 KiB `IntegrityManifestChunk`
+frames, `IntegrityManifestDone`), and its report names the manifest it checked against. A
+`VerifyRequest` may come again mid-session when a resource calls `player:verify`. Identity is decided last, because a
 redeemed ticket is spent: a server with `[Directory]` configured redeems it and takes the verified
 name — the account's username or the guest name the directory minted — in place of what `Hello`
 asked for. Names are sanitized either way (control characters stripped, 24-byte UTF-8-safe cap,

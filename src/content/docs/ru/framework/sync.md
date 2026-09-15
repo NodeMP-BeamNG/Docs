@@ -1,9 +1,9 @@
 ---
 title: Как работает синхронизация
-description: Транспорт, категории пакетов протокола v17, режимы управления, снимок позиции, места, повреждения, идентификация, события и ретрансляция.
+description: Транспорт, категории пакетов протокола v18, режимы управления, снимок позиции, места, повреждения, идентификация, события и ретрансляция.
 ---
 
-Эта страница прослеживает данные в сессии NodeMP на сетевом протоколе **v17**: что куда идёт,
+Эта страница прослеживает данные в сессии NodeMP на сетевом протоколе **v18**: что куда идёт,
 с какой частотой и кому что разрешено отправлять. Каждый пакет назван, с его назначением, на
 странице [сетевого протокола](/ru/plugins/protocol/); побайтовые раскладки — в
 `server/include/net/Protocol.h`, нормативном контракте, побайтово идентичная копия которого лежит
@@ -33,7 +33,7 @@ helper               <-- TCP + TLS 1.3 + UDP                           -->  Node
 
 | Категория | Подтипов | Имена |
 |---|---:|---|
-| `Handshake` | 11 | `Hello`, `Welcome`, `Ping`, `Pong`, `UdpToken`, `UdpHello`, `MapInfo`, `JoinWorld`, `VerifyRequest`, `VerifyReport`, `Identity` |
+| `Handshake` | 14 | `Hello`, `Welcome`, `Ping`, `Pong`, `UdpToken`, `UdpHello`, `MapInfo`, `JoinWorld`, `VerifyRequest`, `VerifyReport`, `Identity`, `IntegrityManifestRequest`, `IntegrityManifestChunk`, `IntegrityManifestDone` |
 | `Session` | 7 | `Kick`, `SelfInfo`, `PlayerJoined`, `PlayerLeft`, `PlayerList`, `SessionEnd`, `ClientId` |
 | `Content` | 8 | `ModsRequest`, `ModsInfo`, `FileRequest`, `FileBegin`, `FileDeny`, `SyncDone`, `ResourceChunk`, `ResourceDone` |
 | `Vehicle` | 28 | `SpawnReq`, `Spawn`, `SpawnDeny`, `Edit`, `Delete`, `Reset`, `Coupler`, `Paint`, `Camera`, `SeatClaim`, `SeatVerdict`, `Driver`, `SeatFree`, `Authority`, `AuthRevoke`, `PlayerVehicle`, `Resync`, `ResyncReq`, `Trigger`, `DamageStat`, `DamageBlob`, `CouplerSet`, `Tag`, `Lock`, `ConfigHash`, `TriggerReq`, `NodeGrab`, `NodeGrabSet` |
@@ -50,8 +50,12 @@ helper               <-- TCP + TLS 1.3 + UDP                           -->  Node
 Хелпер отправляет `Hello` (версию протокола и запрошенное имя), а затем — всегда — `Identity` с
 билетом на подключение, пустой, если билета нет. Несовпадение версий отклоняется с причиной, в
 которой названы обе версии; затем `VerifyRequest`/`VerifyReport` проверяют установленную игру со
-строгостью из `[General] VerifyGame` — до того, как будет скачан какой-либо контент.
-Идентификация решается последней, потому что погашенный билет израсходован: сервер с настроенной
+строгостью из `[General] VerifyGame` — до того, как будет скачан какой-либо контент. На уровне
+`strict` (v18) запрос называет ещё и эталонный манифест сервера по его id SHA-256; хелпер, у
+которого этого манифеста нет в кэше, забирает его между делом (`IntegrityManifestRequest`, кадры
+`IntegrityManifestChunk` по 32 КиБ, `IntegrityManifestDone`), а его отчёт называет манифест, с
+которым сверял. `VerifyRequest` может прийти снова посреди сессии, когда ресурс вызывает
+`player:verify`. Идентификация решается последней, потому что погашенный билет израсходован: сервер с настроенной
 секцией `[Directory]` погашает его и берёт проверенное имя — имя аккаунта или гостевое имя,
 выданное директорией, — вместо того, что просил `Hello`. Имена в любом случае очищаются
 (управляющие символы удаляются, длина ограничивается 24 байтами без разрыва символа UTF-8,
