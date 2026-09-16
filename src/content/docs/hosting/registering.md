@@ -11,11 +11,18 @@ ticket is checked against the player's account.
 
 ## Create a server key
 
+You need a NodeMP account with a **verified e-mail address** and a **linked Discord account**.
+Registration at [nodemp.com/register](https://nodemp.com/register) asks for a username, an e-mail
+and a password and sends a verification link; signing in before the link is opened answers
+`please verify your e-mail first`. Discord is not asked for at registration - it is linked on the
+`/hosts` page, and only an account with a linked Discord account can create a key (the link is
+used for nothing else). A host without Discord cannot list a server; the server still runs and is
+reachable through Direct Connect.
+
 1. Sign in at [nodemp.com](https://nodemp.com) and open [nodemp.com/hosts](https://nodemp.com/hosts)
    (**Server keys**).
 2. If the page shows **Link Discord to create server keys**, press **Link Discord account** and
-   authorise. Keys can only be created by an account with a linked Discord account; the link is
-   used for nothing else.
+   authorise; the form to create a key appears once the link is made.
 3. Under **Create a server key**, enter a **Label** (up to 64 characters, `EU Freeroam #1`) and
    press **Create key**.
 4. The dialog **Server key created** shows the **Host ID** and the **Host secret**. The secret is
@@ -28,14 +35,24 @@ by default). Your keys are listed under **Your servers** with their status (**On
 
 ## Put the key into the server
 
-The `[Directory]` block for `server.toml`, as the site shows it:
+`server.toml` already contains a `[Directory]` table: the server wrote it at its first start,
+with every key at its default (empty strings for these three). Fill in the values of the three
+keys **in that existing table**:
 
 ```toml
-[Directory]
 Url        = "https://api.nodemp.com"
 HostId     = "…"
 HostSecret = "…"
 ```
+
+Do not paste a second `[Directory]` header below the first one. TOML rejects a table that is
+defined twice, and the server then exits at start with `Error parsing config file value: …`
+(server 1.2.0 quotes the parser, `toml::insert_value: table ("Directory") already exists`;
+server 1.2.1 says that the table appears twice, names the line and tells you to put the keys into
+the existing table) and `Closing in 10 seconds`. The site's **server.toml** tab shows the three key
+lines for exactly this reason. The comment the 1.2.0 server writes above `Url` gives a wrong
+example address for the directory; the directory is `https://api.nodemp.com`, as everywhere on
+these pages (server 1.2.1 writes the right one).
 
 The same as variables, for the Docker image or a systemd unit; they override the same keys in
 `server.toml`:
@@ -67,7 +84,14 @@ beacon, is repeated with every beacon while it fails, and every two minutes once
 succeeded. A server whose probe fails is kept out of the public list even though the beacon was
 accepted, and the certificate fingerprint the probe sees is what launchers are told to expect. Your server's address in the list is therefore the public address of the
 machine that sends the beacons, plus `[General] Port`; behind a router, forward that port to the
-machine.
+machine. The server's log does not show the probe's result: `listed in the server browser` means
+the beacon was accepted, not that the probe got through. Whether it did you see in two places -
+the server appears in the launcher's list and at [nodemp.com/servers](https://nodemp.com/servers)
+within about 15 seconds of the port opening, and a TCP connection to `your public address:30814`
+from outside your network succeeds (`Test-NetConnection 203.0.113.10 -Port 30814` from a PC on
+another connection, or any online port checker). **Online** under **Your servers** on `/hosts`
+only says that a beacon arrived, and a connection from your own LAN proves nothing about the
+router.
 
 While the session is up, every join carries a ticket from the launcher, which the server
 redeems with the directory: the account's username replaces the name the launcher asked for, or
@@ -101,9 +125,49 @@ TestDrive   = true
   Only effective together with `TestDrive = true`; the reasoning is in the
   [framework overview](/framework/overview/).
 - `Fingerprint` and `AllowInsecure` are for a directory you run yourself (a pinned certificate,
-  a plain-`http://` address). Leave both at their defaults for `api.nodemp.com`.
+  a plain-`http://` address). Leave both at their defaults for `api.nodemp.com` - also on a
+  Windows machine whose server cannot verify the directory's certificate; the fix for that is
+  in the [Windows note](#windows-the-directorys-certificate-cannot-be-verified) below, not a pin.
+  From server 1.2.1 on, a third key `[Directory] CaFile` names a PEM bundle to verify the
+  directory's certificate against *instead of* the machine's trusted roots, for a directory of
+  your own behind a private CA; empty (the default) is right for `api.nodemp.com`.
 
 Change any of them and restart; the next beacon carries the new values.
+
+## Windows: the directory's certificate cannot be verified
+
+On Windows, server 1.2.0 (and 1.1.0) ends up with no trusted root certificates to check the
+directory's certificate against - the Windows certificate store is not where its OpenSSL looks -
+so with a server key set the log repeats, on every retry,
+
+```
+Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)
+```
+
+although the directory's certificate is an ordinary public one. Nothing is wrong with the key or
+the network. The server does honour OpenSSL's `SSL_CERT_FILE` variable, so point it at a PEM
+bundle of public root certificates before you start the server - Mozilla's bundle as published by
+the curl project is the usual one:
+
+```powershell
+Invoke-WebRequest https://curl.se/ca/cacert.pem -OutFile C:\NodeMP\cacert.pem
+$env:SSL_CERT_FILE = "C:\NodeMP\cacert.pem"
+.\Node-Server.exe
+```
+
+For a Task Scheduler task, start the server through a `.cmd` file that sets the variable first
+(`set SSL_CERT_FILE=C:\NodeMP\cacert.pem`, then `Node-Server.exe`), or set it as a user or system
+environment variable in Windows. The next start then goes straight to
+`The directory refused this server's credentials: …` (a placeholder key) or
+`listed in the server browser` (a real one). Do not work around it with `[Directory] Fingerprint`:
+pinning the directory's leaf certificate works for a few weeks and then breaks when the
+certificate rotates.
+
+From server 1.2.1 on this is fixed in the server: it reads the Windows certificate store, and the
+Windows archive ships `cacert.pem` next to `Node-Server.exe` as a fallback for a machine whose own
+store is thin, so the variable is no longer needed. A machine that has neither gets one clear
+error line at start instead of a failing retry loop. Linux and the Docker image are not affected:
+there OpenSSL finds the distribution's roots.
 
 ## Your server's TLS fingerprint
 
@@ -130,7 +194,8 @@ Under **Your servers** at [nodemp.com/hosts](https://nodemp.com/hosts):
 | What you see | Cause | What to do |
 |---|---|---|
 | `announcing this server to …` but never `listed in the server browser`, and `The directory refused this server's credentials: …` | Wrong Host ID or secret, a rotated secret, or a deleted key. | Compare with the key on nodemp.com; rotate if unsure and paste the new secret. |
-| `Could not reach the directory at https://api.nodemp.com: …` | No outgoing HTTPS, DNS failure, or the directory is down. | Check `curl https://api.nodemp.com/healthz` from the server's machine. The server retries by itself. |
+| `Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)` | Windows, server 1.2.0: the server has no trusted root certificates to verify the directory with. The key and the network are fine. | Set `SSL_CERT_FILE` to a PEM bundle of public roots before starting - see [the Windows note](#windows-the-directorys-certificate-cannot-be-verified). Fixed in server 1.2.1. |
+| `Could not reach the directory at https://api.nodemp.com: …` (any other text after the colon) | No outgoing HTTPS, DNS failure, or the directory is down. | Check `curl https://api.nodemp.com/healthz` from the server's machine (it answers `{"status":"ok"}`). The server retries by itself after 5, 15, 30, 60 and then every 120 seconds. |
 | `This server is NOT announced to a directory: [Directory] needs Url, HostId and HostSecret, and one of them is empty` | One of the three values is missing or misspelt. | Fill in all three. Variable names are `NODE_DIRECTORY_URL`, `NODE_DIRECTORY_HOST_ID`, `NODE_DIRECTORY_HOST_SECRET`. |
 | `Refusing to announce this server: the [Directory] Url is plain http…` | `Url` starts with `http://`. | Use `https://api.nodemp.com`. |
 | `listed in the server browser`, but the server is not in the launcher's list | The probe cannot reach `your public address:Port` over TCP, or `Public = false`. | Open and forward `30814/tcp` (and `/udp` for play). The probe is repeated with every beacon, so the list updates within about 15 seconds of the port opening. |

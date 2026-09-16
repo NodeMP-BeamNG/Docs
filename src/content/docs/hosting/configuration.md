@@ -26,26 +26,42 @@ Details that matter when a setting does not take effect:
 - A boolean variable accepts `true`, `false`, `1` and `0` in any case. Any other value is
   ignored with `Environment variable NODE_DEBUG has non-boolean value 'yes', ignoring it (accepted: true/false/1/0)`,
   and the file decides.
-- An integer variable must be a plain number; text is read as `0`.
+- An integer variable must be a plain number; text is read as `0` **without a warning**.
+  `NODE_MAX_PLAYERS=abc` therefore gives a server with zero slots - the banner says
+  `players 0 max` and every join is refused with `Server full!`. Check the banner after changing
+  a numeric variable.
 - A key with the wrong type in the file (`Port = "30814"`, with quotes) is reported as
   `Value 'General.Port' has unexpected type, expected type 'integer'`, and the default is used.
 - A key missing from the file takes its default silently. That is how a file written by an
-  older version keeps working.
+  older version keeps working - and also what happens to a **misspelt** key: `MaxPlayer = 16`
+  is not a key the server knows, so it is dropped at the next rewrite (below) and `MaxPlayers`
+  silently stays `8`. No log line reports it; the check is to open the rewritten file and see
+  whether your value is still there.
 - A file the TOML parser rejects stops the server: `Error parsing config file value: …`,
-  `Closing in 10 seconds`, exit code 1.
+  `Closing in 10 seconds`, exit code 1. Server 1.2.0 repeats the parser's own message (for a
+  `[Directory]` table pasted a second time, `toml::insert_value: table ("Directory") already
+  exists`); server 1.2.1 names the file and the line and says in plain words what is wrong - a
+  table that appears twice, a key given twice, or the offending line - and that the file was not
+  changed.
 
 ## The file is rewritten
 
 After every successful read of the file (at start, before anything else) the server writes
 `server.toml` back: every key it knows, with its own comments. Consequences:
 
-- Comments you added are lost, and keys the server does not know are dropped. Keep notes
-  elsewhere.
+- Comments you added are lost, and keys the server does not know are dropped - a misspelt key
+  included, see above. Keep notes elsewhere.
 - Values set through the environment are not written into the file. The file keeps what it said
   before; a key the file did not mention gets its default, not the value from the environment.
   A one-run override never becomes permanent.
 - Keys added by a new version appear with their defaults after the first start (see
   [Updating](/hosting/updating/)).
+- The server writes the sections and the keys in an order of its own, which is not the order of
+  the [reference table](#reference) below or of the [example](#example) at the end of this page;
+  the order carries no meaning. The header comment of the 1.2.0 file lists the `NODE_*`
+  variables and leaves out `NODE_INTEGRITY_DIR`, which is honoured all the same (server 1.2.1
+  lists it); the comment above `[Directory] Url` in that file gives a wrong example address -
+  the directory is `https://api.nodemp.com`, and server 1.2.1 writes that.
 
 The rewrite is skipped when `NODE_PROVIDER_DISABLE_CONFIG` is set (see
 [Provider variables](#provider-variables)).
@@ -93,7 +109,10 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 
 ### `[General]`
 
-- `Debug` — extra debug and trace lines in the log, and millisecond timestamps.
+- `Debug` — extra debug and trace lines in the log, and millisecond timestamps. Every line also
+  gains a column with the name of the thread that wrote it, between the tag and the message
+  (`Res    › PluginFramework hello · …`, `Core › Main(Waiting) server is ready`), so a log parser
+  written for the normal `time  tag › message` shape needs to allow for it.
 - `IP` — the address to listen on. `::` is every interface, IPv6 and IPv4; `0.0.0.0` is every
   IPv4 interface; a single address picks one interface. Not related to your public address.
 - `Port` — the one port, used for TCP and UDP.
@@ -114,7 +133,9 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
   `strict`: the check compares against a **reference manifest** of a clean install that you
   generate and put into `IntegrityDir`, not against the game's own file list — every archive's
   table of contents, the whole game folder and the game's user folder, with `lua/`, `ui/`, the
-  binaries and the root executables hashed with SHA-256. It needs exactly one `.manifest` in that
+  binaries and the root executables hashed with SHA-256. Generating the manifest needs a Windows
+  PC with a clean BeamNG.drive install of the version your players run, whichever platform the
+  server runs on. It needs exactly one `.manifest` in that
   folder; with none, or with several, every join is refused with a text that tells the player to
   ask the host. A mismatch is refused with
   `Game files do not match this server's reference (3 problems). …`. What it checks, how to
@@ -169,7 +190,11 @@ Whether and how the server announces itself to the directory;
 - `Fingerprint` — SHA-256 of the *directory's* TLS certificate as lowercase hex, for a directory
   you run yourself with a self-signed certificate. Empty means the normal check: a certificate
   signed by an authority the machine trusts that names the host. This is not your server's own
-  fingerprint.
+  fingerprint, and it is not the fix for a Windows server that reports
+  `certificate verify failed` against `api.nodemp.com` - that machine has no trusted roots to
+  check with, and [Registering your server](/hosting/registering/#windows-the-directorys-certificate-cannot-be-verified)
+  says how to give it some (`SSL_CERT_FILE` on server 1.2.0; built in from server 1.2.1, which
+  also adds `[Directory] CaFile` for a private CA of your own).
 - `Description` — one or two sentences under the server name in the list (cut at 500
   characters).
 - `Mode` — one word shown as a column in the list: `freeroam`, `racing`, `roleplay`, …
@@ -308,7 +333,12 @@ EXAMPLES:
 
 `--gen-integrity` is a separate tool sharing the binary: it takes the game folder as a positional
 argument, needs no `server.toml`, and exits after writing the file.
-[Strict verification](/hosting/strict-verification/) walks through it.
+[Strict verification](/hosting/strict-verification/) walks through it. Two more flags exist that
+the 1.2.0 help text does not list: `Node-Server --obf-selftest` checks that the client-script
+obfuscator runs and exits ([Resources and content](/hosting/resources/#obfuscation)), and, from
+server 1.2.1 on, `Node-Server --bans list` and `--bans remove <ip | account id>` show and lift
+bans with the server stopped ([Running the server](/hosting/running/#bans)). The 1.2.1 help text
+lists both.
 
 ## Example
 
