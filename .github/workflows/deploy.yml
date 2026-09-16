@@ -79,8 +79,69 @@ jobs:
         with:
           path: dist
 
+  # The plugin guides' Lua examples against the released server, as in ci.yml; a page whose
+  # example broke is not published.
+  doctest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SERVER_VERSION: "1.2.0"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: docs
+          POSTGRES_PASSWORD: docs
+          POSTGRES_DB: docs
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U docs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lua5.4 (the syntax checks) and zstandard (the fake player's frames)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.4
+          python -m pip install --quiet zstandard
+      - name: Download Node-Server ${{ env.SERVER_VERSION }}
+        run: |
+          set -euo pipefail
+          mkdir -p .server
+          cd .server
+          asset="Node-Server-${SERVER_VERSION}-linux-x64.tar.gz"
+          base="https://github.com/NodeMP-BeamNG/releases/releases/download/server-v${SERVER_VERSION}"
+          curl -fsSL --retry 3 -o "$asset" "$base/$asset"
+          curl -fsSL --retry 3 -o "$asset.sha256" "$base/$asset.sha256"
+          sha256sum -c "$asset.sha256"
+          tar -xzf "$asset"
+          chmod +x Node-Server
+          ./Node-Server --version
+      - run: python scripts/doctest/run.py --self-test
+      - name: Run the examples
+        env:
+          DOCTEST_SERVER: ${{ github.workspace }}/.server/Node-Server
+          NODE_DATABASE_URL: postgres://docs:docs@127.0.0.1:5432/docs
+        run: python scripts/doctest/run.py --strict
+      - name: Upload the server logs of the failed pages
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doctest-server-logs
+          path: |
+            .doctest/*/server.log
+            .doctest/*/received.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   deploy:
-    needs: build
+    needs: [build, doctest]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
