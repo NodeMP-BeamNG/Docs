@@ -107,6 +107,7 @@ paint, trigger, node grab), `canRelay` → `relayRequest`. Старое имя �
 - **Переходы.** `vehicleTeleported`, `vehicleBreakGroupsChanged`, `playerCameraChanged`: одно
   событие на отчёт, без объединения.
 
+<!-- doctest: server+client -->
 ```lua
 local greeted = {}
 
@@ -117,7 +118,11 @@ end)
 
 node.on("playerLeft", function(player)
     greeted[player.id] = nil -- the id will be reused
+    node.log("%s left", tostring(player))
 end)
+
+-- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
+-- expect: Player#\d+ Alice left
 ```
 
 ## Уведомления о машинах (наблюдать, с данными)
@@ -130,6 +135,7 @@ end)
 `role` - `"driver"`, `"passenger"` или `"none"`), `vehicleCouplerChanged` и
 `vehicleControllerChanged` (вызов).
 
+<!-- doctest: server -->
 ```lua
 node.on("vehicleEdited", function(player, vehicle, config)
     node.log("%s edited %s (%s)", tostring(player), tostring(vehicle), tostring(config.jbm))
@@ -171,6 +177,7 @@ end)
 Разобранный пример из `gatekeeper-example`: ограничить число машин, которые игрок может
 заспавнить, с причиной.
 
+<!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
 local MAX_CARS_PER_PLAYER = 2
 
@@ -186,6 +193,8 @@ node.on("vehicleCouplerRequest", function(player, vehicle, call)
         return false -- only the spawner opens this car's doors
     end
 end)
+
+-- expect: Player#\d+ Alice spawns a coupe
 ```
 
 `vehicleSpawnRequest` срабатывает до того, как машина существует, поэтому `player:vehicles()`
@@ -205,6 +214,7 @@ subtype, globalId)` получает идентификаторы, а не об�
 поэтому вызывайте его всякий раз, когда данные, которые читает ваш хук, изменились.
 `node.relay.unfilter(fn?)` снимает его.
 
+<!-- doctest: server -->
 ```lua
 local hidden = {} -- [gid] = { [pid] = true }
 
@@ -243,6 +253,7 @@ end
 пересылает; именно это `nodemp-relay` делает для событий `vehicle:fire` и `vehicle:grab`
 клиентского мода:
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["vehicle:fire", "{\"weapon\": 1}"]]} -->
 ```lua
 node.on("chat:send", function(player, data)
     local msg = node.json.decode(data)
@@ -253,6 +264,9 @@ end)
 node.on("vehicle:fire", function(sender, data)
     node.broadcast("vehicle:fire", data or "", sender) -- everyone but the author
 end)
+
+-- expect-client: Bob chat:msg .*"text":"hello everyone"
+-- expect-client: Bob vehicle:fire \{"weapon": 1\}
 ```
 
 Относитесь к `data` как к недоверенному вводу: проверяйте тип и длину перед использованием, как
@@ -270,6 +284,7 @@ end)
 отправляют `chat:say` на шину, а `node.commands.add` слушает `chat:command`; ресурс `chat` владеет
 экранной стороной и отвечает на оба. Без установленного `chat` эти вызовы молчат.
 
+<!-- doctest: server+client {"emit": [["race:finish", "61.5"]]} -->
 ```lua
 -- in one resource
 node.bus.on("race:finished", function(source, data)
@@ -281,6 +296,8 @@ end)
 node.on("race:finish", function(player, data)
     node.bus.emit("race:finished", { name = player.name, seconds = tonumber(data) or 0 })
 end)
+
+-- expect: \S+ reports Alice finished in 61\.5 s
 ```
 
 Предпочитайте шину чтению глобальных переменных другого ресурса: у каждого ресурса своё состояние

@@ -102,6 +102,7 @@ Fired by the server after something happened; return values are ignored.
 - **Transitions.** `vehicleTeleported`, `vehicleBreakGroupsChanged`, `playerCameraChanged`: one
   event per report, not coalesced.
 
+<!-- doctest: server+client -->
 ```lua
 local greeted = {}
 
@@ -112,7 +113,11 @@ end)
 
 node.on("playerLeft", function(player)
     greeted[player.id] = nil -- the id will be reused
+    node.log("%s left", tostring(player))
 end)
+
+-- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
+-- expect: Player#\d+ Alice left
 ```
 
 ## Vehicle notifications (observe, with data)
@@ -124,6 +129,7 @@ it is a role name; return values are ignored. The six names: `vehicleEdited` (th
 (`vehicle` is `nil` when the player is now on foot; `role` is `"driver"`, `"passenger"` or
 `"none"`), `vehicleCouplerChanged` and `vehicleControllerChanged` (the call).
 
+<!-- doctest: server -->
 ```lua
 node.on("vehicleEdited", function(player, vehicle, config)
     node.log("%s edited %s (%s)", tostring(player), tostring(vehicle), tostring(config.jbm))
@@ -162,6 +168,7 @@ resource that says yes - `nodemp-relay` does).
 
 A worked example, from `gatekeeper-example`: cap the vehicles a player may spawn, with a reason.
 
+<!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
 local MAX_CARS_PER_PLAYER = 2
 
@@ -177,6 +184,8 @@ node.on("vehicleCouplerRequest", function(player, vehicle, call)
         return false -- only the spawner opens this car's doors
     end
 end)
+
+-- expect: Player#\d+ Alice spawns a coupe
 ```
 
 `vehicleSpawnRequest` fires before the vehicle exists, so `player:vehicles()` counts what the
@@ -195,6 +204,7 @@ objects, because it sits on the hot path, and returns `false` to hide that packe
 recipient. Verdicts are cached until `node.relay.invalidate()`, so call it whenever the data your
 hook reads has changed. `node.relay.unfilter(fn?)` removes it.
 
+<!-- doctest: server -->
 ```lua
 local hidden = {} -- [gid] = { [pid] = true }
 
@@ -232,6 +242,7 @@ Client-emitted events are server-terminal: they reach server resources and nothi
 feature that must reach other players is a resource that forwards it, which is what `nodemp-relay`
 does for the client mod's `vehicle:fire` and `vehicle:grab` events:
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["vehicle:fire", "{\"weapon\": 1}"]]} -->
 ```lua
 node.on("chat:send", function(player, data)
     local msg = node.json.decode(data)
@@ -242,6 +253,9 @@ end)
 node.on("vehicle:fire", function(sender, data)
     node.broadcast("vehicle:fire", data or "", sender) -- everyone but the author
 end)
+
+-- expect-client: Bob chat:msg .*"text":"hello everyone"
+-- expect-client: Bob vehicle:fire \{"weapon": 1\}
 ```
 
 Treat `data` as untrusted input: check its type and length before you use it, as `chat` does.
@@ -257,6 +271,7 @@ This is how the built-in chat helpers work: `node.chat.say`, `node.chat.tell` an
 emit `chat:say` on the bus, and `node.commands.add` listens for `chat:command`; the `chat`
 resource owns the screen side and answers both. Without `chat` installed those calls are silent.
 
+<!-- doctest: server+client {"emit": [["race:finish", "61.5"]]} -->
 ```lua
 -- in one resource
 node.bus.on("race:finished", function(source, data)
@@ -268,6 +283,8 @@ end)
 node.on("race:finish", function(player, data)
     node.bus.emit("race:finished", { name = player.name, seconds = tonumber(data) or 0 })
 end)
+
+-- expect: \S+ reports Alice finished in 61\.5 s
 ```
 
 Prefer the bus over reading another resource's globals: each resource has its own Lua state, and
