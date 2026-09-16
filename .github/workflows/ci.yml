@@ -97,7 +97,7 @@ jobs:
     timeout-minutes: 20
     env:
       # The released server the examples run on (NodeMP-BeamNG/releases, tag server-v<version>).
-      SERVER_VERSION: "1.2.0"
+      SERVER_VERSION: "1.2.1"
     services:
       postgres:
         image: postgres:16-alpine

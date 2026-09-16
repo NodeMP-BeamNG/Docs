@@ -84,12 +84,14 @@ toast), quote the software and say which glossary term it means. `reference/faq.
 questions readers actually asked, each answered in a few lines with a link to the page that has
 the details; a new recurring question goes there, not into a new page.
 
-A behaviour that the *next* server release changes is documented from the release branch ahead of
-time, marked `(server 1.2.1)` wherever it is described, next to what the current release does;
-`check-claims` flags the version mention, so `scripts/claims-allow.json` carries an entry for
-`server 1.2.1` / `сервер 1.2.1` (and for the flags and keys that only exist there) with the
-reason. When `versions.json` moves to that release, the entries become unused and are removed,
-and the "(server 1.2.0)" mentions the checker then flags are rewritten as history.
+The pages describe the current release, in the present tense. A behaviour that the *next* server
+release changes may be documented from the release branch ahead of time, marked `(server x.y.z)`
+next to what the current release does; `check-claims` flags the version mention, so
+`scripts/claims-allow.json` then carries an entry for `server x.y.z` / `сервер x.y.z` (and for the
+flags and keys that only exist there) with the reason. The release bump (`versions.json`, the
+release strings, the doctest job's `SERVER_VERSION`) removes those entries, rewrites the notes
+into present-tense behaviour, and keeps a short "before x.y.z: …" sentence only where a host on
+the old release still needs it - the way `plugins/events.md` keeps the pre-1.2.0 event names.
 
 The expected clean output is:
 

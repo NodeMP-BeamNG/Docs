@@ -1,73 +1,53 @@
 [
-  {
-    "check": "kick.quoted",
-    "claim": "invalid username or password",
-    "reason": "Printed by the directory (NodeMP-BeamNG/Backend, internal/transport/httpapi/response.go), which check-claims does not read; checked by hand against Backend main on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "please verify your e-mail first",
-    "reason": "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "two-factor code required or invalid",
-    "reason": "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "username must be 3-24 chars [A-Za-z0-9_-]",
-    "reason": "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "password must be 8-200 chars",
-    "reason": "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "already exists",
-    "reason": "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "too many requests, slow down",
-    "reason": "Directory text (Backend middleware.go), not read by check-claims; checked by hand on 2026-09-16."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "the directory returned 503 Service Unavailable",
-    "reason": "`503 Service Unavailable` is the HTTP status the launcher prints as a value (`the directory returned {status}`), quoted here as a realistic example."
-  },
-  {
-    "check": "kick.quoted",
-    "claim": "Could not join · the download server returned 503 Service Unavailable",
-    "reason": "`503 Service Unavailable` is the HTTP status the launcher prints as a value (modinstall.rs `the download server returned {}`), quoted here as a realistic example."
-  },
-  {
-    "check": "versions.docs",
-    "page": "hosting/updating.md",
-    "claim": "this server speaks 2.0",
-    "reason": "A made-up example of a future major ABI bump (a module built against SDK ABI 1.0 meeting a 2.0 server); the current ABI is 1.12 and stated on plugins/conventions."
-  },
-  {
-    "check": "versions.docs",
-    "claim": "server 1.2.1",
-    "reason": "The next server release (1.2.1: Windows CA store + cacert.pem, plain-words TOML errors, port-in-use exit, --bans CLI, examples/ in the archive, per-handler stall watchdog, client syntax check), documented ahead of the release from the hotfix branch and marked '(server 1.2.1)' wherever it is described; every such page also states the 1.2.0 behaviour. Remove this entry when versions.json moves to 1.2.1 - the mentions then match and the checker reports the entry as unused."
-  },
-  {
-    "check": "versions.docs",
-    "claim": "сервер 1.2.1",
-    "reason": "The Russian twin of the 'server 1.2.1' mentions above; same reason, remove together with it."
-  },
-  {
-    "check": "cli.flag",
-    "claim": "Node-Server --bans",
-    "reason": "`--bans list` / `--bans remove` arrive with server 1.2.1 (hotfix branch, not on main yet); every mention says so. Remove when main has the flag - the check then finds it in main.cpp and reports this entry as unused."
-  },
-  {
-    "check": "config.mention",
-    "claim": "[Directory] CaFile",
-    "reason": "A key of server 1.2.1 (hotfix branch, not on main yet), mentioned in prose only and marked as such; it is not in the reference table or the example file. Remove when Config.cpp on main has the key."
-  }
+    {
+        "check":  "kick.quoted",
+        "claim":  "invalid username or password",
+        "reason":  "Printed by the directory (NodeMP-BeamNG/Backend, internal/transport/httpapi/response.go), which check-claims does not read; checked by hand against Backend main on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "please verify your e-mail first",
+        "reason":  "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "two-factor code required or invalid",
+        "reason":  "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "username must be 3-24 chars [A-Za-z0-9_-]",
+        "reason":  "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "password must be 8-200 chars",
+        "reason":  "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "already exists",
+        "reason":  "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "too many requests, slow down",
+        "reason":  "Directory text (Backend middleware.go), not read by check-claims; checked by hand on 2026-09-16."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "the directory returned 503 Service Unavailable",
+        "reason":  "`503 Service Unavailable` is the HTTP status the launcher prints as a value (`the directory returned {status}`), quoted here as a realistic example."
+    },
+    {
+        "check":  "kick.quoted",
+        "claim":  "Could not join · the download server returned 503 Service Unavailable",
+        "reason":  "`503 Service Unavailable` is the HTTP status the launcher prints as a value (modinstall.rs `the download server returned {}`), quoted here as a realistic example."
+    },
+    {
+        "check":  "versions.docs",
+        "page":  "hosting/updating.md",
+        "claim":  "this server speaks 2.0",
+        "reason":  "A made-up example of a future major ABI bump (a module built against SDK ABI 1.0 meeting a 2.0 server); the current ABI is 1.12 and stated on plugins/conventions."
+    }
 ]

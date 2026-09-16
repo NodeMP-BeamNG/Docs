@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      SERVER_VERSION: "1.2.0"
+      SERVER_VERSION: "1.2.1"
     services:
       postgres:
         image: postgres:16-alpine
