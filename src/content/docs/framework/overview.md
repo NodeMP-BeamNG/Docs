@@ -117,7 +117,7 @@ resources, so a language host is in place before the first resource is scanned. 
 Zips in `content/` (`[Content] Folder`) are BeamNG mods the server distributes to joining players;
 the helper compares hashes and downloads what is missing into `mods/multiplayer/`. With
 `[Content] Encrypt = true` they travel ChaCha20-encrypted with a per-startup key and the helper
-deletes the decrypted copies when the session ends. See [Resources & mods](/hosting/resources/).
+deletes the decrypted copies when the session ends. See [Resources and content](/hosting/resources/).
 
 ## The relay
 

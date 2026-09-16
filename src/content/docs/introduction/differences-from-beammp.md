@@ -33,4 +33,4 @@ key and a different plugin API, and it does not load `MP.*` plugins. What you ca
   maps the `MP.*` calls and events to their NodeMP equivalents.
 - **Your players.** They install the NodeMP launcher ([Install the launcher](/players/install/))
   and find your server in the list once it has a server key
-  ([Registering your host](/hosting/registering/)).
+  ([Registering your server](/hosting/registering/)).

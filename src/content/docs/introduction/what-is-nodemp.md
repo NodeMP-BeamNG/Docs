@@ -5,17 +5,19 @@ description: NodeMP is a multiplayer platform for BeamNG.drive — launcher, cli
 
 NodeMP is a multiplayer platform for [BeamNG.drive](https://www.beamng.com/). Many players share
 one map: they drive, crash and spawn vehicles together, and the server keeps every car in step.
-Around that core NodeMP adds accounts, a directory of servers and a plugin platform for server
-owners and developers.
+Around that core NodeMP adds accounts, a directory of servers and a plugin platform for hosts
+and developers.
 
 This page names the parts, walks through how a session starts and says what NodeMP is not.
 
 ## The parts
 
 - **Launcher** — a desktop app for Windows. You sign in to your NodeMP account or continue as
-  *Test Drive*, pick a server from the list and press Play. The launcher keeps the client mod up to
-  date and starts BeamNG.drive through its helper — the same `nodemp-launcher.exe` run again with
-  `--helper` — which owns the connection to the server.
+  *Test Drive*, pick a server from the list and hold **Hold to play**. The launcher keeps the
+  client mod up to date and starts BeamNG.drive through its **helper** — the part of the launcher
+  that does the join itself: the same `nodemp-launcher.exe` run a second time with `--helper`,
+  without a window, which starts the game and owns the connection to the server while you play.
+  The launcher's messages call the helper "the launcher" (`The launcher stopped · …`).
 - **Client mod** — `NodeMP.zip`, a BeamNG mod (id `multiplayernodemp`). The launcher downloads it
   from the directory into `mods/multiplayer/` in your BeamNG user folder and checks its hash
   before every join. Inside the game it synchronizes vehicles, draws the chat, the player list and
@@ -49,7 +51,8 @@ This page names the parts, walks through how a session starts and says what Node
    `mods/multiplayer/`, the server streams its client scripts, and you spawn.
 
 A server without a server key skips step 5: it accepts anyone who knows its address and takes
-names as the launcher sends them. See the [framework overview](/framework/overview/).
+names as the launcher sends them - on such a server, and only there, nobody's name is verified.
+See the [framework overview](/framework/overview/).
 
 ## What a plugin is
 
@@ -85,6 +88,6 @@ All releases are published at
 ## Next steps
 
 - Players: [Install the launcher](/players/install/), then [Join a server](/players/join/).
-- Server owners: [Hosting quick start](/hosting/quick-start/).
+- Hosts: [Hosting quick start](/hosting/quick-start/).
 - Developers: [Plugin overview](/plugins/overview/) and the [API reference](/plugins/api/).
-- Terms: the [glossary](/reference/glossary/).
+- Terms: the [glossary](/reference/glossary/); the questions readers ask most: the [FAQ](/reference/faq/).

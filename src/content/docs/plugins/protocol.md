@@ -30,7 +30,7 @@ on [How synchronization works](/framework/sync/); here are the rules the frames 
   `Command::Auth` with the helper's per-run token; a wrong token closes the connection.
 - **Compression.** A compressed body (helper-server hop only) carries flag bit `FlagCompressed`
   and its exact decompressed size in front, so a receiver checks it against the packet's body cap
-  before inflating. The helper normalizes frames, so the game mod never sees a compressed body.
+  before inflating. The helper normalizes frames, so the client mod never sees a compressed body.
 - **Limits.** A frame is capped at 4 KB before `Welcome` and 1 MB after it; a UDP datagram at
   10 KB. Handshake, session, state and content-control bodies are capped at 4 KB (a `FileRequest`
   name at 1 KB), with one exception: an `IntegrityManifestChunk` body may be
@@ -53,7 +53,7 @@ Every packet is identified by two bytes: a **category** and a **subtype** within
 | `Vehicle` | `0x04` | vehicle lifecycle, seating, authority |
 | `State` | `0x05` | high-rate vehicle state streams |
 | `Event` | `0x06` | named custom events - the plugin and client API |
-| `Command` | `0x07` | game mod to helper command channel |
+| `Command` | `0x07` | client mod to helper command channel |
 | `Module` | `0x08` | typed binary channel between modules and clients |
 
 Subtype `0x00` is invalid in every category, so a zeroed buffer never names a packet. Bodies follow
@@ -62,7 +62,7 @@ variable-length field per packet, always last, its length implied by the frame (
 field that is not last carries a two-byte length prefix (`str16`); JSON rides as opaque bytes.
 There is no `:` delimiter anywhere on the wire - names, reasons and JSON may contain it freely.
 
-In the tables below, **L** is the helper, **S** the server, **G** the game mod; **T** is the
+In the tables below, **L** is the helper, **S** the server, **G** the client mod (inside the game); **T** is the
 server TCP channel, **U** the server UDP channel, **R** the relay (4445) and **CC** the command
 channel (4444).
 
