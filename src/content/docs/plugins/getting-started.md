@@ -55,6 +55,7 @@ schema is on [Resources](/plugins/resources/).
 `server/main.lua` runs once when the server starts. Top-level code registers handlers; the server
 calls them as things happen.
 
+<!-- doctest: server+client {"emit": [["hello:count", "1"]]} -->
 ```lua
 node.log("hello loaded, players online: %d", node.players.count())
 
@@ -78,6 +79,11 @@ end)
 node.every(60000, function()
     node.chat.say("%d player(s) online", node.players.count())
 end)
+
+-- expect: hello loaded, players online: 0
+-- expect: Player#\d+ Alice joined from \S+
+-- expect: Player#\d+ Alice -> 1
+-- expect: Player#\d+ Alice left
 ```
 
 What each line relies on:
@@ -100,6 +106,7 @@ What each line relies on:
 `client/main.lua` is streamed to every player after the content sync and runs inside BeamNG with
 full game access, using the client `node` table.
 
+<!-- doctest: client -->
 ```lua
 local M = {}
 
@@ -172,6 +179,7 @@ and the server half runs again from `main.lua`, on the worker thread after the c
 returns. A resource may reload itself. The server has no console input, so trigger it from Lua -
 the usual way is a chat command, which needs the `chat` resource:
 
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/reload"}]]} -->
 ```lua
 node.commands.add("reload", function(player, args)
     local name = args[1] or "hello"
@@ -181,6 +189,8 @@ node.commands.add("reload", function(player, args)
         player:tell("no resource named %s", name)
     end
 end, { role = "admin" })
+
+-- expect-client: Alice chat:msg .*You are not allowed to use /reload
 ```
 
 `role` restricts the command to players whose per-session role another handler assigned with

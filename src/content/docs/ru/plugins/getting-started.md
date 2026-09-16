@@ -57,6 +57,7 @@ obfuscation = "none"
 `server/main.lua` выполняется один раз при запуске сервера. Код верхнего уровня регистрирует
 обработчики; сервер вызывает их по мере событий.
 
+<!-- doctest: server+client {"emit": [["hello:count", "1"]]} -->
 ```lua
 node.log("hello loaded, players online: %d", node.players.count())
 
@@ -80,6 +81,11 @@ end)
 node.every(60000, function()
     node.chat.say("%d player(s) online", node.players.count())
 end)
+
+-- expect: hello loaded, players online: 0
+-- expect: Player#\d+ Alice joined from \S+
+-- expect: Player#\d+ Alice -> 1
+-- expect: Player#\d+ Alice left
 ```
 
 На что опирается каждая строка:
@@ -103,6 +109,7 @@ end)
 `client/main.lua` передаётся каждому игроку после синхронизации контента и выполняется внутри
 BeamNG с полным доступом к игре, используя клиентскую таблицу `node`.
 
+<!-- doctest: client -->
 ```lua
 local M = {}
 
@@ -176,6 +183,7 @@ server greets Alice
 консольного ввода, поэтому запускайте перезагрузку из Lua - обычно командой чата, для которой
 нужен ресурс `chat`:
 
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/reload"}]]} -->
 ```lua
 node.commands.add("reload", function(player, args)
     local name = args[1] or "hello"
@@ -185,6 +193,8 @@ node.commands.add("reload", function(player, args)
         player:tell("no resource named %s", name)
     end
 end, { role = "admin" })
+
+-- expect-client: Alice chat:msg .*You are not allowed to use /reload
 ```
 
 `role` ограничивает команду игроками, чью роль на сессию другой обработчик назначил через
