@@ -55,6 +55,7 @@ decode with `node.json.decode`. Name wire events `<domain>:<verb>`, lowercase, o
 (`race:start`, `race:ready`); `node:` is reserved for the framework. [Events](/plugins/events/)
 has the server side of the same rule.
 
+<!-- doctest: client -->
 ```lua
 -- resources/race/client/main.lua
 local M = {}
@@ -122,6 +123,7 @@ globals (`obj`, `v`, `electrics`) and the vehicle-side `NodeMP` table
 ([below](#vehicle-engine-ve)), whose `NodeMP.events.triggerServer(name, data)` relays a wire event
 through the game engine to the server, JSON-encoding a table for you:
 
+<!-- doctest: client -->
 ```lua
 -- resources/race/client/lua/vehicle/ready.lua: runs once inside each vehicle you drive
 NodeMP.events.triggerServer("race:vehicle", { gameId = NodeMP.vehicle.id() })
@@ -189,6 +191,7 @@ Two differences: `triggerServer` JSON-encodes whatever you pass - a string arriv
 always `node.json.decode` on the server - and an `on` handler receives its payload decoded - a
 table when the text parses as JSON, the raw string otherwise.
 
+<!-- doctest: client -->
 ```lua
 NodeMP.events.on("race:start", function(start) print(start.track) end)   -- decoded for you
 local id = NodeMP.events.once("race:finish", function(result) print(result.place) end)
@@ -239,16 +242,21 @@ scale or teleport actions, node grabber only on foot in first person, the specta
 session panel refused. Nothing of it runs unless a server resource switches it on, per player,
 with the `strict` key of the `session:config` wire event:
 
+<!-- doctest: server+client -->
 ```lua
 -- server side, any resource; usually from a playerJoined handler
-player:send("session:config", { strict = {
-    actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
-    photoMode   = "admins",   -- "admins" | "all" | "none"
-    canPhoto    = false,      -- this player's photo-mode / free-camera permission
-    nodeGrab    = "walking",  -- "walking" | "off"
-    heartbeatMs = 2000,
-} })
-player:send("session:config", { strict = false })   -- off again
+node.on("playerJoined", function(player)
+    player:send("session:config", { strict = {
+        actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
+        photoMode   = "admins",   -- "admins" | "all" | "none"
+        canPhoto    = false,      -- this player's photo-mode / free-camera permission
+        nodeGrab    = "walking",  -- "walking" | "off"
+        heartbeatMs = 2000,
+    } })
+end)
+-- player:send("session:config", { strict = false }) switches it off again
+
+-- expect-client: Alice session:config .*"strict":\{.*"heartbeatMs":2000
 ```
 
 | Field | Values | Default | Effect |

@@ -56,6 +56,7 @@ description: Две клиентские поверхности - передав
 `node:` зарезервировано за фреймворком. Серверная сторона того же правила - на странице
 [События](/ru/plugins/events/).
 
+<!-- doctest: client -->
 ```lua
 -- resources/race/client/main.lua
 local M = {}
@@ -125,6 +126,7 @@ return M
 ([ниже](#движок-автомобиля-ve)), чей `NodeMP.events.triggerServer(name, data)` пересылает сетевое
 событие через игровой движок серверу, кодируя таблицу в JSON за вас:
 
+<!-- doctest: client -->
 ```lua
 -- resources/race/client/lua/vehicle/ready.lua: runs once inside each vehicle you drive
 NodeMP.events.triggerServer("race:vehicle", { gameId = NodeMP.vehicle.id() })
@@ -193,6 +195,7 @@ cannot be cleanly unloaded and are best shipped as content mods`. Прислуш
 а обработчик `on` получает нагрузку раскодированной - таблицу, когда текст разбирается как JSON,
 иначе сырую строку.
 
+<!-- doctest: client -->
 ```lua
 NodeMP.events.on("race:start", function(start) print(start.track) end)   -- decoded for you
 local id = NodeMP.events.once("race:finish", function(result) print(result.place) end)
@@ -244,16 +247,21 @@ NodeMP.events.off("race:start")                                             -- y
 наблюдения в панели сессии отклоняются. Ничего из этого не работает, пока серверный ресурс не
 включит его, для каждого игрока отдельно, ключом `strict` сетевого события `session:config`:
 
+<!-- doctest: server+client -->
 ```lua
 -- server side, any resource; usually from a playerJoined handler
-player:send("session:config", { strict = {
-    actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
-    photoMode   = "admins",   -- "admins" | "all" | "none"
-    canPhoto    = false,      -- this player's photo-mode / free-camera permission
-    nodeGrab    = "walking",  -- "walking" | "off"
-    heartbeatMs = 2000,
-} })
-player:send("session:config", { strict = false })   -- off again
+node.on("playerJoined", function(player)
+    player:send("session:config", { strict = {
+        actions     = { "toggleCamera", "switch_next_vehicle", "toggleConsoleNG" }, -- nil = the mod's default list
+        photoMode   = "admins",   -- "admins" | "all" | "none"
+        canPhoto    = false,      -- this player's photo-mode / free-camera permission
+        nodeGrab    = "walking",  -- "walking" | "off"
+        heartbeatMs = 2000,
+    } })
+end)
+-- player:send("session:config", { strict = false }) switches it off again
+
+-- expect-client: Alice session:config .*"strict":\{.*"heartbeatMs":2000
 ```
 
 | Поле | Значения | По умолчанию | Действие |
