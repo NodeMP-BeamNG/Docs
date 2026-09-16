@@ -156,15 +156,18 @@ scratch home under `.doctest/` (a failing page's home, with its `server.log` and
 `received.log`, is kept anyway), `--strict` makes a missing database a failure (CI).
 
 To run it locally you need the server binary (`--server <path>`, `DOCTEST_SERVER`, or
-`../server/run/Node-Server[.exe]`, or `.server/Node-Server` as CI unpacks it), `luac` (Lua 5.4;
-`DOCTEST_LUAC` names another), the `zstandard` Python package (the fake player's frames are
-compressed) and, for the `pg` blocks, `NODE_DATABASE_URL` pointing at a throwaway PostgreSQL
-database - without it those blocks are skipped. CI downloads
+`../server/run/Node-Server[.exe]`, or `.server/Node-Server` as CI unpacks it), a checkout of the
+`server` repository for the fake player's wire codec (`run/wire.py`, `run/wire_taxonomy.py`,
+`run/testclient.py`, imported at run time from `NODEMP_SERVER_DIR`, else `./server`, else
+`../server`), `luac` (Lua 5.4; `DOCTEST_LUAC` names another), the `zstandard` Python package (the
+fake player's frames are compressed) and, for the `pg` blocks, `NODE_DATABASE_URL` pointing at a
+throwaway PostgreSQL database - without it those blocks are skipped. CI downloads
 `Node-Server-<version>-linux-x64.tar.gz` from `NodeMP-BeamNG/releases` (checked against its
-`.sha256`; the version is `SERVER_VERSION` in the workflow) and runs against a `postgres:16-alpine`
-service. `scripts/doctest/lib/` holds the vendored wire codec and fake client from the server
-repository, the stand-in directory and the stand-in `chat`; `lib/SYNC.md` says which commit the
-vendored files come from and how to resync.
+`.sha256`; the version is `SERVER_VERSION` in the workflow), clones the server's `run/` with the
+read-only `SERVER_DEPLOY_KEY` (as it clones the sdk) and runs against a `postgres:16-alpine`
+service. `scripts/doctest/lib/` holds only this repository's own code - the stand-in directory
+and the stand-in `chat` (`lib/README.md`); the server repository and the examples are private,
+and a unit test fails when a file of theirs is copied there.
 
 ## Writing pages
 
