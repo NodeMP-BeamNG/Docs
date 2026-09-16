@@ -1,53 +1,53 @@
 [
-    {
-        "check":  "kick.quoted",
-        "claim":  "invalid username or password",
-        "reason":  "Printed by the directory (NodeMP-BeamNG/Backend, internal/transport/httpapi/response.go), which check-claims does not read; checked by hand against Backend main on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "please verify your e-mail first",
-        "reason":  "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "two-factor code required or invalid",
-        "reason":  "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "username must be 3-24 chars [A-Za-z0-9_-]",
-        "reason":  "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "password must be 8-200 chars",
-        "reason":  "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "already exists",
-        "reason":  "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "too many requests, slow down",
-        "reason":  "Directory text (Backend middleware.go), not read by check-claims; checked by hand on 2026-09-16."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "the directory returned 503 Service Unavailable",
-        "reason":  "`503 Service Unavailable` is the HTTP status the launcher prints as a value (`the directory returned {status}`), quoted here as a realistic example."
-    },
-    {
-        "check":  "kick.quoted",
-        "claim":  "Could not join · the download server returned 503 Service Unavailable",
-        "reason":  "`503 Service Unavailable` is the HTTP status the launcher prints as a value (modinstall.rs `the download server returned {}`), quoted here as a realistic example."
-    },
-    {
-        "check":  "versions.docs",
-        "page":  "hosting/updating.md",
-        "claim":  "this server speaks 2.0",
-        "reason":  "A made-up example of a future major ABI bump (a module built against SDK ABI 1.0 meeting a 2.0 server); the current ABI is 1.12 and stated on plugins/conventions."
-    }
+  {
+    "check": "kick.quoted",
+    "claim": "invalid username or password",
+    "reason": "Printed by the directory (NodeMP-BeamNG/Backend, internal/transport/httpapi/response.go), which check-claims does not read; checked by hand against Backend main on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "please verify your e-mail first",
+    "reason": "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "two-factor code required or invalid",
+    "reason": "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "username must be 3-24 chars [A-Za-z0-9_-]",
+    "reason": "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "password must be 8-200 chars",
+    "reason": "Directory text (Backend handlers_auth.go), not read by check-claims; checked by hand on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "already exists",
+    "reason": "Directory text (Backend response.go), not read by check-claims; checked by hand on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "too many requests, slow down",
+    "reason": "Directory text (Backend middleware.go), not read by check-claims; checked by hand on 2026-09-16."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "the directory returned 503 Service Unavailable",
+    "reason": "`503 Service Unavailable` is the HTTP status the launcher prints as a value (`the directory returned {status}`), quoted here as a realistic example."
+  },
+  {
+    "check": "kick.quoted",
+    "claim": "Could not join · the download server returned 503 Service Unavailable",
+    "reason": "`503 Service Unavailable` is the HTTP status the launcher prints as a value (modinstall.rs `the download server returned {}`), quoted here as a realistic example."
+  },
+  {
+    "check": "versions.docs",
+    "page": "hosting/updating.md",
+    "claim": "this server speaks 2.0",
+    "reason": "A made-up example of a future major ABI bump (a module built against SDK ABI 1.0 meeting a 2.0 server); the current ABI is 1.12 and stated on plugins/conventions."
+  }
 ]
