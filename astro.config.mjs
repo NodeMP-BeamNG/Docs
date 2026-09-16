@@ -17,6 +17,9 @@ export default defineConfig({
     '/ru/plugins/server-api/': '/ru/plugins/api/lua/',
     '/plugins/client-api/': '/plugins/client-scripting/',
     '/ru/plugins/client-api/': '/ru/plugins/client-scripting/',
+    // The section root has no page of its own; readers type it.
+    '/plugins/': '/plugins/overview/',
+    '/ru/plugins/': '/ru/plugins/overview/',
   },
   integrations: [
     starlight({
@@ -81,6 +84,7 @@ export default defineConfig({
           { label: 'API reference', translations: { ru: 'Справочник API' }, items: [{ autogenerate: { directory: 'plugins/api' } }] },
         ]},
         { label: 'Reference', translations: { ru: 'Справочник' }, items: [
+          { slug: 'reference/faq' },
           { slug: 'reference/error-codes' },
           { slug: 'reference/glossary' },
         ]},
