@@ -13,22 +13,23 @@ stays.
 ./Node-Server --version
 ```
 
-prints `Node-Server v1.2.0`. The startup banner shows the same number on its `version` line, and
+prints `Node-Server v1.2.1`. The startup banner shows the same number on its `version` line, and
 a listed server reports it to the directory in every beacon.
 
 ## Where releases are
 
 Server releases are tags `server-v*` at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Each carries
-the two archives named after the version (`Node-Server-1.2.0-linux-x64.tar.gz`,
-`Node-Server-1.2.0-windows-x64.zip`) and their `.sha256` files; the release body names the
-assets and the Docker image and carries no change log. What changed is written into these pages
-with each release: the [version table](/introduction/what-is-nodemp/#versions) says which server,
-launcher and client mod belong together and which wire protocol they speak, and a feature or a
-fix that arrived with a release is marked with its version where it is described
-(`(server 1.2.0)`, `(server 1.2.1)`). The Docker image of the same build carries the tag with the
-`v` (`ghcr.io/nodemp-beamng/server:v1.2.0`); `latest` follows the newest main-branch build,
-which may be ahead of the latest release — pin a version tag.
+the two archives named after the version (`Node-Server-1.2.1-linux-x64.tar.gz`,
+`Node-Server-1.2.1-windows-x64.zip`) and their `.sha256` files, and its body carries the release
+notes (the server repository's `RELEASE_NOTES.md` section for that tag): what changed, whether a
+default changed and whether the wire protocol moved. Releases before 1.2.1 have a one-sentence
+body instead. These pages describe the current release; the
+[version table](/introduction/what-is-nodemp/#versions) says which server, launcher and client mod
+belong together and which wire protocol they speak, and a feature that arrived with an earlier
+release is marked where it is described (`added in server 1.2.0`). The Docker image of the same
+build carries the tag with the `v` (`ghcr.io/nodemp-beamng/server:v1.2.1`); `latest` follows the
+newest main-branch build, which may be ahead of the latest release — pin a version tag.
 
 ## Binary
 
@@ -37,28 +38,29 @@ Linux, with the layout from the [quick start](/hosting/quick-start/) and the sys
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.2.0-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.2.1-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.2.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.2.1-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
 ```
 
-The archive holds `Node-Server` and `tools/` (from server 1.2.1 on also `examples/`); extracting
-it over the folder replaces exactly those and touches nothing else. Replace the version in the
-file names with the release you are installing.
+The archive holds `Node-Server`, `tools/`, `examples/` and `EXAMPLES_COMMIT`; extracting it over
+the folder replaces exactly those and touches nothing else - `resources/`, where your copies of
+the examples live, is not in the archive. Replace the version in the file names with the release
+you are installing.
 
 Windows, with the layout from the quick start: stop the server, then in PowerShell
 
 ```powershell
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip -OutFile Node-Server-1.2.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip.sha256 -OutFile Node-Server-1.2.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.2.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.2.0-windows-x64.zip -DestinationPath . -Force
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-windows-x64.zip -OutFile Node-Server-1.2.1-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-windows-x64.zip.sha256 -OutFile Node-Server-1.2.1-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.2.1-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.1-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.2.1-windows-x64.zip -DestinationPath . -Force
 .\Node-Server.exe --version
 ```
 
@@ -116,14 +118,14 @@ and rewrites the file without them.
 ## Protocol versions
 
 Launcher and server speak a versioned wire protocol, `v18` since 1.1.0 (which raised it from
-`v17` for the strict install check; 1.2.0 kept it: server 1.2.0, launcher 1.1.0 and client mod
-1.4.0 ship together).
+`v17` for the strict install check; 1.2.0 and 1.2.1 kept it: server 1.2.1, launcher 1.1.0 and
+client mod 1.4.0 belong together).
 When a release changes it, a launcher on the old version is refused at the handshake with
 `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
 (the two numbers are the live values). Players fix that by installing the current launcher from
 [nodemp.com/download](https://nodemp.com/download); the client mod is kept current by the
 launcher automatically before every join, the launcher itself is not. As a host, update the
 server soon after such a release, since players are on the new launcher already. Whether a
-release changed the protocol is stated here and in the
-[version table](/introduction/what-is-nodemp/#versions), not in the release body on GitHub: a
-server release that keeps the protocol (1.1.1, 1.2.0) needs no launcher update from your players.
+release changed the protocol is stated in its release notes, here and in the
+[version table](/introduction/what-is-nodemp/#versions): a server release that keeps the protocol
+(1.1.1, 1.2.0, 1.2.1) needs no launcher update from your players.

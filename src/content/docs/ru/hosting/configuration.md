@@ -40,11 +40,13 @@ Docker-образ, и это правильное место для секрет
   перезаписи (ниже), а `MaxPlayers` молча остаётся `8`. Ни одна строка лога об этом не сообщает;
   проверка — открыть перезаписанный файл и убедиться, что ваше значение на месте.
 - Файл, который отвергает парсер TOML, останавливает сервер:
-  `Error parsing config file value: …`, `Closing in 10 seconds`, код выхода 1. Сервер 1.2.0
-  повторяет сообщение самого парсера (для таблицы `[Directory]`, вставленной второй раз, —
-  `toml::insert_value: table ("Directory") already exists`); сервер 1.2.1 называет файл и строку и
-  говорит простыми словами, что не так — таблица встречается дважды, ключ задан дважды или
-  проблемная строка, — и что файл не изменён.
+  `Error parsing config file value: …`, `Closing in 10 seconds`, код выхода 1. Строка называет
+  файл и номер строки и говорит простыми словами, что не так: `the table [Directory] appears
+  twice. Put the keys into the existing [Directory] table …` для блока `[Directory]`, вставленного
+  под сгенерированным, `the key Name is given twice. Keep one of the two lines.` для повторённого
+  ключа, а для всего остального — причину парсера и `the line reads …`; и что файл не изменён.
+  (До 1.2.1 сервер повторял текст самого парсера, например
+  `toml::insert_value: table ("Directory") already exists`.)
 
 ## Файл перезаписывается
 
@@ -60,10 +62,11 @@ Docker-образ, и это правильное место для секрет
   (см. [Обновление](/ru/hosting/updating/)).
 - Сервер пишет секции и ключи в собственном порядке, который не совпадает ни с порядком
   [таблицы справочника](#справочник) ниже, ни с [примером](#пример) в конце страницы; порядок
-  ничего не значит. Заголовочный комментарий файла 1.2.0 перечисляет переменные `NODE_*` и
-  пропускает `NODE_INTEGRITY_DIR`, которая тем не менее учитывается (сервер 1.2.1 её
-  перечисляет); комментарий над `[Directory] Url` в том файле приводит неверный пример адреса —
-  директория находится по адресу `https://api.nodemp.com`, и сервер 1.2.1 пишет именно его.
+  ничего не значит. Заголовочный комментарий перечисляет все переменные `NODE_*` и советует
+  заполнить существующую таблицу `[Directory]`, а не вставлять вторую; комментарий над
+  `[Directory] Url` называет `https://api.nodemp.com`. (У файла, записанного версией 1.2.0 или
+  старше, заголовок старый: в нём нет `NODE_INTEGRITY_DIR`, которая тем не менее учитывается, а
+  комментарий к `Url` приводит неверный пример адреса; следующий запуск перепишет комментарии.)
 
 Перезапись пропускается, если задана `NODE_PROVIDER_DISABLE_CONFIG` (см.
 [Переменные провайдера](#переменные-провайдера)).
@@ -95,6 +98,7 @@ Docker-образ, и это правильное место для секрет
 | `[Directory]` | `HostId` | string | `""` | `NODE_DIRECTORY_HOST_ID` |
 | `[Directory]` | `HostSecret` | string | `""` | `NODE_DIRECTORY_HOST_SECRET` |
 | `[Directory]` | `Fingerprint` | string | `""` | `NODE_DIRECTORY_FINGERPRINT` |
+| `[Directory]` | `CaFile` | string | `""` | `NODE_DIRECTORY_CA_FILE` |
 | `[Directory]` | `Description` | string | `""` | `NODE_DIRECTORY_DESCRIPTION` |
 | `[Directory]` | `Mode` | string | `"freeroam"` | `NODE_DIRECTORY_MODE` |
 | `[Directory]` | `Tags` | string | `""` | `NODE_DIRECTORY_TAGS` |
@@ -195,11 +199,16 @@ Docker-образ, и это правильное место для секрет
 - `Fingerprint` — SHA-256 TLS-сертификата *директории* в нижнем регистре, шестнадцатеричный, для
   директории, которую вы держите сами с самоподписанным сертификатом. Пусто — обычная проверка:
   сертификат от удостоверяющего центра, которому доверяет машина, с именем хоста. Это не отпечаток
-  вашего собственного сервера и не исправление для сервера на Windows, который сообщает
-  `certificate verify failed` в сторону `api.nodemp.com`: у такой машины нет доверенных корней для
-  проверки, и [Регистрация сервера](/ru/hosting/registering/#windows-сертификат-директории-не-проверяется)
-  говорит, как их ей дать (`SSL_CERT_FILE` на сервере 1.2.0; встроено начиная с сервера 1.2.1,
-  который добавляет ещё и `[Directory] CaFile` для вашего собственного частного CA).
+  вашего собственного сервера. На Windows корни машины — это хранилище сертификатов Windows плюс
+  `cacert.pem`, поставляемый рядом с `Node-Server.exe`; на Linux — корни дистрибутива
+  ([Регистрация сервера](/ru/hosting/registering/#windows-сертификат-директории) — подробности и
+  история сборки для Windows).
+- `CaFile` — путь к PEM-набору, по которому проверяется сертификат *директории* **вместо**
+  доверенных корней машины, — для директории, которую вы держите сами за частным CA. Пусто, по
+  умолчанию, — верно для `api.nodemp.com`. Относительный путь разрешается от рабочего каталога.
+  Набор, который не удаётся прочитать, сообщается при запуске строкой
+  `[Directory] CaFile '…' could not be loaded (…): the directory's certificate cannot be verified and this server will not be listed until it can`.
+  Не путать с `[Http] CaFile`, который управляет запросами ресурсов.
 - `Description` — одно-два предложения под именем сервера в списке (обрезается до 500 символов).
 - `Mode` — одно слово, показывается колонкой в списке: `freeroam`, `racing`, `roleplay`, …
 - `Tags` — до восьми тегов через запятую, по которым игроки фильтруют список:
@@ -250,7 +259,7 @@ Docker-образ, и это правильное место для секрет
 ### `[Http]`
 
 HTTPS-запросы, которые ресурсы делают через `node.http` (а нативные модули - через
-`http_request`). Сервер 1.2.0.
+`http_request`). Добавлена в сервере 1.2.0.
 
 - `CaFile` — путь к PEM-файлу с CA-сертификатами. Пустой, по умолчанию, оставляет проверку
   сертификата сервера **выключенной**, как было всегда: ресурс может забрать публичную ленту с
@@ -327,6 +336,25 @@ ARGUMENTS:
                         Prints the stats and the manifest hash, then
                         exits. Run it on a machine with the game
                         installed and copy the file to the server.
+    --bans list
+    --bans remove <ip | nodemp:<account id> | <account id>>
+                        Shows or lifts bans without a running server.
+                        Bans live in bans.json in the working
+                        directory: one JSON object whose keys are the
+                        banned IP address ("203.0.113.7", or an IPv6
+                        address without brackets) or the NodeMP
+                        account as "nodemp:<id>", and whose values are
+                        {"reason": "<text shown to the player>",
+                         "at": <unix seconds>, "name": "<player name
+                        at the time>"}. Stop the server before editing
+                        the file, by hand or with this: it reads the
+                        file once, on the first ban check or ban after
+                        a start, keeps the list in memory from then on
+                        and writes it back on every new ban.
+    --obf-selftest
+                        Checks that the client-script obfuscator
+                        (tools/) runs; prints [obf-selftest]
+                        available=1 when it does. Exits.
 
 EXAMPLES:
     Node-Server --config=../MyWestCoastServer.toml
@@ -335,16 +363,15 @@ EXAMPLES:
         'MyWestCoastServer.toml'.
     Node-Server --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
         Writes integrity/0.39.4.0.manifest (for that game version).
+    Node-Server --bans remove 203.0.113.7
+        Lifts the ban on that address (server stopped).
 ```
 
-`--gen-integrity` — отдельный инструмент в том же бинарнике: он принимает папку игры позиционным
-аргументом, не нуждается в `server.toml` и завершается, записав файл.
-[Строгая проверка](/ru/hosting/strict-verification/) разбирает его по шагам. Есть ещё два флага,
-которых текст справки 1.2.0 не перечисляет: `Node-Server --obf-selftest` проверяет, что
-обфускатор клиентских скриптов работает, и завершается ([Ресурсы и контент](/ru/hosting/resources/#обфускация)),
-а начиная с сервера 1.2.1 `Node-Server --bans list` и `--bans remove <ip | account id>` показывают
-и снимают баны при остановленном сервере ([Запуск сервера](/ru/hosting/running/#баны)). Текст
-справки 1.2.1 перечисляет оба.
+`--gen-integrity` и `--bans` — отдельные инструменты в том же бинарнике: они принимают свои слова
+позиционными аргументами, не нуждаются в `server.toml` и завершаются, сделав дело.
+[Строгая проверка](/ru/hosting/strict-verification/) разбирает первый по шагам,
+[Запуск сервера](/ru/hosting/running/#баны) — второй. `Node-Server --obf-selftest` проверяет, что
+обфускатор клиентских скриптов работает ([Ресурсы и контент](/ru/hosting/resources/#обфускация)).
 
 ## Пример
 
@@ -382,6 +409,7 @@ Url = ""
 HostId = ""
 HostSecret = ""
 Fingerprint = ""
+CaFile = ""
 Description = ""
 Mode = "freeroam"
 Tags = ""

@@ -87,7 +87,7 @@ This service is the shape the official server runs with:
 ```yaml
 services:
   gameserver:
-    image: ghcr.io/nodemp-beamng/server:v1.2.0
+    image: ghcr.io/nodemp-beamng/server:v1.2.1
     restart: unless-stopped
     ports:
       - "30814:30814/tcp"
@@ -132,7 +132,8 @@ described [below](#bans).
 ## Bans
 
 Bans live in `bans.json` in the working directory. The file does not exist until the first ban;
-the server reads it once at start and writes it back after every new ban. It is one JSON object
+the server reads it once - at the first ban check or ban after a start - keeps the list in memory
+from then on and writes it back after every new ban. It is one JSON object
 whose keys are the banned IP address (`"203.0.113.7"`, or an IPv6 address without brackets) or
 the NodeMP account as `"nodemp:<account id>"`, and whose values carry the reason the player is
 shown, the time and the name at the time:
@@ -150,15 +151,7 @@ whose address or account is in the file is refused at the door with the stored r
 `You are banned from this server` when the reason is empty. The start-up log counts what it
 loaded: `2 banned IPs and 1 banned account loaded from bans.json`.
 
-To lift a ban on server 1.2.0: **stop the server**, delete the entry (both entries for a player
-banned in a session) from `bans.json`, start it again. Editing the file while the server runs does
-not work - the server keeps the list in memory and writes the old list back on its next ban. A
-resource can also lift one at run time with `node.bans.remove(who)`; the `/unban` command of the
-[moderation recipe](/plugins/recipes/#kick-and-ban-with-a-reason) is that in eight lines, and
-needs the `chat` resource.
-
-From server 1.2.1 on, the same file is read and edited from the command line, with the server
-stopped:
+To lift a ban, **stop the server** and use the built-in tool on the same file:
 
 ```
 Node-Server --bans list
@@ -166,9 +159,15 @@ Node-Server --bans remove 203.0.113.7
 Node-Server --bans remove nodemp:108
 ```
 
-`list` prints every entry with its key, date, name and reason; `remove` takes an IP address, an
-account as `nodemp:<id>` or a bare account id, removes it and says how many bans are left.
-`--working-directory=` is honoured, `server.toml` is not read.
+`list` prints every entry with its key, date, name and reason (`no bans in …` when the file does
+not exist yet); `remove` takes an IP address, an account as `nodemp:<id>` or a bare account id,
+removes it and says how many bans are left. `--working-directory=` is honoured, `server.toml` is
+not read. Editing the JSON by hand with the server stopped does the same. Editing it while the
+server runs does not work - the server keeps the list in memory and writes the old list back on
+its next ban, which is why every line the tool prints says to stop the server first. A resource
+can also lift a ban at run time with `node.bans.remove(who)`; the `/unban` command of the
+[moderation recipe](/plugins/recipes/#kick-and-ban-with-a-reason) is that in eight lines, and
+needs the `chat` resource. (Before 1.2.1 there was no `--bans`; the hand edit was the only way.)
 
 ## Logs
 
@@ -189,14 +188,17 @@ Lines worth knowing at a glance:
   will be obfuscated; a `Warn` instead names what is missing.
 - `startup not successful, systems [Directory] had errors — this may or may not cause issues` —
   one subsystem failed; the lines above it say which and why.
-- `Error › bind() failed: …` (`Only one usage of each socket address … is normally permitted` on
-  Windows, `Address already in use` on Linux) — **the port is taken**, almost always by a
-  previous instance of the server that is still running. Server 1.2.0 then goes on for a few
-  seconds - it may still print `listening on …` and even `server is ready` - and shuts itself
-  down, which looks like a crash but is not one; stop the other instance (or change
-  `[General] Port` / `--port=`) and start again. From server 1.2.1 on the line reads
-  `Cannot listen on port 30814 (…): the port is already in use …`, names the usual cause, no
-  `server is ready` follows, and the process exits with code 1 after `Closing in 10 seconds`.
+- `Cannot listen on port 30814 (udp): the port is already in use (…). Usually another Node-Server is still running on this machine -- a previous instance that was not stopped, or a second copy started by mistake -- or another program owns the port. Stop it, or give this server a different port with [General] Port in server.toml or --port=<number>. Closing.`
+  — **the port is taken** (the parentheses carry the operating system's own words; the second
+  half of the port fails a line later with `Cannot listen on port 30814 (tcp) either: …`). The
+  server stops itself: no `server is ready`, `Shutdown.`, `Closing in 10 seconds`, exit code 1 -
+  a supervisor sees a failure, not a clean stop. Stop the other instance (or change
+  `[General] Port` / `--port=`) and start again. On Windows a second instance can no longer bind
+  the TCP port beside a running one. (Before 1.2.1 the line was the bare `bind() failed: …`, and
+  the server went on for a few seconds - it could still print `listening on …` and even
+  `server is ready` - before it shut itself down with exit code 0.)
+- `[General] IP = "…" is not an IP address (…); the server cannot listen. Leave it at "::" to listen on every interface, or give the address of one of this machine's interfaces. Closing.`
+  — the same exit, code 1, for a bind address that does not parse.
 - `Kick › <name> kicked — <reason>` — the server refused or ended a player's session; the reason
   is the text the player quotes to you (see [When a player is refused](#when-a-player-is-refused)).
 
@@ -205,7 +207,7 @@ Lines worth knowing at a glance:
 Ctrl+C, `systemctl stop`, or `docker compose stop` send SIGINT or SIGTERM. The server logs
 `gracefully shutting down via SIGTERM`, kicks every player with the reason `Server shutdown`,
 stops its subsystems and ends with `Shutdown.`. Pressing Ctrl+C repeatedly forces the exit. Two
-things a clean stop of server 1.2.0 prints are noise, not damage: on Windows, after `Shutdown.`,
+things a clean stop prints are noise, not damage: on Windows, after `Shutdown.`,
 `Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall`
 and `Error › Failed to accept() new client: …` are the network threads reporting their own
 cancellation; with a database configured, `Warn › pg: no live database connection (reconnecting)`

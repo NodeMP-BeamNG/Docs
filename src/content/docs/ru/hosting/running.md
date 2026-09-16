@@ -88,7 +88,7 @@ journalctl -u nodemp-server -f
 ```yaml
 services:
   gameserver:
-    image: ghcr.io/nodemp-beamng/server:v1.2.0
+    image: ghcr.io/nodemp-beamng/server:v1.2.1
     restart: unless-stopped
     ports:
       - "30814:30814/tcp"
@@ -133,8 +133,9 @@ docker compose logs -f gameserver
 
 ## Баны
 
-Баны живут в `bans.json` в рабочем каталоге. Файла нет до первого бана; сервер читает его один раз
-при запуске и записывает обратно после каждого нового бана. Это один JSON-объект, ключи которого —
+Баны живут в `bans.json` в рабочем каталоге. Файла нет до первого бана; сервер читает его один
+раз — при первой проверке бана или первом бане после запуска, — дальше держит список в памяти и
+записывает обратно после каждого нового бана. Это один JSON-объект, ключи которого —
 заблокированный IP-адрес (`"203.0.113.7"` или IPv6-адрес без скобок) либо аккаунт NodeMP в виде
 `"nodemp:<id аккаунта>"`, а значения несут причину, которую видит игрок, время и имя на тот момент:
 
@@ -151,15 +152,7 @@ docker compose logs -f gameserver
 если причина пуста. Лог запуска считает загруженное:
 `2 banned IPs and 1 banned account loaded from bans.json`.
 
-Чтобы снять бан на сервере 1.2.0: **остановите сервер**, удалите запись (обе записи для игрока,
-забаненного в сессии) из `bans.json`, запустите снова. Правка файла при работающем сервере не
-работает — сервер держит список в памяти и при следующем бане записывает старый список обратно.
-Ресурс может снять бан и на ходу через `node.bans.remove(who)`; команда `/unban` из
-[рецепта модерации](/ru/plugins/recipes/#кик-и-бан-с-причиной) — это она в восемь строк, и ей
-нужен ресурс `chat`.
-
-Начиная с сервера 1.2.1 тот же файл читается и правится из командной строки при остановленном
-сервере:
+Чтобы снять бан, **остановите сервер** и воспользуйтесь встроенным инструментом для того же файла:
 
 ```
 Node-Server --bans list
@@ -167,9 +160,15 @@ Node-Server --bans remove 203.0.113.7
 Node-Server --bans remove nodemp:108
 ```
 
-`list` печатает каждую запись с ключом, датой, именем и причиной; `remove` принимает IP-адрес,
-аккаунт в виде `nodemp:<id>` или голый id аккаунта, удаляет запись и говорит, сколько банов
-осталось. `--working-directory=` учитывается, `server.toml` не читается.
+`list` печатает каждую запись с ключом, датой, именем и причиной (`no bans in …`, пока файла ещё
+нет); `remove` принимает IP-адрес, аккаунт в виде `nodemp:<id>` или голый id аккаунта, удаляет
+запись и говорит, сколько банов осталось. `--working-directory=` учитывается, `server.toml` не
+читается. Правка JSON руками при остановленном сервере делает то же самое. Правка при работающем
+сервере не работает — сервер держит список в памяти и при следующем бане записывает старый список
+обратно, поэтому каждая строка, которую печатает инструмент, просит сначала остановить сервер.
+Ресурс может снять бан и на ходу через `node.bans.remove(who)`; команда `/unban` из
+[рецепта модерации](/ru/plugins/recipes/#кик-и-бан-с-причиной) — это она в восемь строк, и ей
+нужен ресурс `chat`. (До 1.2.1 `--bans` не было; ручная правка была единственным способом.)
 
 ## Логи
 
@@ -191,15 +190,17 @@ Node-Server --bans remove nodemp:108
   будут обфусцированы; строка `Warn` вместо неё называет, чего не хватает.
 - `startup not successful, systems [Directory] had errors — this may or may not cause issues` —
   одна подсистема не запустилась; строки выше говорят, какая и почему.
-- `Error › bind() failed: …` (`Only one usage of each socket address … is normally permitted` на
-  Windows, `Address already in use` на Linux) — **порт занят**, почти всегда всё ещё работающим
-  предыдущим экземпляром сервера. Сервер 1.2.0 затем работает ещё несколько секунд — может даже
-  напечатать `listening on …` и `server is ready` — и сам останавливается, что выглядит как
-  падение, но им не является; остановите другой экземпляр (или смените `[General] Port` /
-  `--port=`) и запустите снова. Начиная с сервера 1.2.1 строка читается
-  `Cannot listen on port 30814 (…): the port is already in use …`, называет обычную причину,
-  `server is ready` за ней не следует, а процесс завершается с кодом 1 после
-  `Closing in 10 seconds`.
+- `Cannot listen on port 30814 (udp): the port is already in use (…). Usually another Node-Server is still running on this machine -- a previous instance that was not stopped, or a second copy started by mistake -- or another program owns the port. Stop it, or give this server a different port with [General] Port in server.toml or --port=<number>. Closing.`
+  — **порт занят** (в скобках — слова самой операционной системы; вторая половина порта падает
+  строкой позже с `Cannot listen on port 30814 (tcp) either: …`). Сервер сам останавливается:
+  без `server is ready`, `Shutdown.`, `Closing in 10 seconds`, код выхода 1 — супервизор видит
+  сбой, а не чистую остановку. Остановите другой экземпляр (или смените `[General] Port` /
+  `--port=`) и запустите снова. На Windows второй экземпляр больше не может привязать TCP-порт
+  рядом с работающим. (До 1.2.1 строка была голым `bind() failed: …`, и сервер работал ещё
+  несколько секунд — мог напечатать `listening on …` и даже `server is ready`, — прежде чем
+  останавливался с кодом выхода 0.)
+- `[General] IP = "…" is not an IP address (…); the server cannot listen. Leave it at "::" to listen on every interface, or give the address of one of this machine's interfaces. Closing.`
+  — тот же выход с кодом 1 для адреса привязки, который не разбирается.
 - `Kick › <name> kicked — <reason>` — сервер отказал игроку или завершил его сессию; причина —
   тот текст, который игрок вам цитирует (см. [Когда игроку отказано](#когда-игроку-отказано)).
 
@@ -208,7 +209,7 @@ Node-Server --bans remove nodemp:108
 Ctrl+C, `systemctl stop` или `docker compose stop` посылают SIGINT или SIGTERM. Сервер пишет в лог
 `gracefully shutting down via SIGTERM`, отключает всех игроков с причиной `Server shutdown`,
 останавливает подсистемы и завершает работу строкой `Shutdown.`. Повторное нажатие Ctrl+C
-принудительно завершает процесс. Две вещи, которые чистая остановка сервера 1.2.0 печатает, — шум,
+принудительно завершает процесс. Две вещи, которые чистая остановка печатает, — шум,
 а не поломка: на Windows после `Shutdown.` строки
 `Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall`
 и `Error › Failed to accept() new client: …` — это сетевые потоки сообщают о собственной отмене; с

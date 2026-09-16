@@ -46,13 +46,14 @@ HostSecret = "…"
 ```
 
 Не вставляйте второй заголовок `[Directory]` под первым. TOML не допускает таблицу, определённую
-дважды, и сервер тогда завершается при запуске с `Error parsing config file value: …`
-(сервер 1.2.0 цитирует парсер: `toml::insert_value: table ("Directory") already exists`;
-сервер 1.2.1 говорит, что таблица встречается дважды, называет строку и советует перенести ключи
-в существующую таблицу) и `Closing in 10 seconds`. Именно поэтому вкладка **server.toml** на
-сайте показывает три строки ключей. Комментарий, который сервер 1.2.0 пишет над `Url`, приводит
-неверный пример адреса директории; директория — `https://api.nodemp.com`, как и везде на этих
-страницах (сервер 1.2.1 пишет верный).
+дважды, и сервер тогда завершается при запуске с
+`Error parsing config file value: server.toml, line …: the table [Directory] appears twice. Put the keys into the existing [Directory] table -- the server wrote one with every key in it on the first start -- and remove the second [Directory] line together with the keys under it. The file has not been changed; fix it and start the server again.`
+и `Closing in 10 seconds` (до 1.2.1 строка вместо этого цитировала парсер:
+`toml::insert_value: table ("Directory") already exists`). Именно поэтому вкладка **server.toml**
+на сайте показывает три строки ключей, и то же самое говорит заголовочный комментарий
+сгенерированного файла. Комментарий над `Url` называет директорию, `https://api.nodemp.com` (в
+файле, записанном версией 1.2.0 или старше, там стоит неверный пример адреса, пока следующий
+запуск его не перепишет).
 
 То же в виде переменных — для Docker-образа или unit systemd; они перекрывают те же ключи в
 `server.toml`:
@@ -123,51 +124,38 @@ TestDrive   = true
   `The server could not verify your account with the directory (…). Try again in a moment`.
   Действует только вместе с `TestDrive = true`; обоснование — в
   [обзоре фреймворка](/ru/framework/overview/).
-- `Fingerprint` и `AllowInsecure` — для директории, которую вы держите сами (закреплённый
-  сертификат, адрес на простом `http://`). Для `api.nodemp.com` оставьте обоим значения по
-  умолчанию — и на машине с Windows, где сервер не может проверить сертификат директории:
-  исправление для этого — в [заметке о Windows](#windows-сертификат-директории-не-проверяется)
-  ниже, а не закрепление. Начиная с сервера 1.2.1 третий ключ, `[Directory] CaFile`, задаёт
-  PEM-набор, по которому сертификат директории проверяется *вместо* доверенных корней машины, —
-  для собственной директории за частным CA; пустое значение (по умолчанию) верно для
-  `api.nodemp.com`.
+- `Fingerprint`, `CaFile` и `AllowInsecure` — для директории, которую вы держите сами
+  (закреплённый сертификат, набор частного CA, адрес на простом `http://`). Для `api.nodemp.com`
+  оставьте всем трём значения по умолчанию: её сертификат проверяется по доверенным корням
+  машины — на Windows по хранилищу сертификатов Windows плюс `cacert.pem` из архива, см.
+  [ниже](#windows-сертификат-директории). `CaFile` задаёт PEM-набор, по которому проверять
+  *вместо* этих корней; относительный путь разрешается от рабочего каталога.
 
 Измените любую из них и перезапустите; следующий маяк понесёт новые значения.
 
-## Windows: сертификат директории не проверяется
+## Windows: сертификат директории
 
-На Windows у сервера 1.2.0 (и 1.1.0) не оказывается доверенных корневых сертификатов, по которым
-проверить сертификат директории — хранилище сертификатов Windows не там, где ищет его OpenSSL, —
-поэтому с заданным ключом сервера лог повторяет при каждой попытке
+Сертификат директории — обычный публичный. На Windows сервер проверяет его по **хранилищу
+сертификатов Windows** (хранилище `ROOT`) и, как запасной вариант для машины со скудным
+собственным хранилищем — свежий Server Core, урезанный образ, — по **`cacert.pem`**, набору
+публичных корней от Mozilla, который архив для Windows поставляет рядом с `Node-Server.exe`
+вместе с его `cacert.LICENSE` (MPL 2.0). Перенося исполняемый файл, держите файл рядом с ним;
+настраивать ничего не нужно. Переменные OpenSSL `SSL_CERT_FILE` / `SSL_CERT_DIR` тоже
+учитываются. Машина, у которой нет ни пригодного хранилища, ни файла, получает одну понятную
+строку при запуске —
+`This machine has no trusted root certificates to verify the directory against (the Windows certificate store is empty and there is no cacert.pem next to Node-Server.exe): put Mozilla's cacert.pem (https://curl.se/ca/cacert.pem) next to the executable, or name a PEM bundle in [Directory] CaFile` —
+и тот же совет внутри текста о неудавшемся рукопожатии. Linux и Docker-образ используют корни
+дистрибутива.
 
-```
-Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)
-```
-
-хотя сертификат директории — обычный публичный. Ни с ключом, ни с сетью ничего не случилось.
-Сервер учитывает переменную OpenSSL `SSL_CERT_FILE`, так что перед запуском укажите в ней
-PEM-набор публичных корневых сертификатов — обычно набор Mozilla в том виде, в каком его публикует
-проект curl:
-
-```powershell
-Invoke-WebRequest https://curl.se/ca/cacert.pem -OutFile C:\NodeMP\cacert.pem
-$env:SSL_CERT_FILE = "C:\NodeMP\cacert.pem"
-.\Node-Server.exe
-```
-
-Для задачи планировщика запускайте сервер через `.cmd`-файл, который сначала задаёт переменную
-(`set SSL_CERT_FILE=C:\NodeMP\cacert.pem`, затем `Node-Server.exe`), или задайте её как
-переменную окружения пользователя или системы в Windows. Следующий запуск тогда сразу доходит до
-`The directory refused this server's credentials: …` (ключ-заглушка) или
-`listed in the server browser` (настоящий ключ). Не обходите проблему через
-`[Directory] Fingerprint`: закрепление конечного сертификата директории работает несколько недель,
-а потом ломается, когда сертификат меняется.
-
-Начиная с сервера 1.2.1 это исправлено в самом сервере: он читает хранилище сертификатов Windows,
-а архив для Windows содержит `cacert.pem` рядом с `Node-Server.exe` как запасной вариант для
-машины со скудным собственным хранилищем, так что переменная больше не нужна. Машина, у которой
-нет ни того ни другого, получает одну понятную строку ошибки при запуске вместо бесконечных
-повторов. Linux и Docker-образ не затронуты: там OpenSSL находит корни дистрибутива.
+До 1.2.1 — на 1.1.0 и 1.2.0 — сборка для Windows не смотрела ни туда, ни туда и проваливала
+каждую попытку с
+`Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)`,
+хотя ключ и сеть были в порядке. Хост, всё ещё сидящий на одной из тех версий, обновляется
+([Обновление](/ru/hosting/updating/)); до тех пор `SSL_CERT_FILE`, указывающая на PEM-набор
+публичных корней (`Invoke-WebRequest https://curl.se/ca/cacert.pem -OutFile C:\NodeMP\cacert.pem`,
+затем `$env:SSL_CERT_FILE = "C:\NodeMP\cacert.pem"` перед `.\Node-Server.exe`), выводит старую
+сборку в список. Не обходите проблему через `[Directory] Fingerprint`: закрепление конечного
+сертификата директории ломается, когда сертификат меняется.
 
 ## TLS-отпечаток вашего сервера
 
@@ -194,7 +182,8 @@ $env:SSL_CERT_FILE = "C:\NodeMP\cacert.pem"
 | Что вы видите | Причина | Что делать |
 |---|---|---|
 | `announcing this server to …`, но `listed in the server browser` так и не появляется, и `The directory refused this server's credentials: …` | Неверный Host ID или секрет, сменённый секрет или удалённый ключ. | Сравните с ключом на nodemp.com; если не уверены — смените секрет и вставьте новый. |
-| `Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)` | Windows, сервер 1.2.0: у сервера нет доверенных корневых сертификатов, чтобы проверить директорию. Ключ и сеть в порядке. | Перед запуском задайте в `SSL_CERT_FILE` PEM-набор публичных корней — см. [заметку о Windows](#windows-сертификат-директории-не-проверяется). Исправлено начиная с сервера 1.2.1. |
+| `Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)` | У сервера нет доверенных корневых сертификатов, чтобы проверить директорию. На текущем сервере это машина с Windows с пустым хранилищем и без `cacert.pem` рядом с исполняемым файлом (лог запуска так и говорит); на 1.2.0 и 1.1.0 это случалось на каждой машине с Windows. Ключ и сеть в порядке. | Обновите сервер; верните `cacert.pem` рядом с `Node-Server.exe`; или, на старой сборке, задайте `SSL_CERT_FILE` — см. [заметку о Windows](#windows-сертификат-директории). |
+| `[Directory] CaFile '…' could not be loaded (…): the directory's certificate cannot be verified and this server will not be listed until it can` | `CaFile` называет набор, которого нет, который не разбирается или в котором нет ни одного сертификата. | Исправьте путь или файл либо оставьте `CaFile` пустым для `api.nodemp.com`. |
 | `Could not reach the directory at https://api.nodemp.com: …` (любой другой текст после двоеточия) | Нет исходящего HTTPS, сбой DNS или директория недоступна. | Проверьте `curl https://api.nodemp.com/healthz` с машины сервера (он отвечает `{"status":"ok"}`). Сервер повторяет попытки сам через 5, 15, 30, 60, а затем каждые 120 секунд. |
 | `This server is NOT announced to a directory: [Directory] needs Url, HostId and HostSecret, and one of them is empty` | Одно из трёх значений отсутствует или написано с ошибкой. | Заполните все три. Имена переменных: `NODE_DIRECTORY_URL`, `NODE_DIRECTORY_HOST_ID`, `NODE_DIRECTORY_HOST_SECRET`. |
 | `Refusing to announce this server: the [Directory] Url is plain http…` | `Url` начинается с `http://`. | Используйте `https://api.nodemp.com`. |

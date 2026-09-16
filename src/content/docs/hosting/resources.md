@@ -21,12 +21,17 @@ Where a folder comes from:
 - **You write it.** The smallest one, `hello`, is typed in on
   [Getting started](/plugins/getting-started/) - a manifest and two short Lua files - and every
   recipe on [Recipes](/plugins/recipes/) is a complete resource of a few lines.
-- **The examples.** The pages name several example resources - `chat` (the chat and the `/`
-  commands, which `player:tell` and `node.commands.add` in every other resource rely on),
-  `demo-numbers`, `vehicle-cleanup`, `gatekeeper-example`, `nodegrab-allow`, `nodemp-relay`,
-  `devapi-example`, `session-report`. From server 1.2.1 on they ship in the release archive
-  under `examples/`, next to `Node-Server`: copy `examples/chat` to `resources/chat` and
-  restart. The 1.2.0 archive does not contain them and they are not published separately.
+- **The examples.** The release archive carries them under `examples/`, next to `Node-Server`:
+  `chat` (the chat and the `/` commands, which `player:tell` and `node.commands.add` in every
+  other resource rely on), `demo-numbers`, `vehicle-cleanup`, `gatekeeper-example`,
+  `nodegrab-allow`, `nodemp-relay`, `devapi-example`, `freeroam-example`, `seat-demo` and
+  `session-report` (written in JavaScript; it needs the `js-host` native module and is skipped
+  without it). `examples/README.txt` says what each one does, `examples/LICENSE` is their
+  licence (GPL-3.0, separate from the server's), and `EXAMPLES_COMMIT` next to the executable
+  names the commit they were taken from. Copy the whole folder - `examples/chat` to
+  `resources/chat` - and restart; the copies in `resources/` are yours to change and survive a
+  server update, which replaces `examples/` only. (The 1.2.0 and older archives do not contain
+  them.)
 - **Someone else's.** A resource written for NodeMP is a folder you copy; nothing is installed
   system-wide, and a resource never reaches outside its folder except through the API.
 
@@ -100,16 +105,15 @@ and with `tools/` missing `Prometheus not found under any tools/ dir, client scr
 In both cases the server runs and ships plain source. A file Prometheus cannot handle is also
 shipped plain, with a `Warn` line naming it, so a join never fails on obfuscation.
 `Node-Server --obf-selftest` runs the same check from the command line and prints
-`[obf-selftest] available=1` when it works (the flag is missing from the 1.2.0 `--help` text;
-server 1.2.1 lists it).
+`[obf-selftest] available=1` when it works.
 
-A client file that is not valid Lua is one thing Prometheus cannot handle. Server 1.2.0 reports
-it only in that indirect way - `Prometheus failed on 'main.lua' (…), shipping it unobfuscated` -
-and with obfuscation off not at all: the first sign is then the compile error in a player's
-`beamng.log`. From server 1.2.1 on every client file is syntax-checked when it is packaged,
-whatever the obfuscation setting, and a file that does not parse gets an `Error` line naming the
-resource, the file and the parser's message; the file still ships, since the check is a check on
-syntax, not a promise that the game will run it.
+Every client file is syntax-checked when it is packaged, whatever the obfuscation setting, and a
+file that does not parse gets an `Error` line naming the resource, the file and the parser's
+message: `race · client file 'main.lua' has a syntax error: main.lua:1: unexpected symbol near '=' (the file ships anyway; the game's Lua will very likely refuse it too)`.
+The file still ships, since the check is a check on syntax (with the server's Lua 5.4, where the
+game runs LuaJIT), not a promise that the game will run it; with obfuscation on, Prometheus adds
+its own `Warn` about the same file. (Before 1.2.1 that warning was the only sign, and with
+obfuscation off there was none until a player's `beamng.log`.)
 
 The three tiers, from `[client] obfuscation`: `light` renames locals and hides string constants
 (safe for code that runs every frame); `medium` adds indirection on locals and rewrites numbers

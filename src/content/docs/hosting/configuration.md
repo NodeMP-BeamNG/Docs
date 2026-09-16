@@ -38,11 +38,13 @@ Details that matter when a setting does not take effect:
   silently stays `8`. No log line reports it; the check is to open the rewritten file and see
   whether your value is still there.
 - A file the TOML parser rejects stops the server: `Error parsing config file value: …`,
-  `Closing in 10 seconds`, exit code 1. Server 1.2.0 repeats the parser's own message (for a
-  `[Directory]` table pasted a second time, `toml::insert_value: table ("Directory") already
-  exists`); server 1.2.1 names the file and the line and says in plain words what is wrong - a
-  table that appears twice, a key given twice, or the offending line - and that the file was not
-  changed.
+  `Closing in 10 seconds`, exit code 1. The line names the file and the line number and says in
+  plain words what is wrong - `the table [Directory] appears twice. Put the keys into the
+  existing [Directory] table …` for a `[Directory]` block pasted under the generated one,
+  `the key Name is given twice. Keep one of the two lines.` for a repeated key, and for anything
+  else the parser's reason plus `the line reads …` - and that the file has not been changed.
+  (Before 1.2.1 the server repeated the parser's own text, such as
+  `toml::insert_value: table ("Directory") already exists`.)
 
 ## The file is rewritten
 
@@ -58,10 +60,11 @@ After every successful read of the file (at start, before anything else) the ser
   [Updating](/hosting/updating/)).
 - The server writes the sections and the keys in an order of its own, which is not the order of
   the [reference table](#reference) below or of the [example](#example) at the end of this page;
-  the order carries no meaning. The header comment of the 1.2.0 file lists the `NODE_*`
-  variables and leaves out `NODE_INTEGRITY_DIR`, which is honoured all the same (server 1.2.1
-  lists it); the comment above `[Directory] Url` in that file gives a wrong example address -
-  the directory is `https://api.nodemp.com`, and server 1.2.1 writes that.
+  the order carries no meaning. The header comment lists every `NODE_*` variable and says to
+  fill in the existing `[Directory]` table rather than paste a second one; the comment above
+  `[Directory] Url` names `https://api.nodemp.com`. (A file written by 1.2.0 or older carries an
+  older header: it omits `NODE_INTEGRITY_DIR`, which is honoured all the same, and its `Url`
+  comment gives a wrong example address; the next start rewrites the comments.)
 
 The rewrite is skipped when `NODE_PROVIDER_DISABLE_CONFIG` is set (see
 [Provider variables](#provider-variables)).
@@ -93,6 +96,7 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 | `[Directory]` | `HostId` | string | `""` | `NODE_DIRECTORY_HOST_ID` |
 | `[Directory]` | `HostSecret` | string | `""` | `NODE_DIRECTORY_HOST_SECRET` |
 | `[Directory]` | `Fingerprint` | string | `""` | `NODE_DIRECTORY_FINGERPRINT` |
+| `[Directory]` | `CaFile` | string | `""` | `NODE_DIRECTORY_CA_FILE` |
 | `[Directory]` | `Description` | string | `""` | `NODE_DIRECTORY_DESCRIPTION` |
 | `[Directory]` | `Mode` | string | `"freeroam"` | `NODE_DIRECTORY_MODE` |
 | `[Directory]` | `Tags` | string | `""` | `NODE_DIRECTORY_TAGS` |
@@ -190,11 +194,16 @@ Whether and how the server announces itself to the directory;
 - `Fingerprint` — SHA-256 of the *directory's* TLS certificate as lowercase hex, for a directory
   you run yourself with a self-signed certificate. Empty means the normal check: a certificate
   signed by an authority the machine trusts that names the host. This is not your server's own
-  fingerprint, and it is not the fix for a Windows server that reports
-  `certificate verify failed` against `api.nodemp.com` - that machine has no trusted roots to
-  check with, and [Registering your server](/hosting/registering/#windows-the-directorys-certificate-cannot-be-verified)
-  says how to give it some (`SSL_CERT_FILE` on server 1.2.0; built in from server 1.2.1, which
-  also adds `[Directory] CaFile` for a private CA of your own).
+  fingerprint. On Windows the machine's roots are the Windows certificate store plus the
+  `cacert.pem` shipped next to `Node-Server.exe`; on Linux the distribution's
+  ([Registering your server](/hosting/registering/#windows-the-directorys-certificate) has the
+  details and the history of the Windows build).
+- `CaFile` — path to a PEM bundle to verify the *directory's* certificate against **instead of**
+  the machine's trusted roots, for a directory you run yourself behind a private CA. Empty, the
+  default, is right for `api.nodemp.com`. A relative path resolves from the working directory. A
+  bundle that cannot be read is reported at start with
+  `[Directory] CaFile '…' could not be loaded (…): the directory's certificate cannot be verified and this server will not be listed until it can`.
+  Not to be confused with `[Http] CaFile`, which governs the requests resources make.
 - `Description` — one or two sentences under the server name in the list (cut at 500
   characters).
 - `Mode` — one word shown as a column in the list: `freeroam`, `racing`, `roleplay`, …
@@ -244,7 +253,7 @@ server starts and runs while the database is down; TCP keepalives (`keepalives_i
 ### `[Http]`
 
 The HTTPS requests resources make with `node.http` (and native modules with `http_request`).
-Server 1.2.0.
+Added in server 1.2.0.
 
 - `CaFile` — path to a PEM CA bundle. Empty, the default, keeps peer verification **off**, as it
   always was: a resource can fetch a public feed from any host, and nothing protects a secret it
@@ -321,6 +330,25 @@ ARGUMENTS:
                         Prints the stats and the manifest hash, then
                         exits. Run it on a machine with the game
                         installed and copy the file to the server.
+    --bans list
+    --bans remove <ip | nodemp:<account id> | <account id>>
+                        Shows or lifts bans without a running server.
+                        Bans live in bans.json in the working
+                        directory: one JSON object whose keys are the
+                        banned IP address ("203.0.113.7", or an IPv6
+                        address without brackets) or the NodeMP
+                        account as "nodemp:<id>", and whose values are
+                        {"reason": "<text shown to the player>",
+                         "at": <unix seconds>, "name": "<player name
+                        at the time>"}. Stop the server before editing
+                        the file, by hand or with this: it reads the
+                        file once, on the first ban check or ban after
+                        a start, keeps the list in memory from then on
+                        and writes it back on every new ban.
+    --obf-selftest
+                        Checks that the client-script obfuscator
+                        (tools/) runs; prints [obf-selftest]
+                        available=1 when it does. Exits.
 
 EXAMPLES:
     Node-Server --config=../MyWestCoastServer.toml
@@ -329,16 +357,15 @@ EXAMPLES:
         'MyWestCoastServer.toml'.
     Node-Server --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
         Writes integrity/0.39.4.0.manifest (for that game version).
+    Node-Server --bans remove 203.0.113.7
+        Lifts the ban on that address (server stopped).
 ```
 
-`--gen-integrity` is a separate tool sharing the binary: it takes the game folder as a positional
-argument, needs no `server.toml`, and exits after writing the file.
-[Strict verification](/hosting/strict-verification/) walks through it. Two more flags exist that
-the 1.2.0 help text does not list: `Node-Server --obf-selftest` checks that the client-script
-obfuscator runs and exits ([Resources and content](/hosting/resources/#obfuscation)), and, from
-server 1.2.1 on, `Node-Server --bans list` and `--bans remove <ip | account id>` show and lift
-bans with the server stopped ([Running the server](/hosting/running/#bans)). The 1.2.1 help text
-lists both.
+`--gen-integrity` and `--bans` are separate tools sharing the binary: they take their words as
+positional arguments, need no `server.toml`, and exit when done.
+[Strict verification](/hosting/strict-verification/) walks through the first;
+[Running the server](/hosting/running/#bans) through the second. `--obf-selftest` checks that the
+client-script obfuscator runs ([Resources and content](/hosting/resources/#obfuscation)).
 
 ## Example
 
@@ -376,6 +403,7 @@ Url = ""
 HostId = ""
 HostSecret = ""
 Fingerprint = ""
+CaFile = ""
 Description = ""
 Mode = "freeroam"
 Tags = ""

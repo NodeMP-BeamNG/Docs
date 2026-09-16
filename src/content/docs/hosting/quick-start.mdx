@@ -1,6 +1,6 @@
 ---
 title: Quick start
-description: Run Node-Server 1.2.0 from the release archive or the Docker image, open port 30814, set a name and a map, and get into the launcher's list.
+description: Run Node-Server 1.2.1 from the release archive or the Docker image, open port 30814, set a name and a map, and get into the launcher's list.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -38,9 +38,9 @@ the directory and get listed. **Direct Connect** is the launcher's form for join
 <Tabs>
 <TabItem label="Binary">
 
-The release archives are attached to tag `server-v1.2.0` at
+The release archives are attached to tag `server-v1.2.1` at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases):
-`Node-Server-1.2.0-linux-x64.tar.gz` and `Node-Server-1.2.0-windows-x64.zip`, each with a
+`Node-Server-1.2.1-linux-x64.tar.gz` and `Node-Server-1.2.1-windows-x64.zip`, each with a
 `.sha256` file. Both contain the executable and the `tools/` folder. `tools/` holds **Prometheus**,
 a Lua program that obfuscates the *client scripts* - the Lua files a plugin streams to players'
 games - before they leave the server; it has nothing to do with the monitoring system of the same
@@ -48,19 +48,21 @@ name, needs no configuration, and ships as its full source tree (`tools\promethe
 `tests/` and a `Dockerfile` inside is expected). The Windows archive also bundles the Lua 5.1
 runner Prometheus needs (`tools\lua515\lua5.1.exe`); the Linux archive does not, so install the
 distribution's `lua5.1` package and point `NODE_LUA` at it. Without a runner the server starts
-anyway and delivers client scripts as plain source. From server 1.2.1 on, the archives also carry
-the example resources under `examples/` (both archives) and, in the Windows zip, `cacert.pem`, a
-bundle of public root certificates next to `Node-Server.exe` (see [Get listed](#get-listed)).
+anyway and delivers client scripts as plain source. Both archives also carry the example
+resources under `examples/` (with a `README.txt` that says what each one does, their `LICENSE`,
+and `EXAMPLES_COMMIT` next to the executable naming the commit they came from), and the Windows
+zip adds `cacert.pem` - Mozilla's bundle of public root certificates, with its `cacert.LICENSE` -
+next to `Node-Server.exe` (see [Get listed](#get-listed)).
 
 **Linux**
 
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
 cd /opt/nodemp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.2.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.2.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.2.1-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.2.1-linux-x64.tar.gz
 sudo apt install -y lua5.1
 export NODE_LUA=/usr/bin/lua5.1
 ./Node-Server
@@ -71,10 +73,10 @@ export NODE_LUA=/usr/bin/lua5.1
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip -OutFile Node-Server-1.2.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip.sha256 -OutFile Node-Server-1.2.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.2.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.2.0-windows-x64.zip -DestinationPath .
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-windows-x64.zip -OutFile Node-Server-1.2.1-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-windows-x64.zip.sha256 -OutFile Node-Server-1.2.1-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.2.1-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.1-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.2.1-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
@@ -129,7 +131,7 @@ Settings are read at start, so start the server again. Every key is described in
 </TabItem>
 <TabItem label="Docker">
 
-The image `ghcr.io/nodemp-beamng/server:v1.2.0` runs the same binary on Ubuntu 24.04 with
+The image `ghcr.io/nodemp-beamng/server:v1.2.1` runs the same binary on Ubuntu 24.04 with
 Lua 5.1 installed (`latest` follows the newest main-branch build, which may be ahead of the
 latest release — pin a version tag). It has no `server.toml`: the image sets
 `NODE_PROVIDER_DISABLE_CONFIG=true`, so every setting is an environment variable — `NODE_NAME`
@@ -150,7 +152,7 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  ghcr.io/nodemp-beamng/server:v1.2.0
+  ghcr.io/nodemp-beamng/server:v1.2.1
 docker logs -f nodemp-server
 ```
 
@@ -179,9 +181,8 @@ give it to the server:
 - binary: `server.toml` already has a `[Directory]` table (the first start wrote it, with every
   key empty). Set the values of its three keys `Url`, `HostId` and `HostSecret` to what the site
   shows. Do **not** paste a second `[Directory]` header under the existing one: TOML rejects a
-  table defined twice and the server exits at the next start (server 1.2.0 prints the parser's
-  `toml::insert_value: table ("Directory") already exists`; server 1.2.1 says in plain words that
-  the table appears twice and what to do);
+  table defined twice and the server exits at the next start with
+  `Error parsing config file value: server.toml, line …: the table [Directory] appears twice. Put the keys into the existing [Directory] table …`;
 - Docker: add `-e NODE_DIRECTORY_URL=https://api.nodemp.com`, `-e NODE_DIRECTORY_HOST_ID=…` and
   `-e NODE_DIRECTORY_HOST_SECRET=…` to the `docker run` line.
 
@@ -189,10 +190,11 @@ Restart. The log first says `announcing this server to https://api.nodemp.com` a
 directory has accepted the key, `listed in the server browser` (the server's word for the server
 list). If the second line never comes, the key is wrong or the directory cannot be reached; the
 [troubleshooting table](/hosting/registering/#troubleshooting) on the registering page lists the
-messages. One of them concerns every Windows host on server 1.2.0:
+messages. On Windows the server verifies the directory's certificate against the Windows
+certificate store and the `cacert.pem` from the archive, so nothing needs setting up; a host still
+on 1.2.0 or 1.1.0 sees
 `Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)`
-means the server found no trusted root certificates on the machine, and the table says how to
-give it some - the fix is a one-line environment variable today and built into server 1.2.1.
+instead, and the table says what to do until the update.
 
 ## Check from the launcher
 
@@ -208,12 +210,12 @@ game that you generate first, on a Windows PC with the game installed —
 ## Add a resource
 
 The server does nothing beyond driving together until a plugin says otherwise - chat included.
-The smallest resource to start with is `hello` from
-[Getting started](/plugins/getting-started/): a folder under `resources/` you type in yourself.
-The example resources the pages name (`chat`, `demo-numbers`, …) are not in the 1.2.0 archive
-and are not published separately; from server 1.2.1 they ship in the release archive under
-`examples/`, and installing one is a copy into `resources/` and a restart
-([Resources and content](/hosting/resources/#installing-a-resource)).
+The archive's `examples/` folder holds the example resources the pages name (`chat`,
+`demo-numbers`, `vehicle-cleanup`, …; `examples/README.txt` says what each one does): installing
+one is a copy of its folder into `resources/` and a restart - `examples/chat` → `resources/chat`
+first, since chat and the `/` commands live there
+([Resources and content](/hosting/resources/#installing-a-resource)). The smallest resource to
+write yourself is `hello` from [Getting started](/plugins/getting-started/).
 
 ## Next steps
 

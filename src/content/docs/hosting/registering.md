@@ -46,13 +46,13 @@ HostSecret = "…"
 ```
 
 Do not paste a second `[Directory]` header below the first one. TOML rejects a table that is
-defined twice, and the server then exits at start with `Error parsing config file value: …`
-(server 1.2.0 quotes the parser, `toml::insert_value: table ("Directory") already exists`;
-server 1.2.1 says that the table appears twice, names the line and tells you to put the keys into
-the existing table) and `Closing in 10 seconds`. The site's **server.toml** tab shows the three key
-lines for exactly this reason. The comment the 1.2.0 server writes above `Url` gives a wrong
-example address for the directory; the directory is `https://api.nodemp.com`, as everywhere on
-these pages (server 1.2.1 writes the right one).
+defined twice, and the server then exits at start with
+`Error parsing config file value: server.toml, line …: the table [Directory] appears twice. Put the keys into the existing [Directory] table -- the server wrote one with every key in it on the first start -- and remove the second [Directory] line together with the keys under it. The file has not been changed; fix it and start the server again.`
+and `Closing in 10 seconds` (before 1.2.1 the line quoted the parser instead:
+`toml::insert_value: table ("Directory") already exists`). The site's **server.toml** tab shows
+the three key lines for exactly this reason, and the generated file's own header comment says the
+same. The comment above `Url` names the directory, `https://api.nodemp.com` (a file written by
+1.2.0 or older carries a wrong example address there until the next start rewrites it).
 
 The same as variables, for the Docker image or a systemd unit; they override the same keys in
 `server.toml`:
@@ -124,50 +124,37 @@ TestDrive   = true
   `The server could not verify your account with the directory (…). Try again in a moment`.
   Only effective together with `TestDrive = true`; the reasoning is in the
   [framework overview](/framework/overview/).
-- `Fingerprint` and `AllowInsecure` are for a directory you run yourself (a pinned certificate,
-  a plain-`http://` address). Leave both at their defaults for `api.nodemp.com` - also on a
-  Windows machine whose server cannot verify the directory's certificate; the fix for that is
-  in the [Windows note](#windows-the-directorys-certificate-cannot-be-verified) below, not a pin.
-  From server 1.2.1 on, a third key `[Directory] CaFile` names a PEM bundle to verify the
-  directory's certificate against *instead of* the machine's trusted roots, for a directory of
-  your own behind a private CA; empty (the default) is right for `api.nodemp.com`.
+- `Fingerprint`, `CaFile` and `AllowInsecure` are for a directory you run yourself (a pinned
+  certificate, a private CA's bundle, a plain-`http://` address). Leave all three at their
+  defaults for `api.nodemp.com`: its certificate is verified against the machine's trusted roots
+  - on Windows the Windows certificate store plus the `cacert.pem` from the archive, see
+  [below](#windows-the-directorys-certificate). `CaFile` names a PEM bundle to verify against
+  *instead of* those roots; a relative path resolves from the working directory.
 
 Change any of them and restart; the next beacon carries the new values.
 
-## Windows: the directory's certificate cannot be verified
+## Windows: the directory's certificate
 
-On Windows, server 1.2.0 (and 1.1.0) ends up with no trusted root certificates to check the
-directory's certificate against - the Windows certificate store is not where its OpenSSL looks -
-so with a server key set the log repeats, on every retry,
+The directory's certificate is an ordinary public one. On Windows the server verifies it against
+the **Windows certificate store** (the `ROOT` store) and, as a fallback for a machine whose own
+store is thin - a fresh Server Core, a stripped image - against **`cacert.pem`**, Mozilla's bundle
+of public roots that the Windows archive ships next to `Node-Server.exe` together with its
+`cacert.LICENSE` (MPL 2.0). Keep the file where it is when you move the executable; nothing needs
+configuring. OpenSSL's `SSL_CERT_FILE` / `SSL_CERT_DIR` variables are honoured as well. A machine
+with neither a usable store nor the file gets one clear line at start,
+`This machine has no trusted root certificates to verify the directory against (the Windows certificate store is empty and there is no cacert.pem next to Node-Server.exe): put Mozilla's cacert.pem (https://curl.se/ca/cacert.pem) next to the executable, or name a PEM bundle in [Directory] CaFile`,
+and the same advice inside the handshake failure. Linux and the Docker image use the
+distribution's roots.
 
-```
-Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)
-```
-
-although the directory's certificate is an ordinary public one. Nothing is wrong with the key or
-the network. The server does honour OpenSSL's `SSL_CERT_FILE` variable, so point it at a PEM
-bundle of public root certificates before you start the server - Mozilla's bundle as published by
-the curl project is the usual one:
-
-```powershell
-Invoke-WebRequest https://curl.se/ca/cacert.pem -OutFile C:\NodeMP\cacert.pem
-$env:SSL_CERT_FILE = "C:\NodeMP\cacert.pem"
-.\Node-Server.exe
-```
-
-For a Task Scheduler task, start the server through a `.cmd` file that sets the variable first
-(`set SSL_CERT_FILE=C:\NodeMP\cacert.pem`, then `Node-Server.exe`), or set it as a user or system
-environment variable in Windows. The next start then goes straight to
-`The directory refused this server's credentials: …` (a placeholder key) or
-`listed in the server browser` (a real one). Do not work around it with `[Directory] Fingerprint`:
-pinning the directory's leaf certificate works for a few weeks and then breaks when the
-certificate rotates.
-
-From server 1.2.1 on this is fixed in the server: it reads the Windows certificate store, and the
-Windows archive ships `cacert.pem` next to `Node-Server.exe` as a fallback for a machine whose own
-store is thin, so the variable is no longer needed. A machine that has neither gets one clear
-error line at start instead of a failing retry loop. Linux and the Docker image are not affected:
-there OpenSSL finds the distribution's roots.
+Before 1.2.1 - on 1.1.0 and 1.2.0 - the Windows build looked in neither place and failed every
+attempt with
+`Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)`
+although key and network were fine. A host still on one of those versions updates
+([Updating](/hosting/updating/)); until then, `SSL_CERT_FILE` pointed at a PEM bundle of public
+roots (`Invoke-WebRequest https://curl.se/ca/cacert.pem -OutFile C:\NodeMP\cacert.pem`, then
+`$env:SSL_CERT_FILE = "C:\NodeMP\cacert.pem"` before `.\Node-Server.exe`) gets the old build
+listed. Do not work around it with `[Directory] Fingerprint`: pinning the directory's leaf
+certificate breaks when the certificate rotates.
 
 ## Your server's TLS fingerprint
 
@@ -194,7 +181,8 @@ Under **Your servers** at [nodemp.com/hosts](https://nodemp.com/hosts):
 | What you see | Cause | What to do |
 |---|---|---|
 | `announcing this server to …` but never `listed in the server browser`, and `The directory refused this server's credentials: …` | Wrong Host ID or secret, a rotated secret, or a deleted key. | Compare with the key on nodemp.com; rotate if unsure and paste the new secret. |
-| `Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)` | Windows, server 1.2.0: the server has no trusted root certificates to verify the directory with. The key and the network are fine. | Set `SSL_CERT_FILE` to a PEM bundle of public roots before starting - see [the Windows note](#windows-the-directorys-certificate-cannot-be-verified). Fixed in server 1.2.1. |
+| `Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)` | The server has no trusted root certificates to verify the directory with. On a current server this means a Windows machine with an empty store and no `cacert.pem` next to the executable (the start-up log says so); on 1.2.0 or 1.1.0 it happened on every Windows machine. The key and the network are fine. | Update the server; put `cacert.pem` back next to `Node-Server.exe`; or, on an old build, set `SSL_CERT_FILE` - see [the Windows note](#windows-the-directorys-certificate). |
+| `[Directory] CaFile '…' could not be loaded (…): the directory's certificate cannot be verified and this server will not be listed until it can` | `CaFile` names a bundle that does not exist, does not parse or holds no certificate. | Fix the path or the file, or leave `CaFile` empty for `api.nodemp.com`. |
 | `Could not reach the directory at https://api.nodemp.com: …` (any other text after the colon) | No outgoing HTTPS, DNS failure, or the directory is down. | Check `curl https://api.nodemp.com/healthz` from the server's machine (it answers `{"status":"ok"}`). The server retries by itself after 5, 15, 30, 60 and then every 120 seconds. |
 | `This server is NOT announced to a directory: [Directory] needs Url, HostId and HostSecret, and one of them is empty` | One of the three values is missing or misspelt. | Fill in all three. Variable names are `NODE_DIRECTORY_URL`, `NODE_DIRECTORY_HOST_ID`, `NODE_DIRECTORY_HOST_SECRET`. |
 | `Refusing to announce this server: the [Directory] Url is plain http…` | `Url` starts with `http://`. | Use `https://api.nodemp.com`. |

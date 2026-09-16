@@ -13,21 +13,22 @@ description: Проверка версии, замена бинарника ил
 ./Node-Server --version
 ```
 
-печатает `Node-Server v1.2.0`. Стартовый баннер показывает то же число в строке `version`, а
+печатает `Node-Server v1.2.1`. Стартовый баннер показывает то же число в строке `version`, а
 сервер из списка сообщает его директории в каждом маяке.
 
 ## Где лежат релизы
 
 Релизы сервера — теги `server-v*` на
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Каждый содержит
-два архива, названных по версии (`Node-Server-1.2.0-linux-x64.tar.gz`,
-`Node-Server-1.2.0-windows-x64.zip`) и их файлы `.sha256`; описание релиза называет файлы и
-Docker-образ и не содержит списка изменений. Что изменилось, записывается на этих страницах с
-каждым релизом: [таблица версий](/ru/introduction/what-is-nodemp/#версии) говорит, какие сервер,
-лаунчер и клиентский мод идут вместе и на каком сетевом протоколе говорят, а возможность или
-исправление, пришедшие с релизом, помечены его версией там, где описаны (`(сервер 1.2.0)`,
-`(сервер 1.2.1)`). Docker-образ той же сборки несёт тег с `v`
-(`ghcr.io/nodemp-beamng/server:v1.2.0`); `latest` следует за новейшей сборкой ветки main и может
+два архива, названных по версии (`Node-Server-1.2.1-linux-x64.tar.gz`,
+`Node-Server-1.2.1-windows-x64.zip`) и их файлы `.sha256`, а его описание содержит заметки о
+релизе (раздел `RELEASE_NOTES.md` репозитория сервера для этого тега): что изменилось, менялось ли
+значение по умолчанию и двигался ли сетевой протокол. У релизов до 1.2.1 описание — одно
+предложение. Эти страницы описывают текущий релиз; [таблица версий](/ru/introduction/what-is-nodemp/#версии)
+говорит, какие сервер, лаунчер и клиентский мод идут вместе и на каком сетевом протоколе говорят,
+а возможность, пришедшая с более ранним релизом, помечена там, где описана
+(`добавлена в сервере 1.2.0`). Docker-образ той же сборки несёт тег с `v`
+(`ghcr.io/nodemp-beamng/server:v1.2.1`); `latest` следует за новейшей сборкой ветки main и может
 опережать последний релиз — закрепляйте тег версии.
 
 ## Бинарник
@@ -37,28 +38,28 @@ Linux, с раскладкой из [быстрого старта](/ru/hosting/
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.2.0-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.2.1-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.2.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.2.1-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
 ```
 
-Архив содержит `Node-Server` и `tools/` (начиная с сервера 1.2.1 — ещё и `examples/`);
-распаковка поверх папки заменяет ровно их и не трогает ничего другого. Подставьте в имена файлов
-версию релиза, который устанавливаете.
+Архив содержит `Node-Server`, `tools/`, `examples/` и `EXAMPLES_COMMIT`; распаковка поверх папки
+заменяет ровно их и не трогает ничего другого — `resources/`, где живут ваши копии примеров, в
+архиве нет. Подставьте в имена файлов версию релиза, который устанавливаете.
 
 Windows, с раскладкой из быстрого старта: остановите сервер, затем в PowerShell
 
 ```powershell
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip -OutFile Node-Server-1.2.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip.sha256 -OutFile Node-Server-1.2.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.2.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.2.0-windows-x64.zip -DestinationPath . -Force
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-windows-x64.zip -OutFile Node-Server-1.2.1-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.1/Node-Server-1.2.1-windows-x64.zip.sha256 -OutFile Node-Server-1.2.1-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.2.1-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.1-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.2.1-windows-x64.zip -DestinationPath . -Force
 .\Node-Server.exe --version
 ```
 
@@ -118,13 +119,13 @@ docker compose logs -f gameserver
 ## Версии протокола
 
 Лаунчер и сервер говорят на версионированном сетевом протоколе, начиная с 1.1.0 — `v18` (она
-подняла его с `v17` ради строгой проверки установки; 1.2.0 его не меняла: сервер 1.2.0, лаунчер
-1.1.0 и клиентский мод 1.4.0 выходят вместе). Когда релиз меняет его, лаунчер старой версии отклоняется на рукопожатии с
+подняла его с `v17` ради строгой проверки установки; 1.2.0 и 1.2.1 его не меняли: сервер 1.2.1,
+лаунчер 1.1.0 и клиентский мод 1.4.0 идут вместе). Когда релиз меняет его, лаунчер старой версии отклоняется на рукопожатии с
 сообщением
 `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
 (два числа — реальные значения). Игроки исправляют это, установив текущий лаунчер с
 [nodemp.com/download](https://nodemp.com/download); клиентский мод лаунчер обновляет сам перед
 каждым подключением, а сам себя — нет. Как хост, обновите сервер вскоре после такого релиза, ведь
-игроки уже на новом лаунчере. Менял ли релиз протокол, сказано здесь и в
-[таблице версий](/ru/introduction/what-is-nodemp/#версии), а не в описании релиза на GitHub: релиз
-сервера, сохраняющий протокол (1.1.1, 1.2.0), не требует от ваших игроков обновлять лаунчер.
+игроки уже на новом лаунчере. Менял ли релиз протокол, сказано в его заметках о релизе, здесь и в
+[таблице версий](/ru/introduction/what-is-nodemp/#версии): релиз сервера, сохраняющий протокол
+(1.1.1, 1.2.0, 1.2.1), не требует от ваших игроков обновлять лаунчер.
