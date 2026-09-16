@@ -105,6 +105,12 @@ script; keep state in locals or in the table you return.
 - **Errors.** Files are compiled under the chunk name `node/<resource>/<path>`, so a stack trace
   reads `node/race/main.lua:12:`. A file that does not compile is skipped with
   `Resource "race" (main.lua): compile error: ... -- file skipped`; the rest of the resource loads.
+- **No offline runner.** Client files run only inside the game: the server packages them without
+  executing them (from server 1.2.1 it syntax-checks them and logs an `Error` for a file that does
+  not parse), and nothing on the server side can call a `node.on` handler of a client file. To
+  see one run, join the server with the launcher and read `beamng.log`; the server half, by
+  contrast, is testable without the game
+  ([Getting started](/plugins/getting-started/#testing-without-the-game)).
 - **Other players.** Nothing reaches another player directly. `node.emitServer` ends at the server,
   and a feature that must reach everyone is a server resource that forwards it, the way
   `nodemp-relay` does for the client mod's `vehicle:fire` events.
@@ -360,7 +366,7 @@ liveness and configuration echo of the client rules on top of it.
 | Best for | rules, HUD text and vehicle tweaks that belong to one server and change with it | UI, key bindings and vehicle logic a player carries between servers; reading the roster and session |
 
 Write the client half of a resource when the behaviour is the server's: it needs no install, it
-updates when the hoster restarts the server, and it is gone when the player leaves. Write a mod
+updates when the host restarts the server, and it is gone when the player leaves. Write a mod
 when players should have it everywhere - and let it read `NodeMP.session` and `NodeMP.players`
 rather than guessing. Both talk to the same server half, and a server resource cannot tell which
 one sent an event.

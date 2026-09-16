@@ -72,9 +72,11 @@ The Lua reference marks each shape in the signature; these are the shapes it use
 | an error (throws) | misuse, not runtime failure | `node.on` with a non-string name or a non-function handler, `node.commands.add` with a bad signature, `node.sleep` outside `node.async` |
 
 Nothing in `node` returns an error object: a failed action is `false`, a missing thing is `nil`, a
-programming mistake throws. One caveat: `node.on(name, fn)` with the same `fn` twice registers it
-twice - the handler then runs twice per event, and `node.off(name, fn)` removes only the wrapper
-registered last. Subscribe once, at load; a reload starts from a clean state.
+programming mistake throws. `node.on(name, fn)` with the same `fn` twice is one subscription: the
+second call replaces the first, the handler runs once per event, and `node.off(name, fn)` removes
+it and returns `1` ([Events → Naming](/plugins/events/#naming) says the same for the deprecated
+spellings). Two different functions are two handlers. Subscribe at load; a reload starts from a
+clean state.
 
 In C the shapes are integers: an action returns `0` on success and `-1` on failure, a question
 `1` or `0`, a buffer fill the number of bytes written or `-1` when the buffer is too small, and a
@@ -110,14 +112,21 @@ docs of `sdk/node.h` (`ABI 1.8`, `ABI 1.9`, ...). Neither is duplicated here.
 ## Logging
 
 Every console line is `HH:MM:SS  Tag    › message`: the time, a tag padded to six characters, a
-`›` and the message; `logs/server.log` receives the same line without colours. Where your output
-lands:
+`›` and the message; `logs/server.log` receives the same line without colours. With
+`[General] Debug = true` the timestamp gains milliseconds and a column with the writing thread's
+name is inserted after the `›` (`Res    › PluginFramework race · …`), so a parser should not
+assume the message starts right after it. Where your output lands:
 
 - `node.log(msg, ...)` prints under the `Res` tag with the resource's name in front:
   `race · Player#0 Alice is ready`. Extra arguments are `string.format` arguments.
 - `node.log.warn` and `node.log.error` use the `Warn` and `Error` tags, same prefix. Errors the
-  server reports on your behalf read `race · error in event 'race:ready': ...` with a stack trace,
-  and a handler that holds the worker for more than 250 ms is reported as a stall.
+  server reports on your behalf read `race · error in event 'race:ready': ...` with a stack trace
+  (`error in resource event '…'` for a bus handler, `error in timer callback`,
+  `error in async task`), and a handler that holds the worker for more than 250 ms is reported as
+  a stall. Not every line the server prints about your code carries the prefix: on server 1.2.0
+  the stall warning, `emitClient: invalid player ID '0'` (a `node.send` to a player that is not
+  there) and `node.sleep called outside a node.async task` name no resource; server 1.2.1 adds
+  the resource to the stall warning.
 - `node.log.tag(tag, msg)` writes under one of the server's own tags - `Core`, `Net`, `Res`,
   `Mods`, `Module`, `Join`, `Leave`, `Kick`, `Veh`, `Warn`, `Error`, `Debug`; an unknown tag falls
   back to `Module`. `node.log.custom(tag, rgb, msg)` uses a tag of your own in an `0xRRGGBB` colour,

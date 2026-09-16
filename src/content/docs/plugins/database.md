@@ -1,12 +1,12 @@
 ---
 title: Database access
-description: PostgreSQL from a resource with node.pg - hoster setup, query/exec/tx, parameter and result types, errors, migrations, performance, wallet example.
+description: PostgreSQL from a resource with node.pg - host setup, query/exec/tx, parameter and result types, errors, migrations, performance, wallet example.
 ---
 
-`node.pg` gives a resource asynchronous access to the hoster's PostgreSQL: parameterised
+`node.pg` gives a resource asynchronous access to the host's PostgreSQL: parameterised
 statements, transactions on one reserved connection, a pool of connections, and errors as tables
 with the SQLSTATE in them. Nothing blocks the worker thread - a statement runs on a database thread
-and its outcome comes back as a callback, or resumes your coroutine. The hoster names one connection
+and its outcome comes back as a callback, or resumes your coroutine. The host names one connection
 string in `server.toml`; every resource shares the pool. This page is the guide; the
 [Lua API reference](/plugins/api/lua/#nodepg--postgresql) has each call's signature, and the
 [C ABI reference](/plugins/api/c/#database-postgresql) has the `pg_*` entries for native modules.
@@ -17,8 +17,8 @@ Both persist data; they answer different needs.
 
 | | `node.storage` | `node.pg` |
 |---|---|---|
-| Where | a JSON file per resource in `storage/`, kept in memory | the hoster's PostgreSQL |
-| Setup | none | the hoster installs PostgreSQL and sets `[Database] Url` |
+| Where | a JSON file per resource in `storage/`, kept in memory | the host's PostgreSQL |
+| Setup | none | the host installs PostgreSQL and sets `[Database] Url` |
 | Reads | synchronous, from memory | asynchronous: a callback or a suspended coroutine |
 | Shape | key to value | tables, indexes, `WHERE`, `ORDER BY`, `SUM` |
 | Several writes as one | no | `node.pg.tx` |
@@ -33,7 +33,7 @@ call answers `pg_disabled` otherwise.
 
 ## Setting up the database
 
-This part is the hoster's. The server needs a PostgreSQL role, a database it may create tables in,
+This part is the host's. The server needs a PostgreSQL role, a database it may create tables in,
 and the connection string.
 
 **Debian and Ubuntu**
@@ -295,8 +295,10 @@ aliases); the order and the names are in `result.columns`.
 
 In practice:
 
-- **NULL.** `{ 1, nil, "x" }` sends *one* parameter - the `nil` ends the array. Write
-  `{ 1, node.pg.NULL, "x" }`. Coming back, a `NULL` cell is simply missing: `row.col == nil`.
+- **NULL.** `{ 1, nil, "x" }` sends *one* parameter - the `nil` ends the array - and a statement
+  with `$2` in it then fails with SQLSTATE `08P01` (Postgres: `bind message supplies 1
+  parameters, but …`). Write `{ 1, node.pg.NULL, "x" }`. Coming back, a `NULL`
+  cell is simply missing: `row.col == nil`.
 - **Casts.** Postgres infers a parameter's type from where it is used; where it cannot, or gets it
   wrong, cast: `$1::int`, `$2::jsonb`, `$3::timestamptz`, `decode($4, 'hex')::bytea`.
 - **jsonb.** Pass a Lua table and it arrives as JSON text (an array when its keys are `1..n`, an
@@ -320,7 +322,7 @@ reported, or one of the pool's own codes; the optional fields are present when P
 
 | `err.code` | Meaning | What to do |
 |---|---|---|
-| `pg_disabled` | `[Database] Url` is empty; the driver is off. | Check `node.pg.enabled()` at load and run without the feature, or tell the hoster. |
+| `pg_disabled` | `[Database] Url` is empty; the driver is off. | Check `node.pg.enabled()` at load and run without the feature, or tell the host. |
 | `08001` | No live connection: the database is down or not reached yet. A statement submitted then fails at once; one already waiting when the last connection dropped gets it after `QueryTimeoutMs`. | The pool reconnects on its own; retry later or watch `node.pg.ready()`. |
 | `08006` | The connection was lost while the statement ran, or the server is shutting down. | Whether the statement took effect is unknown - retry only through an idempotency key (below). |
 | `57014` | The statement ran past `[Database] QueryTimeoutMs` (Postgres `statement_timeout`). | An index, a narrower query, or a larger timeout. |
@@ -331,7 +333,8 @@ reported, or one of the pool's own codes; the optional fields are present when P
 | `0A000` | `COPY` is not supported. | `INSERT` in a transaction. |
 | `pg_queue_full` | 1000 statements are already waiting. | You issue faster than the database answers: back off, look for the slow-query lines, raise `Pool`. |
 | `pg_result_cap` | More than `[Database] MaxRows` rows; the result was dropped. | `LIMIT` and paginate, or `exec` when the count is all you need. |
-| `pg_params` | A value the driver cannot send - a function, a coroutine, a userdata other than `node.pg.NULL`, a string with a `NUL`, a table JSON cannot encode - or more than 1000 parameters. | Fix the parameter table. |
+| `08P01` | A protocol violation, in practice a parameter count that does not match the statement: `{ 1, nil, 2 }` sends one parameter because the `nil` ends the array. | `node.pg.NULL` for the empty slot. |
+| `pg_params` | A value the driver cannot send - a function, a coroutine, a userdata other than `node.pg.NULL`, a string with a `NUL`, a table JSON cannot encode - or more than 1000 parameters. The message is the terse `query not queued`; the parameter table is the place to look. | Fix the parameter table. |
 | `rollback` | `fn` raised (`message`, and the raised value in `cause`) or called `tx:rollback(reason)`. | Your own decision; a SQLSTATE that caused it is in `err.cause.code`. |
 | `tx_timeout` | The transaction outlived `[Database] TxTimeoutMs` and was rolled back, or `BEGIN` waited that long for a free connection. | Shorter transactions, never suspend for anything else inside `fn`, a larger `Pool`. |
 | `pg_reload` | Never delivered. A resource unloaded while a statement is in flight never sees its callback, and its suspended coroutine is not resumed. | Design so that a lost completion is harmless: the database has the truth, re-read it at load. |
@@ -635,7 +638,7 @@ sees a float, the player never sees a rounding error.
 
 - [Lua API reference: node.pg](/plugins/api/lua/#nodepg--postgresql) - every call with its
   signature and the full error list.
-- [Configuration: `[Database]`](/hosting/configuration/#database) - the five keys the hoster
+- [Configuration: `[Database]`](/hosting/configuration/#database) - the five keys the host
   sets.
 - [Concurrency](/plugins/concurrency/) - the worker thread, `node.async` and why callbacks look
   the way they do.

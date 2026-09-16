@@ -5,7 +5,7 @@ description: A resource for developers - layout, resource.toml, load order, clie
 
 A resource is one folder under `resources/` in the server's working directory. This page is the
 developer's view of that folder: what goes where, what the manifest controls, when the server
-reads what, and the three places a resource keeps data. The hoster's view - installing, the
+reads what, and the three places a resource keeps data. The host's view - installing, the
 obfuscation runner, Docker paths - is on [Resources and content](/hosting/resources/).
 
 ## Layout
@@ -135,6 +135,13 @@ rewrites numbers; `strong` also wraps the file, for menus and one-shot setup. Gl
 keys are never renamed, so `M.onUpdate` and game hooks keep working. Use `none` while you develop:
 line numbers in `beamng.log` then match your source. A file Prometheus cannot transform ships as
 plain source with a warning; a join never fails on obfuscation. Output is cached in `.obfcache/`.
+
+The server does not compile your client files - they are packaged, not run - so on server 1.2.0 a
+syntax error in one shows only as that Prometheus warning
+(`race · Prometheus failed on 'main.lua' (…), shipping it unobfuscated`), and with `none` not at
+all until a player's `beamng.log` reports `compile error`. From server 1.2.1 on every client file
+is parsed when it is packaged and one that does not parse is reported as an `Error` naming the
+resource, the file and the Lua message; the file still ships.
 
 ## Reload
 

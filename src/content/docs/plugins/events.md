@@ -22,6 +22,14 @@ the binary module channel (`node.modules.on`). The relay filter, `relayRequest`,
 `node.relay.filter`. All handlers run on the plugin worker thread, one at a time, in registration
 order; several resources may subscribe to the same name.
 
+The [events reference](/plugins/api/events/) and `api.toml` use one-word names for the same
+kinds: `builtin` for the engine events, `notify` for the vehicle notifications, `cancellable` for
+the requests, `client` for wire events, `bus` and `module` for the two channels, and `special` for
+`relayRequest`. The server's error lines use a third vocabulary: `error in event '…'` for an
+engine or wire event handler, `error in resource event '…'` for a bus handler,
+`error in timer callback`, `error in async task`, and `error in '<path>'` for the entry point at
+load.
+
 ## Naming
 
 Two rules cover every server event name:
@@ -269,7 +277,22 @@ asynchronously on the worker and to the sender too. `node.bus.on(name, fn)` subs
 
 This is how the built-in chat helpers work: `node.chat.say`, `node.chat.tell` and `player:tell`
 emit `chat:say` on the bus, and `node.commands.add` listens for `chat:command`; the `chat`
-resource owns the screen side and answers both. Without `chat` installed those calls are silent.
+resource owns the screen side and answers both. Without `chat` installed those calls are silent -
+nothing reaches a player and nothing is printed on the console either.
+
+The two bus messages are a contract any resource can speak, which is also how a chat command is
+exercised without the game ([Getting started → Testing without the game](/plugins/getting-started/#testing-without-the-game)):
+
+| Bus message | Payload (JSON) | Who emits it | Who listens |
+|---|---|---|---|
+| `chat:command` | `{ "pid": 0, "name": "hello", "args": ["world"], "raw": "/hello world" }` - the player's id, the command word **in lowercase**, the remaining whitespace-separated words as an array, and the whole line as typed | `chat`, for every chat line that starts with `/` | the prelude behind `node.commands.add`, which looks the handler up by `name` exactly as sent |
+| `chat:say` | `{ "text": "…" }` for everyone, `{ "pid": 3, "text": "…" }` for one player (`-1` or no `pid` broadcasts) | `node.chat.say` (no `pid`), `node.chat.tell` and `player:tell` (with `pid`) | `chat`, which turns it into a `chat:msg` wire event with `scope = "system"`, `fromPid = -1`, `name = "System"` |
+
+`node.commands.add` lowercases the name you register and `chat` lowercases the word the player
+typed, which is why commands are case-insensitive for players; a `chat:command` you publish
+yourself must carry the lowercase `name`, or no handler matches. On the wire, the client sends
+`chat:send` with `{ "scope": "global" | "local", "text": "…" }` and receives `chat:msg` with
+`{ "scope", "fromPid", "name", "text" }`.
 
 <!-- doctest: server+client {"emit": [["race:finish", "61.5"]]} -->
 ```lua

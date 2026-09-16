@@ -191,8 +191,8 @@ end
 MP.RegisterEvent("onPlayerJoin", "onPlayerJoin")
 ```
 
-Тот же плагин как ресурс NodeMP. Ему нужен ресурс `chat` из `examples/chat`, установленный рядом,
-потому что чат не является частью сервера:
+Тот же плагин как ресурс NodeMP. Ему нужен пример ресурса `chat`, установленный рядом (начиная с
+сервера 1.2.1 - в архиве релиза в папке `examples/chat`), потому что чат не является частью сервера:
 
 ```toml
 # resources/greeter/resource.toml
@@ -270,4 +270,4 @@ end)
 - [Первые шаги](/ru/plugins/getting-started/) - первый ресурс NodeMP с пустой папки.
 - [События](/ru/plugins/events/) - четыре вида и как отклоняется запрос.
 - [Отличия от BeamMP](/ru/introduction/differences-from-beammp/) - более широкое сравнение, за пределами плагинов.
-- [Конфигурация](/ru/hosting/configuration/) - `server.toml` для хостера.
+- [Конфигурация](/ru/hosting/configuration/) - `server.toml` для хоста.

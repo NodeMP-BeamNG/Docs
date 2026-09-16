@@ -189,8 +189,9 @@ end
 MP.RegisterEvent("onPlayerJoin", "onPlayerJoin")
 ```
 
-The same plugin as a NodeMP resource. It needs the `chat` resource from `examples/chat` installed
-beside it, because chat is not part of the server:
+The same plugin as a NodeMP resource. It needs the `chat` example resource installed beside it
+(from server 1.2.1 in the release archive under `examples/chat`), because chat is not part of the
+server:
 
 ```toml
 # resources/greeter/resource.toml
@@ -266,4 +267,4 @@ them uses `NodeMP.*` instead. On the server, a ported client script still ships 
 - [Getting started](/plugins/getting-started/) - a first NodeMP resource from an empty folder.
 - [Events](/plugins/events/) - the four kinds and how a request is denied.
 - [Differences from BeamMP](/introduction/differences-from-beammp/) - the wider comparison, beyond plugins.
-- [Configuration](/hosting/configuration/) - `server.toml` for the hoster.
+- [Configuration](/hosting/configuration/) - `server.toml` for the host.

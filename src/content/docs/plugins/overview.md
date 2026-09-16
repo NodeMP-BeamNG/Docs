@@ -89,5 +89,21 @@ Plugins written for other multiplayer servers do not run here as they are; see
 - [Wire protocol](/plugins/protocol/) - the frames underneath, for module authors.
 
 Every example named in these pages - `demo-numbers`, `chat`, `vehicle-cleanup`,
-`gatekeeper-example`, `devapi-example`, `nodemp-relay` - is a folder under `examples/` in the
-NodeMP sources; copy one into `resources/` to run it.
+`gatekeeper-example`, `devapi-example`, `nodemp-relay` - is a resource folder. From server 1.2.1
+on they ship in the release archive under `examples/`, next to the server executable: copy one
+into `resources/` to run it. The 1.2.0 archive does not contain them, and they are not published
+separately; the pages quote the parts of them that matter, and `chat` - the one the others lean
+on - is described by its protocol on [Events → node.bus](/plugins/events/#between-resources-nodebus).
+
+## Words
+
+The pages keep to one word per thing, and the [glossary](/reference/glossary/#for-plugin-authors)
+defines each. **Plugin** is the umbrella - the server's own lines say `plugin worker`,
+`plugin job queue` for the whole subsystem. A **resource** is a folder under `resources/`; a
+**native module** is a library under `modules/`; a **language host** is a native module that
+teaches the server a resource type (`js-host`). "Module" on its own is avoided, because the word
+also names the **module channel** (`node.modules`, numbered binary channels to clients) and the
+client mod's **module framework** (`NodeMP.modules`). The events reference names the event kinds
+`builtin`, `notify`, `cancellable`, `client`, `bus` and `module`; the guides call the same kinds
+engine events, vehicle notifications, cancellable requests, wire events, the bus and the module
+channel.

@@ -8,10 +8,14 @@ that greets each player and counts them once a minute, and a client half that re
 ten seconds. It mirrors `demo-numbers`, the smallest end-to-end example, and adds the calls you
 will use on day one. Nothing needs installing beyond the server: Lua is built in.
 
-You need a running `Node-Server` 1.2.0 ([Quick start](/hosting/quick-start/)), the launcher on a
-machine that can join it, and the [Lua API reference](/plugins/api/lua/) open in another tab. Two
-of the calls below - `player:tell` and `node.chat.say` - speak through the `chat` resource from the
-examples; copy `chat` into `resources/` as well, or watch the server console instead of the chat.
+You need a running `Node-Server` 1.2.0 ([Quick start](/hosting/quick-start/)), the
+[Lua API reference](/plugins/api/lua/) open in another tab and, for the client half, the launcher
+on a machine that can join the server - the server half can be exercised without the game
+([below](#testing-without-the-game)). Two of the calls below - `player:tell` and `node.chat.say` -
+speak through the `chat` example resource, which draws the chat and owns the `/` commands: install
+`chat` beside `hello` (from server 1.2.1 it is in the release archive under `examples/`; the 1.2.0
+archive does not contain it), or know that without it those two calls do nothing at all - no chat
+line, and no console line either. `node.log` is what shows on the console.
 
 ## The folder
 
@@ -197,7 +201,49 @@ end, { role = "admin" })
 `player:setRole("admin")`; without it anyone could type `/reload`. The console confirms with
 `hello reloaded — lua`. Two limits: Lua state is lost (keep what must survive in `node.storage`,
 which persists across reloads and restarts), and the client half is packaged once at start, so a
-change under `client/` needs a server restart. Without `chat`, restart the server.
+change under `client/` needs a server restart. Without `chat`, restart the server - or let the
+resource reload itself once from a timer, with a `node.storage` flag so the new instance does not
+do it again; that also exercises `resourceUnload("reload")`
+([Resources → Reload](/plugins/resources/#reload)).
+
+## Testing without the game
+
+The server has no console input and nothing on it needs a player: every server-side call works
+with the server alone, and a chat command can be exercised through the bus contract `chat` speaks
+([Events → node.bus](/plugins/events/#between-resources-nodebus)). A second resource - or a few
+lines at the end of your own - publishes the line a player would have typed as `chat:command`
+and watches the reply as `chat:say`:
+
+<!-- doctest: server -->
+```lua
+-- the command under test
+node.commands.add("hello", function(player, args, raw)
+    player:tell("Hello, %s! You typed: %s", tostring(player.name), raw)
+end)
+
+-- the test bench: watch what commands answer on the bus ...
+node.bus.on("chat:say", function(source, data)
+    local reply = node.json.decode(data)
+    node.log("%s says to pid %s: %s", source, tostring(reply.pid), reply.text)
+end)
+
+-- ... and, half a second in, pretend that player 0 typed "/hello world"
+node.after(500, function()
+    node.bus.emit("chat:command", { pid = 0, name = "hello", args = { "world" }, raw = "/hello world" })
+end)
+
+-- expect: \S+ says to pid 0: Hello, nil! You typed: /hello world
+```
+
+`name` must be lowercase - `chat` lowercases what the player typed before it publishes, and the
+prelude looks the handler up by the exact string. No player 0 exists here, so `player.name` is
+`nil` and the reply cannot be delivered to anyone; the bus line is what you check. Everything
+else - timers, `node.storage`, `node.pg`, `node.http`, a reload, `serverShutdown` and
+`resourceUnload` at Ctrl+C - runs the same with or without players; a wire event handler is the
+one thing that needs a client, because only the client mod can send one. The client half cannot
+be run outside the game at all: the server packages the files and does not execute them (from
+server 1.2.1 it syntax-checks them), and the first place a runtime error shows is a player's
+`beamng.log`.
 
 ## Where errors show
 
@@ -212,14 +258,23 @@ An error while `main.lua` runs at load is reported the same way against the file
 resource still counts as loaded, with whatever handlers were registered before the failing line
 (none, for a syntax error). An error inside a handler never unloads the resource and never denies a cancellable request. A
 handler that keeps the worker busy for more than 250 ms is reported as
-`plugin worker job stalled the thread for 300 ms (move heavy work to node.await/node.job)`; see
+`plugin worker job stalled the thread for 300 ms (move heavy work to node.await/node.job)`. On
+server 1.2.0 that watchdog times the jobs the worker runs - event, bus and request handlers, HTTP,
+job and `node.pg` callbacks - but not timer callbacks and not the slices of a `node.async`
+coroutine, which are serviced between jobs, and the line names no resource. From server 1.2.1 on
+every handler, timer callback, coroutine slice and completion callback is timed on its own and
+the line names the resource and what stalled (`… (resource hello, timer) …`); see
 [Concurrency](/plugins/concurrency/).
 
 Client-side errors are in the player's `beamng.log`: a file that does not compile is skipped with
 `Resource "hello" (main.lua): compile error: ... -- file skipped`, and an error inside a handler
-reads `Error in event handler for "hello:greet" from source "node.res/hello": ...`. Where the log
-is and how to open the in-game diagnostics console is on
-[Troubleshooting](/players/troubleshooting/).
+reads `Error in event handler for "hello:greet" from source "node.res/hello": ...`. The server
+does not run client files, so a syntax error in one is not a server error: server 1.2.0 mentions
+it only when obfuscation is on, as a `Warn` that Prometheus failed on the file and shipped it
+plain; from server 1.2.1 on the packaging step syntax-checks every client file and prints an
+`Error` line with the resource, the file and the parser's message, whatever the obfuscation
+setting (the file still ships). Where the log is and how to open the in-game diagnostics console
+is on [Troubleshooting](/players/troubleshooting/).
 
 ## Next
 

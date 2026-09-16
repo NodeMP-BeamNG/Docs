@@ -19,8 +19,16 @@ HTTP and job completions all land on the same thread. Two consequences:
 - **Blocking blocks everyone.** A handler that loops for a second stalls every other resource's
   handlers, every timer and `serverTick` for that second. The server watches for it: a job over
   250 ms is logged as `plugin worker job stalled the thread for 300 ms (move heavy work to
-  node.await/node.job)`. When the queue is flooded past 100 000 pending jobs, new events are
-  dropped with `plugin job queue full (100000 jobs) -- dropping events (flood?)`.
+  node.await/node.job)`. On server 1.2.0 the watch covers the jobs on the queue - event, bus and
+  request handlers and the HTTP, job and `node.pg` completion callbacks - and **not** timer
+  callbacks or the slices of a `node.async` coroutine between two suspensions, which are
+  serviced between jobs; a 600 ms timer callback stalls everyone just the same and is not
+  reported, and the line does not say which resource stalled. From server 1.2.1 on every piece
+  of plugin code the worker runs is timed on its own - handlers, timer callbacks, coroutine
+  slices, completion callbacks, log sinks - and the line names the resource and the kind
+  (`plugin worker job stalled the thread for 699 ms (resource race, timer) …`). When the queue
+  is flooded past 100 000 pending jobs, new events are dropped with
+  `plugin job queue full (100000 jobs) -- dropping events (flood?)`.
 
 What runs elsewhere: the background pool (`node.job`, `node.await`, `node.http`), the file-writer
 thread (`node.fs.writeAsync`), and the network threads themselves. None of them ever touch your
@@ -181,13 +189,17 @@ resumes with `nil, "background pool is full"`.
   empty body. A failed request calls back with status `-1` and the error text in `body`
   (`resolve failed`, `connect failed`, `TLS handshake failed`, …); every one of them returns
   `false` only when the request could not be queued, and then `cb` never runs.
+- `headers` in the callback (and the third value of `fetch`) is a table keyed by the **lowercased**
+  header name: `headers["content-type"]`, `headers["content-length"]`. Request headers you send
+  keep whatever case you wrote (`["Content-Type"] = "application/json"` is fine); response header
+  names are lowercased by the server, so `headers["Content-Type"]` is always `nil`.
 - `node.http.fetch(url, opts?)` is the coroutine form, inside `node.async` only:
   `local status, body, headers = node.http.fetch(url, { method = "DELETE", body = t, headers = h })`.
   `opts.method` is any method `request` accepts (before 1.2.0 anything but `POST` was sent as
   `GET`); `status` is `0` with body `"request not queued"` when the request could not be queued.
 
 About 15 s timeout, an 8 MB body cap, up to five redirects. TLS peer verification is **off** unless
-the hoster sets `[Http] CaFile` in `server.toml` ([Configuration](/hosting/configuration/#http)):
+the host sets `[Http] CaFile` in `server.toml` ([Configuration](/hosting/configuration/#http)):
 then every `https://` request is verified against that CA bundle and the host name, and a
 certificate that does not check out is a `-1` whose body starts with
 `TLS handshake failed (peer verification against [Http] CaFile)`, and a redirect that would take a

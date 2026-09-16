@@ -6,9 +6,12 @@ description: Six resources to copy - a chat command, roles and groups, teleport,
 Each recipe is one resource: a folder under `resources/` named after the recipe, with
 `server/main.lua` and, where a client half is needed, `client/main.lua`. Every call is in the
 [Lua API reference](/plugins/api/lua/); nothing here needs a native module. Four of the six use
-chat commands or `player:tell`, which speak through the `chat` resource - copy `examples/chat`
-into `resources/` as well, or the commands vanish silently and the replies go nowhere. The server
-console tags each line with the resource's name, so the log lines below are what you will see.
+chat commands or `player:tell`, which speak through the `chat` example resource - install `chat`
+in `resources/` as well (from server 1.2.1 it is in the release archive under `examples/`; see
+[Resources and content](/hosting/resources/#installing-a-resource)), or the commands vanish
+silently and the replies go nowhere. Without the game, a command is exercised through the bus as
+[Getting started](/plugins/getting-started/#testing-without-the-game) shows. The server console
+tags each line with the resource's name, so the log lines below are what you will see.
 
 ## A chat command
 
@@ -32,9 +35,13 @@ end)
 
 `node.commands.add(name, fn, opts?)` registers a handler for the chat line `/name ...`: `fn`
 receives the sender as a `Player`, the words after the name as an array and the whole line. Names
-are case-insensitive, one handler per name per resource, `node.commands.remove(name)` takes it
-back. The `chat` resource publishes every `/` line on the bus as `chat:command`, so a command
-nobody registered is simply dropped - never shown in chat.
+are case-insensitive for the player - `/Online` and `/ONLINE` reach the same handler - because
+`node.commands.add` lowercases the name you register and `chat` lowercases the word the player
+typed; the lookup itself is exact, so a `chat:command` another resource publishes must carry the
+lowercase name ([Events → node.bus](/plugins/events/#between-resources-nodebus) has the payload).
+One handler per name per resource; `node.commands.remove(name)` takes it back. The `chat` resource
+publishes every `/` line on the bus as `chat:command`, so a command nobody registered is simply
+dropped - never shown in chat.
 
 Alice types `/online` and sees `2 online: Alice, Bob` as a system line - `node.players.all()`
 lists players in no particular order, so sort the names if the order matters. The console prints:
@@ -277,9 +284,11 @@ thread and calls `cb(status, body, headers)` on the worker; a table body is JSON
 and the method is whatever the service wants - `"POST"` here, `"PUT"`, `"PATCH"`, `"DELETE"` or
 `"HEAD"` elsewhere (`node.http.post(url, body, headers?, cb)` and its siblings are the same call
 with the method fixed). Set the `Content-Type` yourself - without it the body is sent as
-`application/octet-stream`. The client follows up to five redirects, gives up after about 15
-seconds and caps the response at 8 MB; it verifies the peer's TLS certificate only when the hoster
-set `[Http] CaFile` ([Configuration](/hosting/configuration/#http)). A request that never got an
+`application/octet-stream`. The `headers` you get back are keyed by the lowercased header name
+(`headers["content-type"]`, never `headers["Content-Type"]`). The client follows up to five
+redirects, gives up after about 15 seconds and caps the response at 8 MB; it verifies the peer's
+TLS certificate only when the host set `[Http] CaFile`
+([Configuration](/hosting/configuration/#http)). A request that never got an
 answer calls back with status `-1` and the error text in `body`; `node.http.request` itself
 returns `false` only when the request could not be queued. Most webhook endpoints answer `200` or
 `204` with an empty body, so a healthy
@@ -355,7 +364,8 @@ end, { role = "admin" })
 was redeemed for an account, that account too - then kicks; an IP string or an account id number
 bans for future connects and leaves a running session alone. `node.bans.remove` and
 `node.bans.has` take the same string or number; `node.bans.all()` lists every ban with `ip`,
-`account`, `reason`, `at` and `name`. Bans persist in `bans.json` next to `server.toml`. Two
+`account`, `reason`, `at` and `name`. Bans persist in `bans.json` next to `server.toml`, whose
+format and hand-editing rules are on [Running the server → Bans](/hosting/running/#bans). Two
 `Player` objects compare equal when their ids match, which is what `who == player` relies on.
 
 `/kick Bob Spamming` and `/ban Bob Spamming` print, under the `Kick` tag:
