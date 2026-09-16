@@ -14,6 +14,7 @@ console tags each line with the resource's name, so the log lines below are what
 
 **Goal:** `/online` answers the player with who is connected.
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
 -- resources/online/server/main.lua
 node.commands.add("online", function(player, args, raw)
@@ -24,6 +25,9 @@ node.commands.add("online", function(player, args, raw)
     player:tell("%d online: %s", #names, table.concat(names, ", "))
     node.log("%s asked who is online", tostring(player))
 end)
+
+-- expect: Player#\d+ Alice asked who is online
+-- expect-client: Alice chat:msg .*2 online: Alice, Bob
 ```
 
 `node.commands.add(name, fn, opts?)` registers a handler for the chat line `/name ...`: `fn`
@@ -51,6 +55,7 @@ name = "perms"
 admins = [42, 108]   # directory account ids
 ```
 
+<!-- doctest: server+client {"config": {"admins": [42, 108]}, "emit": [["chat:send", {"text": "/say hello all"}], ["chat:send", {"text": "/lobby 1"}]]} -->
 ```lua
 -- resources/perms/server/main.lua
 local admins = {}
@@ -82,6 +87,10 @@ node.commands.add("lobby", function(player, args)
     for _, v in ipairs(player:vehicles()) do v:setGroup(n) end
     player:tell("You are now in world %d", n)
 end)
+
+-- expect: Player#\d+ Alice is admin \(account 42\)
+-- expect-client: Alice chat:msg .*\[Alice\] hello all
+-- expect-client: Alice chat:msg .*You are now in world 1
 ```
 
 Three identities are in play. `player.accountId` is the directory's account id - stable across
@@ -107,6 +116,7 @@ car next to another player's.
 The server never moves a vehicle itself - positions come from the client that simulates it - so
 the teleport is a wire event to the player's own client half, which sets the position in the game.
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/where"}], ["chat:send", {"text": "/tp Bob"}], ["chat:send", {"text": "/tp Nobody"}]]} -->
 ```lua
 -- resources/tp/server/main.lua
 node.commands.add("where", function(player)
@@ -134,8 +144,13 @@ node.commands.add("tp", function(player, args)
     player:send("tp:to", { x = pos.x + 3, y = pos.y, z = pos.z + 0.5 })
     node.log("%s -> %s (%.1f, %.1f, %.1f)", tostring(player), tostring(target), pos.x, pos.y, pos.z)
 end)
+
+-- expect-client: Alice chat:msg .*No position yet - sit in a car and move
+-- expect-client: Alice chat:msg .*Bob has no position yet, or you are on foot
+-- expect-client: Alice chat:msg .*Usage: /tp <player>
 ```
 
+<!-- doctest: client -->
 ```lua
 -- resources/tp/client/main.lua
 node.on("tp:to", function(data)
@@ -165,6 +180,7 @@ and in Bob's `beamng.log`, under `node.events`: `teleported to 15.3 -45.6 8.3`.
 
 **Goal:** count visits and play time per account across restarts.
 
+<!-- doctest: server+client -->
 ```lua
 -- resources/playtime/server/main.lua
 local sessions = {} -- [player.id] = { since, account }; ids are reused, so this table is per session
@@ -187,6 +203,9 @@ node.on("playerLeft", function(player)
     node.storage.set("playtime:" .. s.account, total)
     node.log("%s played %d s, %d s in total", tostring(player), seconds, total)
 end)
+
+-- expect-client: Alice chat:msg .*Welcome back, Alice - visit 1, 0 min played
+-- expect: Player#\d+ Alice played \d+ s, \d+ s in total
 ```
 
 `node.storage` is a key/value store per resource: `get(key, default)`, `set(key, value)` with any
@@ -221,6 +240,7 @@ name = "webhook"
 url = "…"   # the webhook URL is a secret; keep it out of the code
 ```
 
+<!-- doctest: server+client {"config": {"url": "http://127.0.0.1:9/hooks/nodemp"}} -->
 ```lua
 -- resources/webhook/server/main.lua
 local url = node.config.url
@@ -247,6 +267,8 @@ end)
 node.on("playerLeft", function(player)
     post(string.format("%s left", player.name))
 end)
+
+-- expect: webhook failed \(-1\): connect failed
 ```
 
 `node.http.request(method, url, { headers?, body? }, cb)` runs the request on a background pool
@@ -276,6 +298,7 @@ request as a coroutine that returns `status, body, headers` ([Concurrency](/plug
 **Goal:** `/kick`, `/ban`, `/unban` and `/bans` for players with the `admin` role from the
 permissions recipe.
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/ban Bob Spamming"}], ["chat:send", {"text": "/bans"}], ["chat:send", {"text": "/unban 108"}], ["chat:send", {"text": "/unban 127.0.0.1"}], ["chat:send", {"text": "/kick Bob"}]]} -->
 ```lua
 -- resources/moderation/server/main.lua
 local function target(player, args)
@@ -318,6 +341,12 @@ node.commands.add("bans", function(player)
         player:tell("%s: %s - %s", b.name or "?", b.account and ("account " .. b.account) or b.ip, b.reason or "")
     end
 end, { role = "admin" })
+
+-- expect-log: Bob banned by a server plugin \(\S+, account 108\) — Spamming
+-- expect-log: Bob kicked — Spamming
+-- expect-client: Alice chat:msg .*Bob: account 108 - Spamming
+-- expect-client: Alice chat:msg .*Unbanned 108
+-- expect-client: Alice chat:msg .*No player named Bob
 ```
 
 `player:kick(reason)` disconnects the player and shows the reason in the launcher.

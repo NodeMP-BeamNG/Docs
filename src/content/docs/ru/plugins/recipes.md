@@ -15,6 +15,7 @@ description: Шесть ресурсов для копирования - ком�
 
 **Цель:** `/online` отвечает игроку, кто подключён.
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
 -- resources/online/server/main.lua
 node.commands.add("online", function(player, args, raw)
@@ -25,6 +26,9 @@ node.commands.add("online", function(player, args, raw)
     player:tell("%d online: %s", #names, table.concat(names, ", "))
     node.log("%s asked who is online", tostring(player))
 end)
+
+-- expect: Player#\d+ Alice asked who is online
+-- expect-client: Alice chat:msg .*2 online: Alice, Bob
 ```
 
 `node.commands.add(name, fn, opts?)` регистрирует обработчик строки чата `/name ...`: `fn` получает
@@ -52,6 +56,7 @@ name = "perms"
 admins = [42, 108]   # directory account ids
 ```
 
+<!-- doctest: server+client {"config": {"admins": [42, 108]}, "emit": [["chat:send", {"text": "/say hello all"}], ["chat:send", {"text": "/lobby 1"}]]} -->
 ```lua
 -- resources/perms/server/main.lua
 local admins = {}
@@ -83,6 +88,10 @@ node.commands.add("lobby", function(player, args)
     for _, v in ipairs(player:vehicles()) do v:setGroup(n) end
     player:tell("You are now in world %d", n)
 end)
+
+-- expect: Player#\d+ Alice is admin \(account 42\)
+-- expect-client: Alice chat:msg .*\[Alice\] hello all
+-- expect-client: Alice chat:msg .*You are now in world 1
 ```
 
 В игре три идентичности. `player.accountId` - идентификатор аккаунта в директории: стабилен между
@@ -110,6 +119,7 @@ perms · Player#0 Alice is admin (account 42)
 поэтому телепорт - это сетевое событие в собственную клиентскую половину игрока, которая и
 задаёт позицию в игре.
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/where"}], ["chat:send", {"text": "/tp Bob"}], ["chat:send", {"text": "/tp Nobody"}]]} -->
 ```lua
 -- resources/tp/server/main.lua
 node.commands.add("where", function(player)
@@ -137,8 +147,13 @@ node.commands.add("tp", function(player, args)
     player:send("tp:to", { x = pos.x + 3, y = pos.y, z = pos.z + 0.5 })
     node.log("%s -> %s (%.1f, %.1f, %.1f)", tostring(player), tostring(target), pos.x, pos.y, pos.z)
 end)
+
+-- expect-client: Alice chat:msg .*No position yet - sit in a car and move
+-- expect-client: Alice chat:msg .*Bob has no position yet, or you are on foot
+-- expect-client: Alice chat:msg .*Usage: /tp <player>
 ```
 
+<!-- doctest: client -->
 ```lua
 -- resources/tp/client/main.lua
 node.on("tp:to", function(data)
@@ -168,6 +183,7 @@ tp · Player#1 Bob -> Player#0 Alice (12.3, -45.6, 7.8)
 
 **Цель:** считать визиты и время игры на аккаунт между перезапусками.
 
+<!-- doctest: server+client -->
 ```lua
 -- resources/playtime/server/main.lua
 local sessions = {} -- [player.id] = { since, account }; ids are reused, so this table is per session
@@ -190,6 +206,9 @@ node.on("playerLeft", function(player)
     node.storage.set("playtime:" .. s.account, total)
     node.log("%s played %d s, %d s in total", tostring(player), seconds, total)
 end)
+
+-- expect-client: Alice chat:msg .*Welcome back, Alice - visit 1, 0 min played
+-- expect: Player#\d+ Alice played \d+ s, \d+ s in total
 ```
 
 `node.storage` - хранилище ключ/значение на ресурс: `get(key, default)`, `set(key, value)` с любым
@@ -224,6 +243,7 @@ name = "webhook"
 url = "…"   # the webhook URL is a secret; keep it out of the code
 ```
 
+<!-- doctest: server+client {"config": {"url": "http://127.0.0.1:9/hooks/nodemp"}} -->
 ```lua
 -- resources/webhook/server/main.lua
 local url = node.config.url
@@ -250,6 +270,8 @@ end)
 node.on("playerLeft", function(player)
     post(string.format("%s left", player.name))
 end)
+
+-- expect: webhook failed \(-1\): connect failed
 ```
 
 `node.http.request(method, url, { headers?, body? }, cb)` выполняет запрос в фоновом потоке пула и
@@ -278,6 +300,7 @@ webhook · webhook failed (-1): connect failed: Connection refused
 
 **Цель:** `/kick`, `/ban`, `/unban` и `/bans` для игроков с ролью `admin` из рецепта о правах.
 
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/ban Bob Spamming"}], ["chat:send", {"text": "/bans"}], ["chat:send", {"text": "/unban 108"}], ["chat:send", {"text": "/unban 127.0.0.1"}], ["chat:send", {"text": "/kick Bob"}]]} -->
 ```lua
 -- resources/moderation/server/main.lua
 local function target(player, args)
@@ -320,6 +343,12 @@ node.commands.add("bans", function(player)
         player:tell("%s: %s - %s", b.name or "?", b.account and ("account " .. b.account) or b.ip, b.reason or "")
     end
 end, { role = "admin" })
+
+-- expect-log: Bob banned by a server plugin \(\S+, account 108\) — Spamming
+-- expect-log: Bob kicked — Spamming
+-- expect-client: Alice chat:msg .*Bob: account 108 - Spamming
+-- expect-client: Alice chat:msg .*Unbanned 108
+-- expect-client: Alice chat:msg .*No player named Bob
 ```
 
 `player:kick(reason)` отключает игрока и показывает причину в лаунчере. `node.bans.add(who, reason)`
