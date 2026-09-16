@@ -1,0 +1,8 @@
+name = "chat"
+version = "doctest"
+
+# A stand-in for the chat example resource the guides tell the reader to install: the
+# documented chat:send / chat:command / chat:say / chat:msg protocol, nothing more.
+
+[server]
+main = "server/main.lua"
