@@ -372,7 +372,7 @@ test('events: api.toml events with aliases; old names only in allowed contexts; 
 
 test('versions: mentions are recognised in EN and RU, historical statements are not', () => {
   const text = [
-    'description: Run Node-Server 1.1.0 from the archive',                   // server
+    'description: Run Node-Server 1.1.0 from the archive; --version prints `Node-Server v1.2.0`', // server x2
     'You need a running `Node-Server` 1.2.0 and launcher 1.1.0.',            // server, launcher
     'curl https://x/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz',       // server x2
     '| Game server (`Node-Server`) | 1.2.0 | tag `server-v1.2.0` |',         // server (row) + tag
@@ -390,7 +390,7 @@ test('versions: mentions are recognised in EN and RU, historical statements are 
   ].join('\n');
   const m = versionMentions(text);
   const count = (key) => m.filter((x) => x.key === key).length;
-  assert.equal(count('server'), 1 + 1 + 2 + 2 + 1);
+  assert.equal(count('server'), 2 + 1 + 2 + 2 + 1);
   assert.equal(count('launcher'), 1 + 2 + 2 + 1);
   assert.equal(count('mod'), 3 + 2 + 1);
   assert.equal(count('protocol'), 4 + 1);

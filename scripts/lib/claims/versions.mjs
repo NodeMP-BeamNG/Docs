@@ -22,7 +22,7 @@ const re = (s) => new RegExp(s, 'giu');
 
 // [key, regex, { proseOnly }] -- the first capture is the version.
 export const RECOGNIZERS = [
-  ['server', re(String.raw`${B}Node-Server\x60?\s*\x60?\s*${V3}`)],
+  ['server', re(String.raw`${B}Node-Server\x60?\s*\x60?\s*v?${V3}`)],
   ['server', re(String.raw`${B}(?:server|сервер[а-яё]*)\s*\x60?\s*${V3}`)],
   ['server', re(String.raw`${B}server-v${V3}`)],
   ['server', re(String.raw`${B}Node-Server-${V3}-(?:linux|windows)`)],
