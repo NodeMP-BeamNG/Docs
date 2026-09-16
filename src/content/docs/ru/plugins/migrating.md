@@ -174,6 +174,7 @@ main = "server/main.lua"
 
 Плагин BeamMP, который отвечает на `!online` и объявляет о подключениях:
 
+<!-- doctest: skip BeamMP's MP.* API, shown for comparison; a NodeMP server has no MP table -->
 ```lua
 -- Resources/Server/Greeter/main.lua (BeamMP)
 function onChatMessage(pid, name, message)
@@ -202,6 +203,7 @@ version = "1.0"
 main = "server/main.lua"
 ```
 
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
 -- resources/greeter/server/main.lua (NodeMP)
 node.commands.add("online", function(player, args, raw)
@@ -211,6 +213,9 @@ end)
 node.on("playerJoined", function(player)
     node.chat.say("%s joined", player.name)
 end)
+
+-- expect-client: Alice chat:msg .*Alice joined
+-- expect-client: Alice chat:msg .*Online: 1
 ```
 
 Что изменилось, строка за строкой:
@@ -227,6 +232,7 @@ end)
 Плагин, который следил за каждой строкой, - логгер, фильтр - подписывается на сетевое событие,
 которое шлёт клиент, `chat:send`, чей `data` - JSON-текст `{ "scope": "global", "text": "..." }`:
 
+<!-- doctest: server+client {"emit": [["chat:send", {"scope": "global", "text": "hello from BeamMP land"}]]} -->
 ```lua
 node.on("chat:send", function(player, data)
     local msg = node.json.decode(data)
@@ -234,6 +240,8 @@ node.on("chat:send", function(player, data)
         node.log("%s: %s", player.name, msg.text)
     end
 end)
+
+-- expect: Alice: hello from BeamMP land
 ```
 
 Он видит строку; он не решает, ретранслирует ли её `chat`. Запустите сервер, и консоль напечатает

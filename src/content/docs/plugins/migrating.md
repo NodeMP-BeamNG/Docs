@@ -172,6 +172,7 @@ blocks the worker for a network round trip.
 
 A BeamMP plugin that answers `!online` and announces joins:
 
+<!-- doctest: skip BeamMP's MP.* API, shown for comparison; a NodeMP server has no MP table -->
 ```lua
 -- Resources/Server/Greeter/main.lua (BeamMP)
 function onChatMessage(pid, name, message)
@@ -200,6 +201,7 @@ version = "1.0"
 main = "server/main.lua"
 ```
 
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
 -- resources/greeter/server/main.lua (NodeMP)
 node.commands.add("online", function(player, args, raw)
@@ -209,6 +211,9 @@ end)
 node.on("playerJoined", function(player)
     node.chat.say("%s joined", player.name)
 end)
+
+-- expect-client: Alice chat:msg .*Alice joined
+-- expect-client: Alice chat:msg .*Online: 1
 ```
 
 What changed, line by line:
@@ -225,6 +230,7 @@ What changed, line by line:
 A plugin that watched every line - a logger, a filter - subscribes to the wire event the client
 sends, `chat:send`, whose `data` is JSON text `{ "scope": "global", "text": "..." }`:
 
+<!-- doctest: server+client {"emit": [["chat:send", {"scope": "global", "text": "hello from BeamMP land"}]]} -->
 ```lua
 node.on("chat:send", function(player, data)
     local msg = node.json.decode(data)
@@ -232,6 +238,8 @@ node.on("chat:send", function(player, data)
         node.log("%s: %s", player.name, msg.text)
     end
 end)
+
+-- expect: Alice: hello from BeamMP land
 ```
 
 It sees the line; it does not decide whether `chat` relays it. Start the server and the console
