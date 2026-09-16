@@ -135,10 +135,23 @@ jobs:
           tar -xzf "$asset"
           chmod +x Node-Server
           ./Node-Server --version
+      # The fake player's wire codec (run/wire.py, run/wire_taxonomy.py, run/testclient.py) is
+      # read from the server repository at run time: it is not public, so nothing of it is
+      # copied into this one. Read-only deploy key, run/ only.
+      - name: Checkout the server's run/ helpers (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/server
+          ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
+          path: server
+          sparse-checkout: run
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
       - run: python scripts/doctest/run.py --self-test
       - name: Run the examples
         env:
           DOCTEST_SERVER: ${{ github.workspace }}/.server/Node-Server
+          NODEMP_SERVER_DIR: ${{ github.workspace }}/server
           NODE_DATABASE_URL: postgres://docs:docs@127.0.0.1:5432/docs
         run: python scripts/doctest/run.py --strict
       - name: Upload the server logs of the failed pages

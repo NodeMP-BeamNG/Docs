@@ -11,9 +11,11 @@ src/content/docs/plugins/api/
 src/content/docs/ru/plugins/api/
 sdk/
 
-# the doctest runner's scratch servers (npm run doctest) and the server binary CI downloads
+# the doctest runner's scratch servers (npm run doctest), the server binary CI downloads and
+# the server checkout CI makes for the runner's wire helpers
 .doctest/
 .server/
+server/
 __pycache__/
 
 # os / editor
