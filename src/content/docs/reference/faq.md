@@ -72,10 +72,10 @@ When you report a problem, attach `launcher.log`, the exact toast text and the s
 
 ## Hosts
 
-**Which server version do these pages describe?** The current release, 1.2.0 for the server,
+**Which server version do these pages describe?** The current release, 1.2.1 for the server,
 1.1.0 for the launcher, 1.4.0 for the client mod, wire protocol v18; the table on
-[What is NodeMP](/introduction/what-is-nodemp/#versions) is the reference, and a behaviour that
-arrives with the next release is marked `(server 1.2.1)` where it is described.
+[What is NodeMP](/introduction/what-is-nodemp/#versions) is the reference. Where an older
+server behaved differently, a short `before 1.2.1` sentence says how.
 
 **What do I need before my server can be listed?** A NodeMP account with a verified e-mail and a
 linked Discord account (only such an account can create a server key), a machine reachable on
@@ -85,47 +85,48 @@ Without a key the server runs unlisted and is reachable through Direct Connect.
 
 **I pasted the `[Directory]` block from the website and the server exits. Why?** `server.toml`
 already had a `[Directory]` table, so the file now defines it twice, which TOML rejects. Delete
-the pasted block and set `Url`, `HostId` and `HostSecret` in the existing table. Server 1.2.0
-prints the parser's `table ("Directory") already exists`; server 1.2.1 says it in plain words.
+the pasted block and set `Url`, `HostId` and `HostSecret` in the existing table. The server
+says so itself: `the table [Directory] appears twice. Put the keys into the existing [Directory] table …`.
 → [Registering → Put the key into the server](/hosting/registering/#put-the-key-into-the-server)
 
 **On Windows the log says `TLS handshake failed: certificate verify failed` towards
-`api.nodemp.com`. Is the key wrong?** No. Server 1.2.0 on Windows has no trusted root
-certificates to verify the directory with. Set `SSL_CERT_FILE` to a PEM bundle of public roots
-(Mozilla's `cacert.pem`) before starting; do not pin `[Directory] Fingerprint`. Fixed in
-server 1.2.1, which reads the Windows certificate store and ships `cacert.pem`.
-→ [Registering → Windows](/hosting/registering/#windows-the-directorys-certificate-cannot-be-verified)
+`api.nodemp.com`. Is the key wrong?** No - the server found no trusted root certificates. On the
+current server that means the Windows certificate store is empty and `cacert.pem` is no longer
+next to `Node-Server.exe` (put it back); on 1.2.0 and 1.1.0 it happened on every Windows machine,
+and the way out until the update is `SSL_CERT_FILE` pointed at a PEM bundle of public roots. Do
+not pin `[Directory] Fingerprint`.
+→ [Registering → Windows](/hosting/registering/#windows-the-directorys-certificate)
 
 **How do I know the directory's probe reached my port?** The server's log does not say. The
 server appears in the launcher's list and at nodemp.com/servers once it did, and a TCP
 connection to your public address on port 30814 from outside your network succeeds.
 → [Registering → What the server does with it](/hosting/registering/#what-the-server-does-with-it)
 
-**The server printed `server is ready` and quit. Why?** The port is in use - almost always a
-previous instance still running. Server 1.2.0 fails its bind, goes on for a few seconds and
-shuts itself down; server 1.2.1 prints `Cannot listen on port …: the port is already in use …`
-and exits with code 1. → [Running → Logs](/hosting/running/#logs)
+**The server says `Cannot listen on port 30814 … the port is already in use` and quits. Why?** Almost
+always a previous instance of the server is still running; stop it, or give this one another port.
+The server exits with code 1 so a supervisor notices. (A 1.2.0 server printed `bind() failed` and
+even `server is ready` before it quit.) → [Running → Logs](/hosting/running/#logs)
 
-**How do I lift a ban?** On server 1.2.0: stop the server, remove the entry (or the two entries,
-address and account) from `bans.json` in the working directory, start again - the file is read
-at start only. From server 1.2.1 on, `Node-Server --bans list` and
-`Node-Server --bans remove <ip | account id>` do it with the server stopped. A running server can
-also lift one through a resource (`node.bans.remove`). → [Running → Bans](/hosting/running/#bans)
+**How do I lift a ban?** Stop the server, then `Node-Server --bans list` shows the entries and
+`Node-Server --bans remove <ip | account id>` removes one (both entries, address and account, for
+a player banned in a session); start again. Editing `bans.json` by hand with the server stopped
+does the same. A running server can also lift one through a resource (`node.bans.remove`).
+→ [Running → Bans](/hosting/running/#bans)
 
-**Where are the example resources (`chat`, `demo-numbers`, …)?** Not in the 1.2.0 archive and
-not published separately. From server 1.2.1 on they ship in the release archive under
-`examples/`; copy one into `resources/` and restart. Until then the smallest resource is `hello`
-from [Getting started](/plugins/getting-started/), typed in by hand.
+**Where are the example resources (`chat`, `demo-numbers`, …)?** In the release archive under
+`examples/`, next to `Node-Server`; `examples/README.txt` says what each one does. Copy one into
+`resources/` and restart. (The 1.2.0 and older archives did not contain them.)
 → [Resources and content → Installing a resource](/hosting/resources/#installing-a-resource)
 
 **Do I need a Windows PC for `strict`?** For generating the reference manifest, yes: the
 generator reads a clean BeamNG install, so it runs where the game is installed. The manifest file
 is then copied to the server, Linux or Docker included. → [Strict verification](/hosting/strict-verification/#generating-the-manifest)
 
-**Where are the release notes?** There are none on GitHub: the release body names the assets.
-What a release changed is written into these pages - the version table, and `(server 1.2.0)` /
-`(server 1.2.1)` marks where a behaviour is described. A server release that keeps the wire
-protocol needs no launcher update from your players. → [Updating](/hosting/updating/)
+**Where are the release notes?** In the release body on GitHub, from 1.2.1 on (the server
+repository's `RELEASE_NOTES.md` section for the tag): what changed, whether a default changed,
+whether the wire protocol moved. Older releases have a one-sentence body; these pages describe the
+current release. A server release that keeps the wire protocol needs no launcher update from your
+players. → [Updating](/hosting/updating/)
 
 ## Plugin authors
 
@@ -140,13 +141,13 @@ resource per name, and will be removed in 2.0. → [Events → Naming](/plugins/
 **Which HTTP methods exist?** `node.http.request(method, url, opts?, cb)` takes any method;
 `node.http.get`, `post`, `put`, `patch`, `delete` and `head` are it with the method fixed, and
 `node.http.fetch(url, { method = … })` is the coroutine form inside `node.async` (the methods
-other than `get` and `post` arrived with server 1.2.0; before it `fetch` sent anything but `POST`
+other than `get` and `post` were added in server 1.2.0; before it `fetch` sent anything but `POST`
 as `GET`). Response headers arrive with
 lowercased names (`headers["content-type"]`). TLS peer verification is off unless the host sets
 `[Http] CaFile`, and then every `https://` request is checked against that bundle.
 → [Concurrency → HTTP](/plugins/concurrency/#http)
 
-**Are there sockets - a `node.net`?** Not yet. Server 1.2.0 has no socket API for resources:
+**Are there sockets - a `node.net`?** Not yet. The server has no socket API for resources:
 what exists is `node.http` towards the outside and wire events, the bus and the module channel
 inside. A socket API is on the platform's list, without a date; nothing on these pages describes
 one, and nothing should be built on it yet.
@@ -183,19 +184,19 @@ name; the lookup itself is exact. A `chat:command` you publish must carry the lo
 first, and `node.off(name, fn)` removes it. Two different functions are two handlers.
 → [Conventions → Return shapes](/plugins/conventions/#return-shapes)
 
-**Why did my 600 ms timer callback not trigger the stall warning?** On server 1.2.0 the watchdog
-times the worker's jobs - event, bus and request handlers and completion callbacks - and not timer
-callbacks or `node.async` slices; it also names no resource. From server 1.2.1 on every handler,
-timer and coroutine slice is timed and the line names the resource.
+**Why did my 600 ms timer callback not trigger the stall warning?** On the current server it does:
+every handler, timer callback, coroutine slice and completion callback is timed on its own, and the
+line names the resource and the kind (`(resource race, timer)`). Before 1.2.1 only whole worker
+jobs were timed, which left timer callbacks and `node.async` slices unreported.
 → [Concurrency → One worker thread](/plugins/concurrency/#one-worker-thread)
 
-**Why is a syntax error in my client file not reported by the server?** The server packages
-client files without running them. Server 1.2.0 mentions a broken one only as a Prometheus
-warning (with obfuscation on); from server 1.2.1 on every client file is syntax-checked when it is
-packaged and an `Error` line names the file. The file still ships, and the game's compile error
-is in the player's `beamng.log`. → [Resources → Obfuscation](/plugins/resources/#obfuscation)
+**Is a syntax error in my client file reported by the server?** Yes, at load: every client file is
+parsed when it is packaged, and one that does not parse gets an `Error` line naming the resource,
+the file and the Lua message, whatever the obfuscation setting. The file still ships (the server
+runs no client code), and the game's own compile error is in the player's `beamng.log`. Before
+1.2.1 the only sign was Prometheus's warning, with obfuscation on. → [Resources → Obfuscation](/plugins/resources/#obfuscation)
 
-**Where are the examples, and where is `chat`?** From server 1.2.1 on, under `examples/` in the
-release archive; the 1.2.0 archive does not contain them. `chat`'s protocol - `chat:send` and
+**Where are the examples, and where is `chat`?** Under `examples/` in the release archive, next
+to the server executable (`examples/README.txt` lists them). `chat`'s protocol - `chat:send` and
 `chat:msg` on the wire, `chat:command` and `chat:say` on the bus - is documented, so a stand-in
 is a few lines. → [Events → node.bus](/plugins/events/#between-resources-nodebus)
