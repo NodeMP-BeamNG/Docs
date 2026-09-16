@@ -4,7 +4,10 @@ description: Every launcher message from a failed join with its cause and fix, w
 ---
 
 The launcher reports problems as toasts at the bottom of its window; a toast stays for a few
-seconds. Each message starts with a prefix that says which part failed:
+seconds. Each message starts with a prefix that says which part failed. Two of them say "the
+launcher" and mean the **helper**: the part of the launcher that starts the game and holds the
+connection while you play, the same `nodemp-launcher.exe` run a second time without a window. Its
+log is `launcher.log` ([Logs](#logs)); the launcher window itself is what shows you the toast.
 
 | Prefix | Who failed |
 |---|---|
@@ -14,6 +17,9 @@ seconds. Each message starts with a prefix that says which part failed:
 | `Disconnected · …` | The server refused or ended the session; the text is the reason it gave, word for word. |
 | `The launcher stopped · …` | The helper exited during the join; the text is the last line of its log. |
 | `Session ended · …` | The game was already running when the session ended. |
+
+Every text below is quoted as the software prints it, so you can search this page for it. The
+same texts, one line each, are indexed on [Error codes](/reference/error-codes/).
 
 ## Joining fails
 
@@ -36,7 +42,9 @@ server's card explains with what to do. Everything else a server sends arrives a
 | `Client mod could not be updated · joining with the installed copy` | The check failed, but an older `NodeMP.zip` exists. Not an error by itself. | If the server refuses the old mod: **Settings → Launcher → Check now** with BeamNG closed. |
 | `Could not check the client mod · could not replace …\NodeMP.zip (is BeamNG.drive running?): …` | BeamNG.drive has the zip open. | Close the game, then *Check now*. |
 | `Could not start the launcher · could not start …\nodemp-launcher.exe: …` | Antivirus or a policy blocked the helper process. | Allow `nodemp-launcher.exe`, or reinstall from [nodemp.com/download](https://nodemp.com/download). |
-| `The launcher stopped · … Failed to find the game please launch it. Report this if the issue persists code 8` | The helper could not find BeamNG.drive. | Start the game once through Steam, or set the folder in **Settings → Game**. |
+| `The launcher stopped · … Failed to find the game please launch it. Report this if the issue persists code 8` | The helper could not find BeamNG.drive in any of the places it looks (**Settings → Game**, `BeamNG.Drive.ini`, the registry, Steam's library folders). `code 8` is the helper's own number for that search, not an error code to look up. | Start the game once through Steam, or set the folder in **Settings → Game**. |
+| **Settings → Game** says `Could not find a BeamNG.drive install. Browse to it, or launch the game once so Steam writes its path.` | Not a toast: the launcher's own search found no install. A join would end with the `code 8` line above. | **Browse** to the folder that contains `Bin64\BeamNG.drive.x64.exe`, or start the game once through Steam and press **Find it**. |
+| **Settings → Game** says `No Bin64\BeamNG.drive.x64.exe in this folder` | You browsed to a folder that is not the game's root. | Pick the folder that contains `Bin64\` (the one with `integrity.json` in it). |
 | `The launcher stopped · … Failed to Launch the game! launcher closing soon.` | `Bin64\BeamNG.drive.x64.exe` would not start, through Steam either. | Verify the game files in Steam; check **Settings → Game**. |
 | The step stays on `Starting BeamNG.drive` or `Loading BeamNG.drive` | The launcher waits up to four minutes for BeamNG's window; a cold start can take that long. | Wait. If the game never appears, read `launcher.log` (below). |
 | `Could not connect · Could not reach the server` | Nothing answers at `host:port`: server down, port closed, firewall. | Refresh the list; the host checks `30814` TCP and UDP. |
@@ -80,7 +88,9 @@ The usual causes on an unmodified game are files the check cannot tell from a mo
 - **Leftovers of unpacked mods in the user folder** — `vehicles\<model>\info_*.json`,
   `*.materials.json`, `*.jbeam` under `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\vehicles\`,
   left behind after a mod was removed from `mods\`. Only saved configurations
-  (`vehicles\<model>\<name>.pc` with their `.png`/`.jpg` previews) are allowed there.
+  (`vehicles\<model>\<name>.pc` with their `.png`/`.jpg` previews) and the game's own
+  `main.materials.json` placeholders, which the engine writes under `vehicles\` and `art\` by
+  itself, are allowed there; any other `*.materials.json` is a leftover.
 - **Your own levels or particles** — a level under `current\levels\`, an edited
   `current\lua\common\particles.json`, anything under `current\lua\`, `ui\`, `art\` or `scripts\`
   that is not the game's. Move it out while you play on a strict server; `mods\` and the editors'
@@ -97,7 +107,11 @@ The usual causes on an unmodified game are files the check cannot tell from a mo
 The refusal shows three examples. To see the whole list, run the same check yourself: it is built
 into the launcher as `--integrity-check`, takes the reference the server sent (cached under
 `%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest`; one file per reference
-you have fetched), and prints every problem. From a Command Prompt, with BeamNG closed:
+you have fetched), and prints every problem. The easiest way to get the command is the panel
+under the server's card after a refusal: its **Copy** button gives it with the right file filled
+in. Typed by hand, `<id>` is the 64-character name of the manifest file, and with several files
+in that folder the newest one is normally the reference of the server you were just refused by.
+From a Command Prompt, with BeamNG closed:
 
 ```
 cd %LOCALAPPDATA%\com.nodemp.launcher\helper
@@ -160,7 +174,12 @@ host to regenerate it) or `could not check: the game's user folder … does not 
 - **No connection** screen (`NodeMP cannot reach its server list. Check that you are online —
   and if you use a VPN for a test server, that it is connected.`): the directory did not answer
   at start-up. *Try again*, or *Continue without the list*; Direct Connect still works. While
-  it is down, Refresh reports `Could not reach NodeMP at https://api.nodemp.com`.
+  it is down, Refresh reports `Could not reach NodeMP at https://api.nodemp.com`. A join made
+  while the directory is unreachable carries no join ticket, so nobody verifies who you are:
+  signed in, you arrive under your account name, unverified. A server without a server key
+  takes names as they come anyway. A listed server that allows Test Drive admits a ticket-less
+  join as an unverified guest; one that says *Account required* refuses it with
+  `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again`.
 - `No servers online` / `Nobody is hosting right now.`: the directory answered with an empty
   list. Nothing is wrong on your side.
 - `Nothing matches these filters`: open **Filters** and press *Reset*. Favorites and Recent only
@@ -172,6 +191,12 @@ host to regenerate it) or `could not check: the game's user folder … does not 
 the game and remove again.
 
 ## Logs
+
+The launcher keeps two folders under `%LOCALAPPDATA%`: `NodeMP\` holds the program
+(`nodemp-launcher.exe`, what the installer wrote), `com.nodemp.launcher\helper\` holds its data -
+the helper's `Launcher.cfg`, the `cache\` of downloaded content and manifests, and `logs\`. When
+you report a problem, the second folder is the one with the evidence; nothing in the first one is
+worth attaching.
 
 - **Helper log** — `launcher.log` records one session: game detection, the connection, content
   downloads and why the session ended. **Settings → Launcher → Logs → Open** opens its folder:
@@ -194,7 +219,9 @@ When you report a problem, attach `launcher.log`, the exact toast text and the s
 
 ## Advanced: another directory
 
-Testers running their own directory can repoint the launcher. In order of precedence:
+This section is for developers and testers who run their own directory; players can skip it -
+the launcher is pointed at `https://api.nodemp.com` and needs no setting. Testers running their
+own directory can repoint the launcher. In order of precedence:
 
 1. The environment variable `NODEMP_API_BASE`, for example `http://localhost:8080`.
 2. A file `directory.url` beside `nodemp-launcher.exe` in `%LOCALAPPDATA%\NodeMP`: one line

@@ -7,7 +7,12 @@ NodeMP has no numbered error codes. What you see is text from one of three place
 the launcher window, the last line of the helper's log, or the reason a server gave when it
 refused or ended a session. This page is the index of those texts, quoted exactly as the code
 prints them; `…` stands for a part that varies. The longer explanations are in
-[Troubleshooting](/players/troubleshooting/), and each row links to its section there.
+[Troubleshooting](/players/troubleshooting/), and each row links to its section there. The one
+number a player ever sees, `code 8` at the end of `Failed to find the game please launch it …`,
+is the helper's own label for its game search, not a code to look up; the numbers in the
+[helper exit codes](#helper-exit-codes) table are process exit codes, visible only when the
+helper is started from a terminal, and that table is for the people who do that. The
+[glossary](/reference/glossary/#for-players) says what the helper is.
 
 ## Launcher messages
 
@@ -49,6 +54,8 @@ that failed. Sign-in messages appear in the sign-in form instead of a toast.
 | `username must be 3-24 chars [A-Za-z0-9_-]`, `password must be 8-200 chars`, `already exists` | The directory's rules for *Create an account*. | Pick another name or a longer password. | [Signing in](/players/troubleshooting/#signing-in) |
 | `could not reach the directory: …`, `the directory returned 503 Service Unavailable`, `unexpected reply from the directory: …`, `too many requests, slow down` | No connection to `https://api.nodemp.com`, an error on its side, or too many attempts in a row. | Check your connection and VPN; wait a moment. | [Signing in](/players/troubleshooting/#signing-in) |
 | `could not save the sign-in: …`, `could not reach the credential store: …`, `Could not sign in. Try again.` | Windows Credential Manager refused the sign-in token, or the failure had no text. | Sign in again; until the store works, the sign-in is not remembered across restarts. | [Signing in](/players/troubleshooting/#signing-in) |
+| `Could not find a BeamNG.drive install. Browse to it, or launch the game once so Steam writes its path.` | Shown under **Settings → Game**, not as a toast: the launcher found no game in the places it looks. A join would end with the `code 8` line of the helper table. | **Browse** to the game folder, or start the game once through Steam and press **Find it**. | [Joining fails](/players/troubleshooting/#joining-fails) |
+| `No Bin64\BeamNG.drive.x64.exe in this folder` | Shown under **Settings → Game**: the folder you browsed to is not the game's root. | Pick the folder that contains `Bin64\`. | [Joining fails](/players/troubleshooting/#joining-fails) |
 
 ## Helper exit codes
 
@@ -94,7 +101,7 @@ to do. Plugins may send any text of their own; the rows below are the texts buil
 | `Server full!` | `[General] MaxPlayers` is reached. | Filter by *Free slots*, or wait. |
 | `The server is still starting, please try joining again later.` | The server was still loading modules and resources; the handshake was held for a while and the hold ran out. | Try again in a minute. |
 | `Server shutdown` | The server is stopping; also sent to everyone in the session when it shuts down. | Wait for the host to bring it back. |
-| `You are banned from this server` | Your IP or account is in the server's `bans.json` without a stored reason. A ban with a reason shows that reason instead. | Ask the host. |
+| `You are banned from this server` | Your IP or account is in the server's `bans.json` without a stored reason. A ban with a reason shows that reason instead. | Ask the host; lifting a ban is an edit of that file on the host's side ([Running the server → Bans](/hosting/running/#bans)). |
 | `This server requires a NodeMP account: sign in to the launcher and join again` | `[Directory] TestDrive = false`: you joined as Test Drive, or without a join ticket. | **Settings → Account → Sign in**, or filter by *No account needed*. |
 | `Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | The directory rejected the ticket; the parentheses carry the directory's own message. A ticket is single-use, expires within a minute and is bound to your IP. | Join again from the launcher. |
 | `The server could not verify your account with the directory (…). Try again in a moment` | The server could not ask the directory; the parentheses name why, for example `no directory session (the directory is unreachable or this server has just started)`. A server with `RedeemFailOpen = true` and Test Drive allowed admits you unverified instead. | Try again in a moment. |
@@ -117,5 +124,7 @@ to do. Plugins may send any text of their own; the rows below are the texts buil
 | `TCP send of MODS_INFO failed` | The server could not send you its content list: the connection was already gone. | Join again. |
 | `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent invalid compressed packet (this is likely a bug on your end)`, `Malformed game verification report` | The launcher sent something the server does not accept. Only a modified or broken launcher does that. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
 
-Hosts: the reasons a plugin can send are described in [Recipes](/plugins/recipes/); the
-`VerifyGame` levels are in [Configuration](/hosting/configuration/).
+Hosts: what to look at on your side when a player quotes one of these rows is on
+[Running the server → When a player is refused](/hosting/running/#when-a-player-is-refused); the
+reasons a plugin can send are described in [Recipes](/plugins/recipes/); the `VerifyGame` levels
+are in [Configuration](/hosting/configuration/).

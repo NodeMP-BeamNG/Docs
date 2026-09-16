@@ -4,7 +4,10 @@ description: Все сообщения лаунчера при неудачно�
 ---
 
 О проблемах лаунчер сообщает уведомлениями внизу окна; уведомление держится несколько секунд.
-Каждое сообщение начинается с префикса, который говорит, какая часть отказала:
+Каждое сообщение начинается с префикса, который говорит, какая часть отказала. Два из них говорят
+«launcher» и имеют в виду **хелпер**: часть лаунчера, которая запускает игру и держит соединение,
+пока вы играете, — тот же `nodemp-launcher.exe`, запущенный второй раз без окна. Его лог —
+`launcher.log` ([Логи](#логи)); само окно лаунчера — то, что показывает вам уведомление.
 
 | Префикс | Что отказало |
 |---|---|
@@ -14,6 +17,10 @@ description: Все сообщения лаунчера при неудачно�
 | `Disconnected · …` | Сервер отказал или завершил сессию; текст — названная им причина, слово в слово. |
 | `The launcher stopped · …` | Хелпер завершился во время подключения; текст — последняя строка его лога. |
 | `Session ended · …` | Игра уже работала, когда сессия закончилась. |
+
+Каждый текст ниже процитирован так, как его печатает программа, чтобы его можно было найти на
+этой странице поиском. Те же тексты, по строке на каждый, проиндексированы на странице
+[Коды ошибок](/ru/reference/error-codes/).
 
 ## Подключение не удаётся
 
@@ -36,7 +43,9 @@ the installed copy`. Сообщение `Could not join · …` о ваших ф
 | `Client mod could not be updated · joining with the installed copy` | Проверка не удалась, но старый `NodeMP.zip` есть. Само по себе не ошибка. | Если сервер отказывает старому моду: **Settings → Launcher → Check now** при закрытой BeamNG. |
 | `Could not check the client mod · could not replace …\NodeMP.zip (is BeamNG.drive running?): …` | BeamNG.drive держит zip открытым. | Закройте игру, затем *Check now*. |
 | `Could not start the launcher · could not start …\nodemp-launcher.exe: …` | Антивирус или политика заблокировали процесс хелпера. | Разрешите `nodemp-launcher.exe` или переустановите с [nodemp.com/download](https://nodemp.com/download). |
-| `The launcher stopped · … Failed to find the game please launch it. Report this if the issue persists code 8` | Хелпер не нашёл BeamNG.drive. | Запустите игру один раз через Steam или укажите папку в **Settings → Game**. |
+| `The launcher stopped · … Failed to find the game please launch it. Report this if the issue persists code 8` | Хелпер не нашёл BeamNG.drive ни в одном из мест, где ищет (**Settings → Game**, `BeamNG.Drive.ini`, реестр, папки библиотек Steam). `code 8` — собственный номер хелпера для этого поиска, а не код ошибки, который надо искать. | Запустите игру один раз через Steam или укажите папку в **Settings → Game**. |
+| **Settings → Game** говорит `Could not find a BeamNG.drive install. Browse to it, or launch the game once so Steam writes its path.` | Не уведомление: собственный поиск лаунчера не нашёл установку. Подключение закончилось бы строкой с `code 8` выше. | **Browse** к папке, в которой лежит `Bin64\BeamNG.drive.x64.exe`, или запустите игру один раз через Steam и нажмите **Find it**. |
+| **Settings → Game** говорит `No Bin64\BeamNG.drive.x64.exe in this folder` | Вы выбрали папку, которая не является корнем игры. | Выберите папку, в которой лежит `Bin64\` (ту, где есть `integrity.json`). |
 | `The launcher stopped · … Failed to Launch the game! launcher closing soon.` | `Bin64\BeamNG.drive.x64.exe` не запустился — и через Steam тоже. | Проверьте файлы игры в Steam; проверьте **Settings → Game**. |
 | Шаг остаётся на `Starting BeamNG.drive` или `Loading BeamNG.drive` | Лаунчер ждёт окно BeamNG до четырёх минут; холодный старт может занять столько. | Подождите. Если игра так и не появилась, прочитайте `launcher.log` (ниже). |
 | `Could not connect · Could not reach the server` | По адресу `host:port` никто не отвечает: сервер выключен, порт закрыт, брандмауэр. | Обновите список; хост проверяет `30814` по TCP и UDP. |
@@ -51,8 +60,8 @@ the installed copy`. Сообщение `Could not join · …` о ваших ф
 | `Disconnected · Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | Сервер проверяет файлы игры, а ваши отличаются от манифеста игры. | Проверьте файлы игры в Steam. |
 | `Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam` | **Строгий** сервер: ваша установка или ваша пользовательская папка BeamNG отличается от серверного эталона чистой игры. Число и путь — реальные; причина сервера — `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`. Панель под карточкой сервера называет первую проблему словами (`vehicles/pickup/pickup.jbeam — in the BeamNG user folder, overrides the game's files`), говорит, что с ней делать, и предлагает команду диагностики с кнопкой *Copy*. | Следуйте панели, затем запустите диагностику из раздела [Строгие серверы](#строгие-серверы) ниже, чтобы увидеть весь список. |
 | `Could not join · This server's reference manifest changed — join again` | Лаунчер сверял с кэшированным эталоном, который сервер больше не использует (хост перегенерировал его). Причина сервера — `Your launcher checked your BeamNG install against a different reference manifest than this server uses (…). Reconnect so it fetches the current one.` | Подключитесь снова; лаунчер скачает текущий манифест. |
-| `Disconnected · This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. …`, `Disconnected · This server has integrity manifests for 2 game versions (…) and cannot tell which one you run. …` | Сервер настроен на strict, но у него нет эталона или их больше одного. С вашей стороны всё в порядке. | Сообщите хосту. |
-| `Could not join · BeamNG's user folder was not found` | Strict нужна пользовательская папка игры; `startup.ini` или `BeamNG.Drive.ini` указывает на несуществующую. Причина сервера — `This server requires a check of your BeamNG install, which could not be completed: the game's user folder … does not exist`. | Исправьте путь в этом файле или запустите игру один раз, чтобы папка создалась. |
+| `Disconnected · This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. …`, `Disconnected · This server has integrity manifests for 2 game versions (…) and cannot tell which one you run. …` | Сервер с `VerifyGame = "strict"`, но у него нет эталона или их больше одного. С вашей стороны всё в порядке. | Сообщите хосту. |
+| `Could not join · BeamNG's user folder was not found` | Строгой проверке нужна пользовательская папка игры; `startup.ini` или `BeamNG.Drive.ini` указывает на несуществующую. Причина сервера — `This server requires a check of your BeamNG install, which could not be completed: the game's user folder … does not exist`. | Исправьте путь в этом файле или запустите игру один раз, чтобы папка создалась. |
 | `Could not join · Could not download the server's reference manifest`, `Could not join · The server's reference manifest is out of date`, `Could not join · Your game files could not be checked` | Строгая проверка не смогла выполниться: передача манифеста оборвалась (например, `the server sent nothing for 30 s during the manifest transfer`), эталон сервера в устаревшем формате или что-то ещё, что называет панель. Причина сервера начинается с `This server requires a check of your BeamNG install, which could not be completed: …`. | Подключитесь снова; если повторяется, сообщите хосту, приложив `launcher.log`. |
 | `Could not join · The server would not send its reference manifest`, `Could not join · The server stopped sending its reference manifest (asked too often)` | Сервер отказал в передаче манифеста (`Unknown integrity manifest requested`, `Too many integrity manifest requests`). Текущий лаунчер запрашивает только тот id, который назвал сервер, и только один раз, так что это указывает на заменённый манифест на стороне хоста или сломанный лаунчер. | Подключитесь снова через минуту; если повторяется, сообщите хосту или переустановите лаунчер. |
 | `Disconnected · Invalid mod "…"`, `Disconnected · Failed to verify "…"`, `Disconnected · Server cannot find …` | Файл контента, объявленный сервером, повреждён или отсутствует на сервере. | Сообщите хосту. Удаление файла в **Content** заставит скачать его заново. |
@@ -81,7 +90,9 @@ the installed copy`. Сообщение `Could not join · …` о ваших ф
 - **Остатки распакованных модов в пользовательской папке** — `vehicles\<model>\info_*.json`,
   `*.materials.json`, `*.jbeam` под `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\vehicles\`,
   оставшиеся после удаления мода из `mods\`. Там разрешены только сохранённые конфигурации
-  (`vehicles\<model>\<name>.pc` с превью `.png`/`.jpg`).
+  (`vehicles\<model>\<name>.pc` с превью `.png`/`.jpg`) и собственные заглушки игры
+  `main.materials.json`, которые движок сам пишет под `vehicles\` и `art\`; любой другой
+  `*.materials.json` — остаток.
 - **Ваши собственные уровни или частицы** — уровень в `current\levels\`, отредактированный
   `current\lua\common\particles.json`, что угодно под `current\lua\`, `ui\`, `art\` или `scripts\`,
   что не принадлежит игре. Уберите это на время игры на строгом сервере; `mods\` и папки
@@ -98,8 +109,11 @@ the installed copy`. Сообщение `Could not join · …` о ваших ф
 Отказ показывает три примера. Чтобы увидеть весь список, выполните ту же проверку сами: она
 встроена в лаунчер как `--integrity-check`, берёт эталон, который прислал сервер (кэш в
 `%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest`; по файлу на каждый
-эталон, который вы забирали), и печатает каждую проблему. Из командной строки, при закрытом
-BeamNG:
+эталон, который вы забирали), и печатает каждую проблему. Проще всего получить команду из панели
+под карточкой сервера после отказа: её кнопка **Copy** даёт команду с уже подставленным файлом.
+Набирая руками, помните, что `<id>` — имя файла манифеста из 64 символов, а при нескольких файлах
+в этой папке самый новый обычно и есть эталон сервера, который вам только что отказал. Из
+командной строки, при закрытом BeamNG:
 
 ```
 cd %LOCALAPPDATA%\com.nodemp.launcher\helper
@@ -163,6 +177,11 @@ userfolder N, folders skipped N`, — та же разбивка в виде с�
   and if you use a VPN for a test server, that it is connected.`): директория не ответила при
   запуске. *Try again* или *Continue without the list*; Direct Connect продолжает работать. Пока
   директория недоступна, Refresh сообщает `Could not reach NodeMP at https://api.nodemp.com`.
+  Подключение, сделанное при недоступной директории, идёт без билета на подключение, так что
+  никто не проверяет, кто вы: войдя в аккаунт, вы приходите под именем аккаунта, но непроверенным.
+  Сервер без ключа сервера и так берёт имена как есть. Сервер из списка, разрешающий Test Drive,
+  пускает подключение без билета как непроверенного гостя; сервер с *Account required* отказывает
+  ему с `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again`.
 - `No servers online` / `Nobody is hosting right now.`: директория ответила пустым списком. С
   вашей стороны всё в порядке.
 - `Nothing matches these filters`: откройте **Filters** и нажмите *Reset*. Favorites и Recent
@@ -174,6 +193,11 @@ userfolder N, folders skipped N`, — та же разбивка в виде с�
 и удалите снова.
 
 ## Логи
+
+Лаунчер держит две папки в `%LOCALAPPDATA%`: в `NodeMP\` лежит программа (`nodemp-launcher.exe`,
+то, что записал установщик), в `com.nodemp.launcher\helper\` — её данные: `Launcher.cfg` хелпера,
+`cache\` со скачанным контентом и манифестами и `logs\`. Когда вы сообщаете о проблеме, улики — во
+второй папке; в первой нет ничего, что стоило бы прикладывать.
 
 - **Лог хелпера** — `launcher.log` описывает одну сессию: поиск игры, соединение, скачивание
   контента и причину завершения сессии. **Settings → Launcher → Logs → Open** открывает его
@@ -191,12 +215,14 @@ userfolder N, folders skipped N`, — та же разбивка в виде с�
   последней строке лога хелпера в `The launcher stopped · …`.
 - **BeamNG** — `beamng.log` в пользовательской папке игры,
   `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\`, содержит строки клиентского мода (тег `node.`).
-  **Консоль диагностики** в игре (Options → NodeMP → Инструменты) показывает сессию вживую.
+  Консоль диагностики в игре (**Diagnostics console**, Options → NodeMP → Tools) показывает сессию вживую.
 
 Сообщая о проблеме, приложите `launcher.log`, точный текст уведомления и название сервера.
 
 ## Дополнительно: другая директория
 
+Этот раздел для разработчиков и тестировщиков, которые держат собственную директорию; игроки
+могут его пропустить — лаунчер направлен на `https://api.nodemp.com` и настройки не требует.
 Тестировщики со своей директорией могут перенаправить лаунчер. В порядке приоритета:
 
 1. Переменная окружения `NODEMP_API_BASE`, например `http://localhost:8080`.
