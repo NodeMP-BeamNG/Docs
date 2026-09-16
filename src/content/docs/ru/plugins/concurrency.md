@@ -45,6 +45,7 @@ description: Один рабочий поток для обработчиков;
 сохраняются, а колбэк, таймер или корутина, запущенные там, никогда не выполнятся
 ([Ресурсы](/ru/plugins/resources/#перезагрузка)).
 
+<!-- doctest: server -->
 ```lua
 local ticks = 0
 local intervalId
@@ -55,6 +56,12 @@ intervalId = node.every(60000, function()
         node.cancel(intervalId)
     end
 end)
+
+node.after(500, function()
+    node.log("half a second in, timer %d is ticking", intervalId)
+end)
+
+-- expect: half a second in, timer \d+ is ticking
 ```
 
 ## После остальных: node.defer
@@ -65,14 +72,18 @@ end)
 после того, как выполнился каждый обработчик `playerLeft`. Всё, что вы отправляете или меняете
 внутри `fn`, происходит после события, а не во время него.
 
+<!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
 node.on("vehicleSpawned", function(vehicle)
     node.defer(function()
         if vehicle:exists() then -- another handler may have deleted it meanwhile
             vehicle:setTag("spawnedAt", tostring(node.server.unixTime()))
+            node.log("%s tagged spawnedAt=%s", tostring(vehicle), vehicle:tag("spawnedAt"))
         end
     end)
 end)
+
+-- expect: Vehicle#\d+ Alice tagged spawnedAt=\d+
 ```
 
 ## Ожидание без блокировки: node.async
@@ -94,6 +105,7 @@ end)
 выбрасывает ошибку; ошибка пишется в лог как `error in async task`. Задачи сбрасываются при
 перезагрузке и при остановке.
 
+<!-- doctest: server+client {"emit": [["race:start", ""]]} -->
 ```lua
 node.on("race:start", function(player, data)
     node.async(function()
@@ -102,8 +114,13 @@ node.on("race:start", function(player, data)
             node.sleep(1000)
         end
         node.broadcast("race:go")
+        node.log("race started by %s", tostring(player))
     end)
 end)
+
+-- expect-client: Alice race:countdown 3
+-- expect-client: Alice race:go
+-- expect: race started by Player#\d+ Alice
 ```
 
 Корутина, которая спала, просыпается в изменившемся мире: игрок мог выйти, машина могла исчезнуть.
@@ -124,7 +141,10 @@ upvalue, без `node`, без глобальных переменных ваш�
 оба сериализуемые в JSON (таблицы, строки, числа, логические значения). Отдавайте ей копии того,
 что ей нужно, и получайте обратно простые данные.
 
+<!-- doctest: server+client {"emit": [["stats:request", ""]]} -->
 ```lua
+node.storage.set("scores", { { name = "Bob", time = 71.2 }, { name = "Alice", time = 64.9 } })
+
 node.on("stats:request", function(player, data)
     node.async(function()
         local scores = node.storage.get("scores", {})
@@ -139,8 +159,12 @@ node.on("stats:request", function(player, data)
             return
         end
         player:send("stats:top", top)
+        node.log("%s leads with %.1f s", top[1].name, top[1].time)
     end)
 end)
+
+-- expect: Alice leads with 64\.9 s
+-- expect-client: Alice stats:top \[\{
 ```
 
 В пуле по одному потоку на аппаратный поток, в пределах от 2 до 32; `NODE_PLUGIN_POOL`
@@ -179,14 +203,19 @@ end)
 `redirect to plain http refused (verified request)`). Без него не отправляйте секреты хостам,
 которые вы не контролируете.
 
+<!-- doctest: server+client -->
 ```lua
 node.on("playerJoined", function(player)
     node.http.get("https://example.com/motd.txt", function(status, body)
         if status == 200 and player:isConnected() then
             player:tell(body)
+        elseif status ~= 200 then
+            node.log.warn("no message of the day: %s", status == -1 and body or ("HTTP " .. status))
         end
     end)
 end)
+
+-- expect: no message of the day: .+
 ```
 
 ## Файлы и хранилище вне рабочего потока

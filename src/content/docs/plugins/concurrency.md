@@ -42,6 +42,7 @@ what a timer was accumulating; a `node.storage` write or a plain `node.pg.exec` 
 made there is kept, a callback, timer or coroutine started there never runs
 ([Resources](/plugins/resources/#reload)).
 
+<!-- doctest: server -->
 ```lua
 local ticks = 0
 local intervalId
@@ -52,6 +53,12 @@ intervalId = node.every(60000, function()
         node.cancel(intervalId)
     end
 end)
+
+node.after(500, function()
+    node.log("half a second in, timer %d is ticking", intervalId)
+end)
+
+-- expect: half a second in, timer \d+ is ticking
 ```
 
 ## After the others: node.defer
@@ -61,14 +68,18 @@ the way to act once every other handler of the event you are in has seen it - th
 to forget a leaving player's name only after every `playerLeft` handler ran. Anything you send or
 change inside `fn` happens after the event, not during it.
 
+<!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
 node.on("vehicleSpawned", function(vehicle)
     node.defer(function()
         if vehicle:exists() then -- another handler may have deleted it meanwhile
             vehicle:setTag("spawnedAt", tostring(node.server.unixTime()))
+            node.log("%s tagged spawnedAt=%s", tostring(vehicle), vehicle:tag("spawnedAt"))
         end
     end)
 end)
+
+-- expect: Vehicle#\d+ Alice tagged spawnedAt=\d+
 ```
 
 ## Waiting without blocking: node.async
@@ -88,6 +99,7 @@ Outside a coroutine these calls fail: `node.sleep called outside a node.async ta
 and Lua's "attempt to yield" error in the handler. The task ends when `fn` returns or raises; an
 error is logged as `error in async task`. Tasks are dropped by a reload and at shutdown.
 
+<!-- doctest: server+client {"emit": [["race:start", ""]]} -->
 ```lua
 node.on("race:start", function(player, data)
     node.async(function()
@@ -96,8 +108,13 @@ node.on("race:start", function(player, data)
             node.sleep(1000)
         end
         node.broadcast("race:go")
+        node.log("race started by %s", tostring(player))
     end)
 end)
+
+-- expect-client: Alice race:countdown 3
+-- expect-client: Alice race:go
+-- expect: race started by Player#\d+ Alice
 ```
 
 A coroutine that sleeps wakes into a changed world: the player may have left, the vehicle may be
@@ -117,7 +134,10 @@ that cannot be dumped fails with `work function cannot be serialized (C function
 `args` and returns a result, both JSON-serialisable (tables, strings, numbers, booleans). Give it
 copies of what it needs and get plain data back.
 
+<!-- doctest: server+client {"emit": [["stats:request", ""]]} -->
 ```lua
+node.storage.set("scores", { { name = "Bob", time = 71.2 }, { name = "Alice", time = 64.9 } })
+
 node.on("stats:request", function(player, data)
     node.async(function()
         local scores = node.storage.get("scores", {})
@@ -132,8 +152,12 @@ node.on("stats:request", function(player, data)
             return
         end
         player:send("stats:top", top)
+        node.log("%s leads with %.1f s", top[1].name, top[1].time)
     end)
 end)
+
+-- expect: Alice leads with 64\.9 s
+-- expect-client: Alice stats:top \[\{
 ```
 
 The pool has one thread per hardware thread, clamped between 2 and 32; `NODE_PLUGIN_POOL` overrides
@@ -171,14 +195,19 @@ verified `https://` request down to plain `http://` is not followed (`-1`,
 `redirect to plain http refused (verified request)`). Without it, do not send secrets to hosts you
 do not control.
 
+<!-- doctest: server+client -->
 ```lua
 node.on("playerJoined", function(player)
     node.http.get("https://example.com/motd.txt", function(status, body)
         if status == 200 and player:isConnected() then
             player:tell(body)
+        elseif status ~= 200 then
+            node.log.warn("no message of the day: %s", status == -1 and body or ("HTTP " .. status))
         end
     end)
 end)
+
+-- expect: no message of the day: .+
 ```
 
 ## Files and storage off the worker
