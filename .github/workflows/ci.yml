@@ -14,6 +14,10 @@ jobs:
     timeout-minutes: 15
     env:
       NODEMP_SDK_DIR: ${{ github.workspace }}/sdk
+      NODEMP_SERVER_DIR: ${{ github.workspace }}/server
+      NODEMP_LAUNCHER_DIR: ${{ github.workspace }}/launcher
+      NODEMP_MOD_DIR: ${{ github.workspace }}/NodeMP
+      NODEMP_UI_LAUNCHER_DIR: ${{ github.workspace }}/UI-launcher
       IMPORT_API_STRICT: "1"
     steps:
       - uses: actions/checkout@v5
@@ -22,6 +26,10 @@ jobs:
       # first, then the pages -- so when the sdk has a branch NAMED LIKE THIS ONE
       # that is what the pages were written against; otherwise main, as deploy.yml
       # does. The deploy key stays configured on the sdk clone for the second step.
+      #
+      # check-claims (npm run check) reads the server, the launcher, the client mod
+      # and the launcher interface the same way: one read-only deploy key each,
+      # the branch named like this one when there is one, otherwise main.
       - name: Checkout sdk (read-only deploy key)
         uses: actions/checkout@v5
         with:
@@ -29,18 +37,47 @@ jobs:
           ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
           path: sdk
           persist-credentials: true
-      - name: Use the sdk branch named like this one, when there is one
-        working-directory: sdk
+      - name: Checkout server (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/server
+          ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
+          path: server
+          persist-credentials: true
+      - name: Checkout launcher (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/launcher
+          ssh-key: ${{ secrets.LAUNCHER_DEPLOY_KEY }}
+          path: launcher
+          persist-credentials: true
+      - name: Checkout NodeMP, the client mod (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/NodeMP
+          ssh-key: ${{ secrets.MOD_DEPLOY_KEY }}
+          path: NodeMP
+          persist-credentials: true
+      - name: Checkout UI-launcher (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/UI-launcher
+          ssh-key: ${{ secrets.UI_LAUNCHER_DEPLOY_KEY }}
+          path: UI-launcher
+          persist-credentials: true
+      - name: Use the branch named like this one in each repository, when there is one
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          if [ "$BRANCH" != "main" ] && git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            git fetch --depth 1 origin "$BRANCH"
-            git checkout --detach FETCH_HEAD
-            echo "sdk: branch $BRANCH ($(git rev-parse HEAD))"
-          else
-            echo "sdk: main ($(git rev-parse HEAD))"
-          fi
+          for repo in sdk server launcher NodeMP UI-launcher; do
+            if [ "$BRANCH" != "main" ] && git -C "$repo" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+              git -C "$repo" fetch --depth 1 origin "$BRANCH"
+              git -C "$repo" checkout --detach FETCH_HEAD
+              echo "$repo: branch $BRANCH ($(git -C "$repo" rev-parse HEAD))"
+            else
+              echo "$repo: main ($(git -C "$repo" rev-parse HEAD))"
+            fi
+          done
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

@@ -19,15 +19,50 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODEMP_SDK_DIR: ${{ github.workspace }}/sdk
+      NODEMP_SERVER_DIR: ${{ github.workspace }}/server
+      NODEMP_LAUNCHER_DIR: ${{ github.workspace }}/launcher
+      NODEMP_MOD_DIR: ${{ github.workspace }}/NodeMP
+      NODEMP_UI_LAUNCHER_DIR: ${{ github.workspace }}/UI-launcher
       IMPORT_API_STRICT: "1"
     steps:
       - uses: actions/checkout@v5
+      # The sdk builds the API reference; the server, the launcher, the client mod
+      # and the launcher interface are what check-claims (npm run check) compares
+      # the pages with. All on main, one read-only deploy key each.
       - name: Checkout sdk (read-only deploy key)
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/sdk
           ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
           path: sdk
+          persist-credentials: false
+      - name: Checkout server (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/server
+          ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
+          path: server
+          persist-credentials: false
+      - name: Checkout launcher (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/launcher
+          ssh-key: ${{ secrets.LAUNCHER_DEPLOY_KEY }}
+          path: launcher
+          persist-credentials: false
+      - name: Checkout NodeMP, the client mod (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/NodeMP
+          ssh-key: ${{ secrets.MOD_DEPLOY_KEY }}
+          path: NodeMP
+          persist-credentials: false
+      - name: Checkout UI-launcher (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/UI-launcher
+          ssh-key: ${{ secrets.UI_LAUNCHER_DEPLOY_KEY }}
+          path: UI-launcher
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
