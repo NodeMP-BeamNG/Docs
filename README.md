@@ -124,8 +124,10 @@ The line above the fence classifies it:
 ```
 
 The runner, `scripts/doctest/run.py`, writes each block into `resources/dt<N>/` of a scratch
-server home together with the `chat` example resource (the guides tell the reader to install it
-for `player:tell` and chat commands), starts one `Node-Server` per page, lets the fake players
+server home together with a stand-in for the `chat` resource (the guides tell the reader to
+install `chat` for `player:tell` and chat commands; the stand-in speaks the documented
+`chat:send` / `chat:command` / `chat:say` / `chat:msg` protocol), starts one `Node-Server` per
+page, lets the fake players
 join and send their events, stops the server cleanly (so `serverShutdown` and `resourceUnload`
 run) and judges the log. A block **fails** when its resource never prints its load line, logs
 `error in …`, a `[deprecated]` event name or a manifest problem, or misses an expectation.
