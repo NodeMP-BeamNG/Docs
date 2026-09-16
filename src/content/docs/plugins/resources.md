@@ -136,12 +136,13 @@ keys are never renamed, so `M.onUpdate` and game hooks keep working. Use `none` 
 line numbers in `beamng.log` then match your source. A file Prometheus cannot transform ships as
 plain source with a warning; a join never fails on obfuscation. Output is cached in `.obfcache/`.
 
-The server does not compile your client files - they are packaged, not run - so on server 1.2.0 a
-syntax error in one shows only as that Prometheus warning
-(`race · Prometheus failed on 'main.lua' (…), shipping it unobfuscated`), and with `none` not at
-all until a player's `beamng.log` reports `compile error`. From server 1.2.1 on every client file
-is parsed when it is packaged and one that does not parse is reported as an `Error` naming the
-resource, the file and the Lua message; the file still ships.
+The server does not run your client files - they are packaged, not executed - but it parses each
+one when it packages it, and a file that does not parse is reported as an `Error` naming the
+resource, the file and the Lua message,
+`race · client file 'main.lua' has a syntax error: main.lua:1: unexpected symbol near '=' (the file ships anyway; the game's Lua will very likely refuse it too)`,
+whatever the obfuscation setting; the file still ships. (Before 1.2.1 a syntax error showed only as
+the Prometheus warning `race · Prometheus failed on 'main.lua' (…), shipping it unobfuscated`,
+and with `none` not at all until a player's `beamng.log` reported `compile error`.)
 
 ## Reload
 
@@ -157,7 +158,7 @@ does not: Lua variables and everything the resource registered. `node.config` is
 the manifest, so a settings change takes effect. A background job or HTTP request already in
 flight is not cancelled, and client files are not re-packaged.
 
-**A hook before the unload** (server 1.2.0): `node.on("resourceUnload", function(reason) ... end)`
+**A hook before the unload** (added in server 1.2.0): `node.on("resourceUnload", function(reason) ... end)`
 runs in the old instance right before its state is dropped, synchronously and only for the
 resource being unloaded - another resource's reload never fires yours. `reason` is `"reload"`
 here; at a server stop it is `"shutdown"`, after `serverShutdown` ran for everyone. It has the

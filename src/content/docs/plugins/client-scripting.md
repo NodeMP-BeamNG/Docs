@@ -106,8 +106,8 @@ script; keep state in locals or in the table you return.
   reads `node/race/main.lua:12:`. A file that does not compile is skipped with
   `Resource "race" (main.lua): compile error: ... -- file skipped`; the rest of the resource loads.
 - **No offline runner.** Client files run only inside the game: the server packages them without
-  executing them (from server 1.2.1 it syntax-checks them and logs an `Error` for a file that does
-  not parse), and nothing on the server side can call a `node.on` handler of a client file. To
+  executing them (it syntax-checks them and logs an `Error` for a file that does not parse), and
+  nothing on the server side can call a `node.on` handler of a client file. To
   see one run, join the server with the launcher and read `beamng.log`; the server half, by
   contrast, is testable without the game
   ([Getting started](/plugins/getting-started/#testing-without-the-game)).

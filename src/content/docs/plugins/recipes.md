@@ -7,7 +7,7 @@ Each recipe is one resource: a folder under `resources/` named after the recipe,
 `server/main.lua` and, where a client half is needed, `client/main.lua`. Every call is in the
 [Lua API reference](/plugins/api/lua/); nothing here needs a native module. Four of the six use
 chat commands or `player:tell`, which speak through the `chat` example resource - install `chat`
-in `resources/` as well (from server 1.2.1 it is in the release archive under `examples/`; see
+in `resources/` as well (copy `examples/chat` from the release archive; see
 [Resources and content](/hosting/resources/#installing-a-resource)), or the commands vanish
 silently and the replies go nowhere. Without the game, a command is exercised through the bus as
 [Getting started](/plugins/getting-started/#testing-without-the-game) shows. The server console

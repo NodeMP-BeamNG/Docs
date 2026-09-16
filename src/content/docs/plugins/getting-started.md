@@ -8,14 +8,14 @@ that greets each player and counts them once a minute, and a client half that re
 ten seconds. It mirrors `demo-numbers`, the smallest end-to-end example, and adds the calls you
 will use on day one. Nothing needs installing beyond the server: Lua is built in.
 
-You need a running `Node-Server` 1.2.0 ([Quick start](/hosting/quick-start/)), the
+You need a running `Node-Server` 1.2.1 ([Quick start](/hosting/quick-start/)), the
 [Lua API reference](/plugins/api/lua/) open in another tab and, for the client half, the launcher
 on a machine that can join the server - the server half can be exercised without the game
 ([below](#testing-without-the-game)). Two of the calls below - `player:tell` and `node.chat.say` -
 speak through the `chat` example resource, which draws the chat and owns the `/` commands: install
-`chat` beside `hello` (from server 1.2.1 it is in the release archive under `examples/`; the 1.2.0
-archive does not contain it), or know that without it those two calls do nothing at all - no chat
-line, and no console line either. `node.log` is what shows on the console.
+`chat` beside `hello` (copy `examples/chat` from the release archive into `resources/`;
+`examples/README.txt` lists the others), or know that without it those two calls do nothing at
+all - no chat line, and no console line either. `node.log` is what shows on the console.
 
 ## The folder
 
@@ -241,9 +241,8 @@ prelude looks the handler up by the exact string. No player 0 exists here, so `p
 else - timers, `node.storage`, `node.pg`, `node.http`, a reload, `serverShutdown` and
 `resourceUnload` at Ctrl+C - runs the same with or without players; a wire event handler is the
 one thing that needs a client, because only the client mod can send one. The client half cannot
-be run outside the game at all: the server packages the files and does not execute them (from
-server 1.2.1 it syntax-checks them), and the first place a runtime error shows is a player's
-`beamng.log`.
+be run outside the game at all: the server packages the files and syntax-checks them but does
+not execute them, and the first place a runtime error shows is a player's `beamng.log`.
 
 ## Where errors show
 
@@ -258,23 +257,21 @@ An error while `main.lua` runs at load is reported the same way against the file
 resource still counts as loaded, with whatever handlers were registered before the failing line
 (none, for a syntax error). An error inside a handler never unloads the resource and never denies a cancellable request. A
 handler that keeps the worker busy for more than 250 ms is reported as
-`plugin worker job stalled the thread for 300 ms (move heavy work to node.await/node.job)`. On
-server 1.2.0 that watchdog times the jobs the worker runs - event, bus and request handlers, HTTP,
-job and `node.pg` callbacks - but not timer callbacks and not the slices of a `node.async`
-coroutine, which are serviced between jobs, and the line names no resource. From server 1.2.1 on
-every handler, timer callback, coroutine slice and completion callback is timed on its own and
-the line names the resource and what stalled (`… (resource hello, timer) …`); see
+`plugin worker job stalled the thread for 300 ms (resource hello, event 'hello:count') — move heavy work to node.await/node.job`:
+every handler, timer callback, coroutine slice and completion callback is timed on its own, and the
+line names the resource and what stalled (before 1.2.1 only whole worker jobs were timed - a slow
+timer callback or `node.async` slice went unreported - and no resource was named); see
 [Concurrency](/plugins/concurrency/).
 
 Client-side errors are in the player's `beamng.log`: a file that does not compile is skipped with
 `Resource "hello" (main.lua): compile error: ... -- file skipped`, and an error inside a handler
 reads `Error in event handler for "hello:greet" from source "node.res/hello": ...`. The server
-does not run client files, so a syntax error in one is not a server error: server 1.2.0 mentions
-it only when obfuscation is on, as a `Warn` that Prometheus failed on the file and shipped it
-plain; from server 1.2.1 on the packaging step syntax-checks every client file and prints an
-`Error` line with the resource, the file and the parser's message, whatever the obfuscation
-setting (the file still ships). Where the log is and how to open the in-game diagnostics console
-is on [Troubleshooting](/players/troubleshooting/).
+does not run client files, but it parses them when it packages them: a file that does not parse
+is reported at load as
+`hello · client file 'main.lua' has a syntax error: main.lua:1: unexpected symbol near '=' (the file ships anyway; the game's Lua will very likely refuse it too)`,
+whatever the obfuscation setting (before 1.2.1 the only sign was Prometheus's warning, and none
+with obfuscation off). Where the log is and how to open the in-game diagnostics console is on
+[Troubleshooting](/players/troubleshooting/).
 
 ## Next
 

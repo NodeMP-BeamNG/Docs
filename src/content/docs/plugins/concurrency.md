@@ -17,17 +17,15 @@ HTTP and job completions all land on the same thread. Two consequences:
 - **You never need a lock.** No handler runs while another one runs, in your resource or in any
   other, so a plain Lua table is a safe place for shared state.
 - **Blocking blocks everyone.** A handler that loops for a second stalls every other resource's
-  handlers, every timer and `serverTick` for that second. The server watches for it: a job over
-  250 ms is logged as `plugin worker job stalled the thread for 300 ms (move heavy work to
-  node.await/node.job)`. On server 1.2.0 the watch covers the jobs on the queue - event, bus and
-  request handlers and the HTTP, job and `node.pg` completion callbacks - and **not** timer
-  callbacks or the slices of a `node.async` coroutine between two suspensions, which are
-  serviced between jobs; a 600 ms timer callback stalls everyone just the same and is not
-  reported, and the line does not say which resource stalled. From server 1.2.1 on every piece
-  of plugin code the worker runs is timed on its own - handlers, timer callbacks, coroutine
-  slices, completion callbacks, log sinks - and the line names the resource and the kind
-  (`plugin worker job stalled the thread for 699 ms (resource race, timer) …`). When the queue
-  is flooded past 100 000 pending jobs, new events are dropped with
+  handlers, every timer and `serverTick` for that second. The server watches for it: every piece
+  of plugin code the worker runs - event, bus and request handlers, timer callbacks, the slices of
+  a `node.async` coroutine between two suspensions, HTTP, job and `node.pg` completion callbacks,
+  log sinks - is timed on its own, and one that takes more than 250 ms is logged with the resource
+  and the kind: `plugin worker job stalled the thread for 699 ms (resource race, timer) — move heavy work to node.await/node.job`.
+  A slice nested in another (a timer callback that starts a coroutine whose first slice stalls)
+  is reported once, for the inner one. (Before 1.2.1 only whole worker jobs were timed, so a slow
+  timer callback or coroutine slice went unreported, and the line named no resource.) When the
+  queue is flooded past 100 000 pending jobs, new events are dropped with
   `plugin job queue full (100000 jobs) -- dropping events (flood?)`.
 
 What runs elsewhere: the background pool (`node.job`, `node.await`, `node.http`), the file-writer
@@ -176,7 +174,7 @@ resumes with `nil, "background pool is full"`.
 
 `node.http` runs requests on the background pool and calls you back on the worker.
 
-- `node.http.request(method, url, opts?, cb)` is the general form (server 1.2.0): any method -
+- `node.http.request(method, url, opts?, cb)` is the general form (added in server 1.2.0): any method -
   `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`, `"HEAD"` or a custom token the service
   understands; a token is letters A–Z only, at most 16, and the prelude upper-cases it for you
   (anything else calls back with `-1` and `invalid HTTP method`) - with `opts.headers` (a table)
