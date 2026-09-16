@@ -34,10 +34,14 @@ resources/
 который отсчитывается от рабочего каталога сервера, а не от вашей папки; чтобы разбить серверную
 половину на файлы, сначала добавьте папку в путь:
 
+<!-- doctest: server {"files": {"server/util.lua": "return { greet = function() return \"hello from util.lua\" end }"}} -->
 ```lua
 local here = debug.getinfo(1, "S").source:sub(2):match("^(.*)[/\\]") -- .../resources/hello/server
 package.path = here .. "/?.lua;" .. package.path
 local util = require("util") -- server/util.lua
+node.log(util.greet())
+
+-- expect: hello from util.lua
 ```
 
 Клиентским файлам это не нужно: внутри клиентской половины `require("lib/helpers")` сначала ищет
@@ -169,6 +173,7 @@ Lua, затем снова выполняет точку входа и печа�
 остановке запрос отбрасывается (`false`), потому что во время остановки сервера ничего не
 загружается заново.
 
+<!-- doctest: server+client -->
 ```lua
 local session = { started = node.server.uptime(), joins = 0 }
 
@@ -176,7 +181,10 @@ node.on("playerJoined", function() session.joins = session.joins + 1 end)
 
 node.on("resourceUnload", function(reason)
     node.storage.set("lastSession", { reason = reason, joins = session.joins })
+    node.log("%s after %d join(s)", reason, session.joins)
 end)
+
+-- expect: shutdown after 1 join\(s\)
 ```
 
 ## Файлы: node.fs
@@ -193,14 +201,21 @@ end)
 - `node.fs.list(path?) -> array<record{name,dir,size}>?` - одна папка, корень ресурса, если
   опущено.
 
+<!-- doctest: server {"files": {"data/words.json": "[\"hello\", \"welcome\"]"}} -->
 ```lua
 local words = node.json.decode(node.fs.read("data/words.json") or "[]") or {}
+node.log("%d word(s) shipped with the resource", #words)
 
 local lines = {}
 for _, p in ipairs(node.players.all()) do
     lines[#lines + 1] = string.format("%s\t%s", p.name, p.ip or "?")
 end
-node.fs.writeAsync("reports/" .. os.date("%Y-%m-%d") .. ".txt", table.concat(lines, "\n"))
+node.fs.writeAsync("reports/" .. os.date("%Y-%m-%d") .. ".txt", table.concat(lines, "\n"), function(ok)
+    node.log("report written: %s", tostring(ok))
+end)
+
+-- expect: 2 word\(s\) shipped with the resource
+-- expect: report written: true
 ```
 
 Используйте папку для данных, которые вы поставляете, и для отчётов; для состояния используйте
@@ -214,15 +229,21 @@ JSON: строки, числа, логические значения, табл�
 функции становятся `null`; вложенность останавливается на 32 уровнях). Ключи - строки до 256
 символов.
 
+<!-- doctest: server+client -->
 ```lua
 local visits = node.storage.get("visits", 0) + 1
 node.storage.set("visits", visits)
+node.log("server start number %d", visits)
 
 node.on("playerJoined", function(player)
     if player.accountId then
         node.storage.set("lastSeen:" .. player.accountId, node.server.unixTime())
+        node.log("last seen of account %d is %d", player.accountId, node.storage.get("lastSeen:" .. player.accountId))
     end
 end)
+
+-- expect: server start number 1
+-- expect: last seen of account 42 is \d+
 ```
 
 Каждый `set` или `delete` оказывается на диске до возврата из вызова, поэтому падение процесса
@@ -241,11 +262,14 @@ JSON-файл. `.log`, оставшийся после падения, восп�
 один раз, при загрузке ресурса. Подкладывайте под неё свои значения по умолчанию, как это делает
 `vehicle-cleanup`:
 
+<!-- doctest: server {"config": {"maxCars": 2}} -->
 ```lua
 local defaults = { greeting = "Welcome", maxCars = 1, checkIntervalMs = 5000 }
 local config = setmetatable(node.config, { __index = defaults })
 
 node.log("greeting is %q, limit %d", config.greeting, config.maxCars)
+
+-- expect: greeting is "Welcome", limit 2
 ```
 
 `node.resources.manifest()` заново читает `resource.toml` с диска и возвращает весь файл таблицей -

@@ -34,10 +34,14 @@ The server half is one entry file. Lua's `require` searches the default path, wh
 to the server's working directory, not to your folder; to split the server half into files, put
 the folder on the path first:
 
+<!-- doctest: server {"files": {"server/util.lua": "return { greet = function() return \"hello from util.lua\" end }"}} -->
 ```lua
 local here = debug.getinfo(1, "S").source:sub(2):match("^(.*)[/\\]") -- .../resources/hello/server
 package.path = here .. "/?.lua;" .. package.path
 local util = require("util") -- server/util.lua
+node.log(util.greet())
+
+-- expect: hello from util.lua
 ```
 
 Client files do not need this: inside the client half, `require("lib/helpers")` resolves against
@@ -158,6 +162,7 @@ put nothing after an `await`. Do not call `node.resources.reload` on yourself fr
 that queues another reload of the fresh instance, an endless loop; at a stop the request is dropped
 (`false`), because nothing is loaded again while the server shuts down.
 
+<!-- doctest: server+client -->
 ```lua
 local session = { started = node.server.uptime(), joins = 0 }
 
@@ -165,7 +170,10 @@ node.on("playerJoined", function() session.joins = session.joins + 1 end)
 
 node.on("resourceUnload", function(reason)
     node.storage.set("lastSession", { reason = reason, joins = session.joins })
+    node.log("%s after %d join(s)", reason, session.joins)
 end)
+
+-- expect: shutdown after 1 join\(s\)
 ```
 
 ## Files: node.fs
@@ -182,14 +190,21 @@ at most 512 characters, with no `..` step, no drive or root and no NUL byte; any
 - `node.fs.list(path?) -> array<record{name,dir,size}>?` - one folder, the resource root when
   omitted.
 
+<!-- doctest: server {"files": {"data/words.json": "[\"hello\", \"welcome\"]"}} -->
 ```lua
 local words = node.json.decode(node.fs.read("data/words.json") or "[]") or {}
+node.log("%d word(s) shipped with the resource", #words)
 
 local lines = {}
 for _, p in ipairs(node.players.all()) do
     lines[#lines + 1] = string.format("%s\t%s", p.name, p.ip or "?")
 end
-node.fs.writeAsync("reports/" .. os.date("%Y-%m-%d") .. ".txt", table.concat(lines, "\n"))
+node.fs.writeAsync("reports/" .. os.date("%Y-%m-%d") .. ".txt", table.concat(lines, "\n"), function(ok)
+    node.log("report written: %s", tostring(ok))
+end)
+
+-- expect: 2 word\(s\) shipped with the resource
+-- expect: report written: true
 ```
 
 Use the folder for data you ship and for reports; use storage for state.
@@ -201,15 +216,21 @@ Use the folder for data you ship and for reports; use storage for state.
 value: strings, numbers, booleans, tables (an array when its keys are `1..n`, an object otherwise;
 functions become `null`; nesting stops at 32 levels). Keys are strings of up to 256 characters.
 
+<!-- doctest: server+client -->
 ```lua
 local visits = node.storage.get("visits", 0) + 1
 node.storage.set("visits", visits)
+node.log("server start number %d", visits)
 
 node.on("playerJoined", function(player)
     if player.accountId then
         node.storage.set("lastSeen:" .. player.accountId, node.server.unixTime())
+        node.log("last seen of account %d is %d", player.accountId, node.storage.get("lastSeen:" .. player.accountId))
     end
 end)
+
+-- expect: server start number 1
+-- expect: last seen of account 42 is \d+
 ```
 
 Each `set` or `delete` is on disk before the call returns, so a crash of the server process loses
@@ -226,11 +247,14 @@ The `[config]` table of your manifest is yours. `node.config` holds it as writte
 numbers, booleans, arrays and nested tables - or an empty table when there is none. It is read once,
 when the resource loads. Layer your defaults under it the way `vehicle-cleanup` does:
 
+<!-- doctest: server {"config": {"maxCars": 2}} -->
 ```lua
 local defaults = { greeting = "Welcome", maxCars = 1, checkIntervalMs = 5000 }
 local config = setmetatable(node.config, { __index = defaults })
 
 node.log("greeting is %q, limit %d", config.greeting, config.maxCars)
+
+-- expect: greeting is "Welcome", limit 2
 ```
 
 `node.resources.manifest()` re-reads `resource.toml` from disk and returns the whole file as a
