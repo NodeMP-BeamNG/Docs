@@ -1,6 +1,6 @@
 ---
 title: Quick start
-description: Run Node-Server 1.1.0 from the release archive or the Docker image, open port 30814, set a name and a map, and get into the launcher's list.
+description: Run Node-Server 1.2.0 from the release archive or the Docker image, open port 30814, set a name and a map, and get into the launcher's list.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -26,9 +26,9 @@ and [the server key](/hosting/registering/) in depth.
 <Tabs>
 <TabItem label="Binary">
 
-The release archives are attached to tag `server-v1.1.0` at
+The release archives are attached to tag `server-v1.2.0` at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases):
-`Node-Server-1.1.0-linux-x64.tar.gz` and `Node-Server-1.1.0-windows-x64.zip`, each with a
+`Node-Server-1.2.0-linux-x64.tar.gz` and `Node-Server-1.2.0-windows-x64.zip`, each with a
 `.sha256` file. Both contain the executable and the `tools/` folder that obfuscates client
 scripts. The Windows archive also bundles the Lua 5.1 runner the obfuscator needs
 (`tools\lua515\lua5.1.exe`); the Linux archive does not, so install the distribution's `lua5.1`
@@ -40,10 +40,10 @@ scripts as plain source.
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
 cd /opt/nodemp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.1.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.1.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.2.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.2.0-linux-x64.tar.gz
 sudo apt install -y lua5.1
 export NODE_LUA=/usr/bin/lua5.1
 ./Node-Server
@@ -54,10 +54,10 @@ export NODE_LUA=/usr/bin/lua5.1
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-windows-x64.zip -OutFile Node-Server-1.1.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-windows-x64.zip.sha256 -OutFile Node-Server-1.1.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.1.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.1.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.1.0-windows-x64.zip -DestinationPath .
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip -OutFile Node-Server-1.2.0-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-windows-x64.zip.sha256 -OutFile Node-Server-1.2.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.2.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.2.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.2.0-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
@@ -104,7 +104,7 @@ Settings are read at start, so start the server again. Every key is described in
 </TabItem>
 <TabItem label="Docker">
 
-The image `ghcr.io/nodemp-beamng/server:v1.1.0` runs the same binary on Ubuntu 24.04 with
+The image `ghcr.io/nodemp-beamng/server:v1.2.0` runs the same binary on Ubuntu 24.04 with
 Lua 5.1 installed (`latest` follows the newest main-branch build, which may be ahead of the
 latest release — pin a version tag). It has no `server.toml`: the image sets
 `NODE_PROVIDER_DISABLE_CONFIG=true`, so every setting is an environment variable — `NODE_NAME`
@@ -125,7 +125,7 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  ghcr.io/nodemp-beamng/server:v1.1.0
+  ghcr.io/nodemp-beamng/server:v1.2.0
 docker logs -f nodemp-server
 ```
 

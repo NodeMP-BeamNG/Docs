@@ -13,16 +13,16 @@ description: Проверка версии, замена бинарника ил
 ./Node-Server --version
 ```
 
-печатает `Node-Server v1.1.0`. Стартовый баннер показывает то же число в строке `version`, а
+печатает `Node-Server v1.2.0`. Стартовый баннер показывает то же число в строке `version`, а
 сервер из списка сообщает его директории в каждом маяке.
 
 ## Где лежат релизы
 
 Релизы сервера — теги `server-v*` на
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Каждый содержит
-два архива, названных по версии (`Node-Server-1.1.0-linux-x64.tar.gz`,
-`Node-Server-1.1.0-windows-x64.zip`), их файлы `.sha256` и заметки о релизе в его описании.
-Docker-образ той же сборки несёт тег с `v` (`ghcr.io/nodemp-beamng/server:v1.1.0`); `latest`
+два архива, названных по версии (`Node-Server-1.2.0-linux-x64.tar.gz`,
+`Node-Server-1.2.0-windows-x64.zip`), их файлы `.sha256` и заметки о релизе в его описании.
+Docker-образ той же сборки несёт тег с `v` (`ghcr.io/nodemp-beamng/server:v1.2.0`); `latest`
 следует за новейшей сборкой ветки main и может опережать последний релиз — закрепляйте тег
 версии.
 
@@ -33,11 +33,11 @@ Linux, с раскладкой из [быстрого старта](/ru/hosting/
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.1.0-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.2.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.1.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.2.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -99,9 +99,9 @@ docker compose logs -f gameserver
 
 ## Версии протокола
 
-Лаунчер и сервер говорят на версионированном сетевом протоколе, в этом релизе — `v18` (1.1.0
-подняла его с `v17` ради строгой проверки установки; сервер, лаунчер 1.1.0 и клиентский мод 1.4.0
-выходят вместе). Когда релиз меняет его, лаунчер старой версии отклоняется на рукопожатии с
+Лаунчер и сервер говорят на версионированном сетевом протоколе, начиная с 1.1.0 — `v18` (она
+подняла его с `v17` ради строгой проверки установки; 1.2.0 его не меняла: сервер 1.2.0, лаунчер
+1.1.0 и клиентский мод 1.4.0 выходят вместе). Когда релиз меняет его, лаунчер старой версии отклоняется на рукопожатии с
 сообщением
 `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
 (два числа — реальные значения). Игроки исправляют это, установив текущий лаунчер с

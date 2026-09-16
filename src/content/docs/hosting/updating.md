@@ -13,17 +13,17 @@ stays.
 ./Node-Server --version
 ```
 
-prints `Node-Server v1.1.0`. The startup banner shows the same number on its `version` line, and
+prints `Node-Server v1.2.0`. The startup banner shows the same number on its `version` line, and
 a listed server reports it to the directory in every beacon.
 
 ## Where releases are
 
 Server releases are tags `server-v*` at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Each carries
-the two archives named after the version (`Node-Server-1.1.0-linux-x64.tar.gz`,
-`Node-Server-1.1.0-windows-x64.zip`), their `.sha256` files, and the release notes in the
+the two archives named after the version (`Node-Server-1.2.0-linux-x64.tar.gz`,
+`Node-Server-1.2.0-windows-x64.zip`), their `.sha256` files, and the release notes in the
 release body. The Docker image of the same build carries the tag with the `v`
-(`ghcr.io/nodemp-beamng/server:v1.1.0`); `latest` follows the newest main-branch build, which
+(`ghcr.io/nodemp-beamng/server:v1.2.0`); `latest` follows the newest main-branch build, which
 may be ahead of the latest release — pin a version tag.
 
 ## Binary
@@ -33,11 +33,11 @@ Linux, with the layout from the [quick start](/hosting/quick-start/) and the sys
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.1.0/Node-Server-1.1.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.1.0-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.2.0/Node-Server-1.2.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.2.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.1.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.2.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -98,8 +98,9 @@ and rewrites the file without them.
 
 ## Protocol versions
 
-Launcher and server speak a versioned wire protocol, `v18` in this release (1.1.0 raised it from
-`v17` for the strict install check; server, launcher 1.1.0 and client mod 1.4.0 ship together).
+Launcher and server speak a versioned wire protocol, `v18` since 1.1.0 (which raised it from
+`v17` for the strict install check; 1.2.0 kept it: server 1.2.0, launcher 1.1.0 and client mod
+1.4.0 ship together).
 When a release changes it, a launcher on the old version is refused at the handshake with
 `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
 (the two numbers are the live values). Players fix that by installing the current launcher from
