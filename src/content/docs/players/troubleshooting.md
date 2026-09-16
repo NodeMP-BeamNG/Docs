@@ -8,18 +8,22 @@ seconds. Each message starts with a prefix that says which part failed:
 
 | Prefix | Who failed |
 |---|---|
-| `Could not join · …` | The client mod check, with no usable `NodeMP.zip` on disk. |
+| `Could not join · …` | Either the client mod check, with no usable `NodeMP.zip` on disk, or a server refusal the launcher explains in its own words: the strict game-file check, the reference manifest, an outdated launcher or server. |
 | `Could not start the launcher · …` | The helper process could not be started. |
 | `Could not connect · …` | The helper could not reach the server. |
-| `Disconnected · …` | The server refused or ended the session; the text is the reason it gave. |
+| `Disconnected · …` | The server refused or ended the session; the text is the reason it gave, word for word. |
 | `The launcher stopped · …` | The helper exited during the join; the text is the last line of its log. |
 | `Session ended · …` | The game was already running when the session ended. |
 
 ## Joining fails
 
-Every `Could not join · …` message means there is no `NodeMP.zip` on disk yet; once one is
-installed, the same failures show as `Client mod could not be updated · joining with the
-installed copy` instead.
+A `Could not join · …` message about the client mod means there is no `NodeMP.zip` on disk yet;
+once one is installed, the same failures show as `Client mod could not be updated · joining with
+the installed copy` instead. A `Could not join · …` message about your game files, the server's
+reference manifest or the launcher version is a server refusal rewritten by the launcher; those
+rows quote both the launcher's line and the server's own reason, which the panel under the
+server's card explains with what to do. Everything else a server sends arrives as
+`Disconnected · …` with the server's text.
 
 | Message | Cause | Fix |
 |---|---|---|
@@ -38,16 +42,19 @@ installed copy` instead.
 | `Could not connect · Could not reach the server` | Nothing answers at `host:port`: server down, port closed, firewall. | Refresh the list; the host checks `30814` TCP and UDP. |
 | `Could not connect · DNS Lookup Failed` | The hostname in a Direct Connect address does not resolve. | Check the spelling, or use the IP. |
 | `Could not connect · server certificate fingerprint mismatch` | The certificate of a server you joined by address changed; the pin is per `host:port`. | If the host confirms the change, delete the server's entry from `known_servers.json` in the cache folder (**Settings → Launcher → Downloaded content → Open**). |
-| `Disconnected · Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. | Launcher 1.1.0 speaks v18: when the launcher's number is the lower one, install the current launcher from [nodemp.com/download](https://nodemp.com/download); when the server's is, tell its host. |
+| `Could not join · This server needs a newer launcher — update from the Download page` | The server speaks a newer wire protocol than this launcher. The server's reason is `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`, with the live numbers; launcher 1.1.0 speaks v18. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download); the panel under the server's card has an *Open the Download page* button. |
+| `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v18)` | The same mismatch the other way round: the server is behind the launcher. | Nothing on your side; the host has to update the server. |
 | `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again` | You are in Test Drive and the server refuses guests (*Account required*). | **Settings → Account → Sign in**, or filter by *No account needed*. |
 | `Disconnected · Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | A ticket is single-use and expires within a minute; a join from another IP fails too. | Join again from the launcher. |
 | `Disconnected · The server could not verify your account with the directory (…). Try again in a moment` | The server could not reach the directory. | Try again in a moment. |
 | `Disconnected · Server full!`, `Disconnected · You are banned from this server`, `Disconnected · The server is still starting, please try joining again later.` | What they say. | Filter by *Free slots*; ask the host; wait a minute. |
 | `Disconnected · Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | The server checks game files and yours differ from the game's manifest. | Verify the game files in Steam. |
-| `Disconnected · Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …` | A **strict** server: your install or your BeamNG user folder differs from the server's reference of a clean game. The count and the examples after it are live. | Read the examples, then run the diagnostic in [Strict servers](#strict-servers) below to see the whole list. |
-| `Disconnected · Your launcher checked your BeamNG install against a different reference manifest than this server uses (…). Reconnect so it fetches the current one.` | The launcher checked against a cached reference the server no longer uses (the host regenerated it). | Join again. |
+| `Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam` | A **strict** server: your install or your BeamNG user folder differs from the server's reference of a clean game. The count and the path are live; the server's reason is `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`. The panel under the server's card names the first problem in words (`vehicles/pickup/pickup.jbeam — in the BeamNG user folder, overrides the game's files`), says what to do about it, and offers the diagnostic command with a *Copy* button. | Follow the panel, then run the diagnostic in [Strict servers](#strict-servers) below to see the whole list. |
+| `Could not join · This server's reference manifest changed — join again` | The launcher checked against a cached reference the server no longer uses (the host regenerated it). The server's reason is `Your launcher checked your BeamNG install against a different reference manifest than this server uses (…). Reconnect so it fetches the current one.` | Join again; the launcher fetches the current manifest. |
 | `Disconnected · This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. …`, `Disconnected · This server has integrity manifests for 2 game versions (…) and cannot tell which one you run. …` | The server is set to strict but has no reference, or more than one. Nothing is wrong on your side. | Tell the host. |
-| `Disconnected · This server requires a check of your BeamNG install, which could not be completed: the game's user folder … does not exist` | Strict needs the game's user folder; `startup.ini` or `BeamNG.Drive.ini` points it somewhere that does not exist. | Fix the path in that file, or start the game once so the folder is created. |
+| `Could not join · BeamNG's user folder was not found` | Strict needs the game's user folder; `startup.ini` or `BeamNG.Drive.ini` points it somewhere that does not exist. The server's reason is `This server requires a check of your BeamNG install, which could not be completed: the game's user folder … does not exist`. | Fix the path in that file, or start the game once so the folder is created. |
+| `Could not join · Could not download the server's reference manifest`, `Could not join · The server's reference manifest is out of date`, `Could not join · Your game files could not be checked` | The strict check could not run: the manifest transfer failed (for example `the server sent nothing for 30 s during the manifest transfer`), the server's reference is in an outdated format, or something else the panel names. The server's reason starts with `This server requires a check of your BeamNG install, which could not be completed: …`. | Join again; if it repeats, tell the host, attaching `launcher.log`. |
+| `Could not join · The server would not send its reference manifest`, `Could not join · The server stopped sending its reference manifest (asked too often)` | The server refused the manifest transfer (`Unknown integrity manifest requested`, `Too many integrity manifest requests`). A current launcher asks only for the id the server named and only once, so this points at a replaced manifest on the host's side or a broken launcher. | Join again in a moment; if it keeps happening, tell the host or reinstall the launcher. |
 | `Disconnected · Invalid mod "…"`, `Disconnected · Failed to verify "…"`, `Disconnected · Server cannot find …` | A content file the server announced is broken or missing on the server. | Tell the host. Removing the file in **Content** forces a fresh download. |
 
 If the game was already on screen, the same reason also arrives as `Session ended · …`, and
@@ -62,9 +69,11 @@ install of the game version it runs ([Strict verification](/hosting/strict-verif
 explains what the host set up). Two more steps appear while you join,
 `Downloading the server's integrity manifest` (once; the file is cached) and
 `Checking game files`, and a mismatch refuses you with
-`Disconnected · Game files do not match this server's reference (N problems). …`. The launcher
+`Could not join · Your game files do not match this server's reference (N problems) · <path>`
+(the server's reason, `Game files do not match this server's reference (N problems). …`, carries
+up to three examples; the panel under the server's card explains the first one). The launcher
 keeps checking during the session, so a change you make while playing ends it with
-`Session ended · Game files changed while you were playing and no longer match this server's reference (N problems). …`.
+`Session ended · Your game files changed while you were playing and no longer match this server's reference (N problems)`.
 
 The usual causes on an unmodified game are files the check cannot tell from a modification:
 
