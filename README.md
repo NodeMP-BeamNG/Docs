@@ -163,8 +163,8 @@ database - without it those blocks are skipped. CI downloads
 `Node-Server-<version>-linux-x64.tar.gz` from `NodeMP-BeamNG/releases` (checked against its
 `.sha256`; the version is `SERVER_VERSION` in the workflow) and runs against a `postgres:16-alpine`
 service. `scripts/doctest/lib/` holds the vendored wire codec and fake client from the server
-repository and the `chat` resource from the examples; `lib/SYNC.md` says which commits and how to
-resync.
+repository, the stand-in directory and the stand-in `chat`; `lib/SYNC.md` says which commit the
+vendored files come from and how to resync.
 
 ## Writing pages
 
