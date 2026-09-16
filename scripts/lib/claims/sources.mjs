@@ -49,7 +49,7 @@ export function cppTemplates(source) {
 // may lead)? A `,` or `?` outside parentheses means the literals belong to
 // different arguments or ternary branches instead.
 function isSplice(between) {
-  let s = between.replace(/\s+/g, '');
+  let s = between.replace(/\s+/g, '').replace(/->/g, '.');
   for (let guard = 0; guard < 20 && /\([^()]*\)/.test(s); guard++) s = s.replace(/\([^()]*\)/g, '');
   return /^\)*(?:\+|<<)[^+?,;()<>]*(?:\+|<<)$/.test(s);
 }

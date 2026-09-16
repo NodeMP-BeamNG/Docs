@@ -58,6 +58,7 @@ test('cpp templates: adjacent concatenation, + and << splices, fmt placeholders,
                   "be completed: "
             + Detail);
     ClientKick(c, "Your join ticket was not accepted (" + R.Reason + "). Join again");
+    SetUlDisconnected("Failed to verify \\"" + ModInfoIter->FileName + "\\"");
     std::cout << "Node-Launcher " << LauncherVersion() << " proto " << Wire::ProtoVersion << std::endl;
     ClientKick(c, DuringHandshake ? fmt::format("A {}", x) : fmt::format("B {}", y));
     error(std::string("Failed to create caching directory: ") + e.what() + ". This is a fatal error.");
@@ -70,6 +71,7 @@ test('cpp templates: adjacent concatenation, + and << splices, fmt placeholders,
   assert.ok(t.includes('Game files do not match ({}). {}'));
   assert.ok(t.includes('This server requires a check, which could not be completed: '), 'a value after the last literal adds nothing');
   assert.ok(t.includes('Your join ticket was not accepted ({}). Join again'));
+  assert.ok(t.includes('Failed to verify "{}"'), 'a -> member access between the pieces is a splice too');
   assert.ok(t.includes('Node-Launcher {} proto '));
   assert.ok(t.includes('A {}') && t.includes('B {}'), 'ternary branches stay separate');
   assert.ok(t.includes('Failed to create caching directory: {}. This is a fatal error.'));
@@ -190,10 +192,10 @@ test('kicks: wildcard compatibility and matching modes', () => {
   assert.ok(compatible(docTemplate('could not be completed: …'), 'could not be completed:'), 'a trailing space before the wildcard is absorbed');
   assert.ok(!compatible(docTemplate('Server full'), 'Server full!'));
   assert.ok(!compatible(docTemplate('Cannot get Local Appdata directory'), `  ${W} ${W} `) || true);
-  const tpl = [{ text: `Node-Launcher ${W} proto ` }, { text: 'game files DIFFER: ' }, { text: `  ${W} ${W} ` }];
+  const tpl = [{ text: `Node-Launcher ${W} proto ` }, { text: 'game files DIFFER: ' }, { text: `  ${W} ${W} ` }, { text: `${W}\r\n\t"<>|:*?` }];
   assert.ok(matchesPrefix('Node-Launcher 1.1.0 proto 18', tpl));
   assert.ok(matchesPrefix('game files DIFFER: … (strict), …', tpl));
-  assert.equal(matchesPrefix('Cannot get Local Appdata directory', tpl), undefined, 'a template of placeholders only never matches');
+  assert.equal(matchesPrefix('Cannot get Local Appdata directory', tpl), undefined, 'templates of placeholders only, or starting with one, never match');
   assert.equal(matchesWhole('Node-Launcher 1.1.0 proto 18', tpl), undefined, 'whole-text needs the whole text');
 });
 

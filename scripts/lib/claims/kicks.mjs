@@ -28,6 +28,10 @@ const norm = (s) => s.replace(/\s+/g, ' ').trim().replace(new RegExp(` ?${W} ?`,
 // Letters a template has once wildcards and spaces are gone: a template of
 // nothing but placeholders would match everything.
 const substance = (s) => s.replace(WILD, '').replace(/\s+/g, '');
+// A template worth matching a quoted message against: it has letters and it
+// starts with one (a message is quoted from its beginning; `{} kicked {}` and a
+// `\r\n\t"<>|:*?` character set say nothing about what a player reads).
+const usable = (t, min) => substance(t.text).length >= min && !norm(t.text).startsWith(W);
 
 // Can two templates with wildcards describe the same string?
 export function compatible(a, b) {
@@ -49,13 +53,13 @@ export function compatible(a, b) {
 // Whole-text: the quoted text is one instance of the template.
 export function matchesWhole(doc, templates) {
   const d = docTemplate(doc);
-  return templates.find((t) => substance(t.text).length >= 2 && compatible(d, norm(t.text)));
+  return templates.find((t) => usable(t, 2) && compatible(d, norm(t.text)));
 }
 // Starts-with: log lines are quoted from their beginning, and often assembled from
 // a literal plus values, so both sides may continue.
 export function matchesPrefix(doc, templates) {
   const d = docTemplate(doc) + W;
-  return templates.find((t) => substance(t.text).length >= 4 && compatible(d, norm(t.text) + W));
+  return templates.find((t) => usable(t, 4) && compatible(d, norm(t.text) + W));
 }
 
 // --- what the pages quote ---------------------------------------------------------
@@ -174,7 +178,7 @@ export function checkExitCodes(page, corpora, exitCodes) {
       if (s.text.length < 6 || /^--/.test(s.text)) continue;
       const hit = matchesPrefix(s.text, corpora.launcher);
       if (!hit) { out.push(finding('kick.exit', page, row.line, s.text, 'a log line of the launcher (launcher/src)', 'no such literal')); continue; }
-      const codes = exitCodes.filter((e) => substance(e.text).length >= 4 && compatible(docTemplate(s.text) + W, norm(e.text) + W)).map((e) => e.code);
+      const codes = exitCodes.filter((e) => usable(e, 4) && compatible(docTemplate(s.text) + W, norm(e.text) + W)).map((e) => e.code);
       if (codes.length && !codes.includes(code)) out.push(finding('kick.exit', page, row.line, s.text, `exit code ${[...new Set(codes)].join(' or ')}`, `${code}`));
     }
   }
