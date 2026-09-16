@@ -35,10 +35,14 @@ export const RECOGNIZERS = [
   ['mod', re(String.raw`${B}NodeMP-${V3}\.zip`)],
   ['mod', re(String.raw`NodeMP\.VERSION\x60[^\x60\n]{0,40}\x60${V3}\x60`)],
   ['mod', re(String.raw`\x60${V3}\x60\s*\(\x60NodeMP\.VERSION\x60\)`)],
-  // Table rows "| Game server (...) | 1.2.0 |": the component named in the cell before.
+  // Table rows "| Game server (...) | 1.2.0 |": the component named in the cell before;
+  // and glossary rows "| **Launcher** | ... Version 1.1.0. |".
   ['server', re(String.raw`\|[^|\n]*(?:server|сервер)[^|\n]*\|\s*${V3}\s*\|`)],
   ['launcher', re(String.raw`\|[^|\n]*(?:launcher|лаунчер)[^|\n]*\|\s*${V3}\s*\|`)],
   ['mod', re(String.raw`\|[^|\n]*(?:client mod|мод)[^|\n]*\|\s*${V3}\s*\|`)],
+  ['server', re(String.raw`\|\s*\*\*(?:Server|Game server|Сервер|Игровой сервер)\*\*[^|\n]*\|[^|\n]*(?:Version|Версия) ${V3}`)],
+  ['launcher', re(String.raw`\|\s*\*\*(?:Launcher|Лаунчер)\*\*[^|\n]*\|[^|\n]*(?:Version|Версия) ${V3}`)],
+  ['mod', re(String.raw`\|\s*\*\*(?:Client mod|Клиентский мод)\*\*[^|\n]*\|[^|\n]*(?:Version|Версия) ${V3}`)],
   // Quoted messages may carry other versions ("launcher speaks v17"); only prose states the current one.
   ['protocol', re(String.raw`${B}(?:wire protocol|protocol|proto|wire|протокол[а-яё]*)\s+v(\d+)${E}`), { proseOnly: true }],
   ['protocol', re(String.raw`${B}(?:speaks?|understands?|говор[а-яё]+)\s+v(\d+)${E}`), { proseOnly: true }],
@@ -61,6 +65,10 @@ function value(key, m) {
   return m[1];
 }
 
+// "added with server 1.1.0", "появившийся с сервером 1.1.0": a statement about the
+// past, not about what ships now.
+const HISTORICAL = /(?:added|introduced|since|before|until|raised|shipped with|появи\S*|добав\S*|начиная|до|подня\S*)\s+(?:with|in|by|с|в)?\s*(?:the\s+)?\S*$/iu;
+
 // All version mentions of a page: [{ key, value, line, claim }].
 export function versionMentions(text) {
   const out = [];
@@ -72,6 +80,9 @@ export function versionMentions(text) {
     for (const [key, re, opts] of RECOGNIZERS) {
       for (const m of line.matchAll(re)) {
         if (opts?.proseOnly && inSpan(m.index)) continue;
+        // The words before the mention, across a wrapped line.
+        const before = (i > 0 ? lines[i - 1].slice(-40) + ' ' : '') + line.slice(0, m.index);
+        if (HISTORICAL.test(before.slice(-60) + m[0].split(/\s+/)[0])) continue;
         const v = value(key, m);
         if (key === 'dockerTag' && (v === 'latest' || /^sha-/.test(v))) continue;
         found.push({ key, value: v, line: i + 1, claim: m[0].trim(), start: m.index, end: m.index + m[0].length });

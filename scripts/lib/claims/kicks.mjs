@@ -116,10 +116,18 @@ export function collectServerTexts(page) {
 
 export function checkKickTexts(page, serverTexts, corpora) {
   const out = [];
-  const templates = [...corpora.server, ...corpora.launcher];
+  // The refusals table quotes the server; a `Disconnected · X` / `Session ended · X`
+  // span may also carry the helper's own session errors or, after the launcher
+  // rewrote a refusal, one of its headlines (joinErrors.ts).
+  const fromServer = [...corpora.server, ...corpora.launcher];
+  const shown = [...fromServer, ...corpora.ui];
   for (const s of serverTexts) {
     if (s.text.length < 4) continue;
-    if (!matchesWhole(s.text, templates)) out.push(finding('kick.text', page, s.line, s.text, 'a refusal text the server (Network.cpp and friends) or the helper prints', 'no such literal'));
+    if (!matchesWhole(s.text, s.inRefusalTable ? fromServer : shown)) {
+      out.push(finding('kick.text', page, s.line, s.text, s.inRefusalTable
+        ? 'a refusal text the server (Network.cpp and friends) prints'
+        : 'a text the server, the helper or the launcher interface prints', 'no such literal'));
+    }
   }
   return out;
 }
@@ -175,12 +183,13 @@ export function checkExitCodes(page, corpora, exitCodes) {
 
 // Fragments of a quoted message worth looking up: split at wildcards, the
 // `Prefix · ` separator, N/M placeholders and numbers; a fragment that starts
-// with a path piece (`…\NodeMP.zip.part was interrupted:`) loses the path, which
-// is a value the docs spelled out; keep the long ones.
+// with a path piece (`…\NodeMP.zip.part was interrupted:`) loses the path, and a
+// fragment that IS a path (`vehicles/pickup/pickup.jbeam`) is a value the docs
+// spelled out; keep the long ones.
 export function fragments(message) {
   return docTemplate(message).split(new RegExp(`${W}|·|\\b[NM]\\b|\\d+`))
     .map((f) => f.trim().replace(/^[\\/]\S*\s*/, ''))
-    .filter((f) => f.length >= 12);
+    .filter((f) => f.length >= 12 && !/^[\w.<>-]+(?:[\\/][\w.<>-]+)+$/.test(f));
 }
 
 // A fragment is known when some literal piece contains it, or when it begins
