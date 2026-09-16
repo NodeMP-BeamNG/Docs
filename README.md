@@ -67,10 +67,29 @@ A change fails CI when:
 
 Stale phrases (`scripts/check-stale.mjs`, `DEFAULT_PHRASES`): `BeamMP-compatible`,
 `BeamMP compatible`, `ServerConfig.toml`, `[Backend]`, `NODEMP_BACKEND_URL`, `backend-less`,
-`Resources/Server`, `NodeMP mesh`, `on the mesh`, `v12`, `v13`. Two pages are allow-listed by path
-because they discuss the old stack on purpose: `introduction/differences-from-beammp.md` and
-`plugins/migrating.md` (both locales). Add a phrase to `DEFAULT_PHRASES` rather than weakening a
-page; add a page to `DEFAULT_ALLOW` only when it has to name the old stack.
+`Resources/Server`, `NodeMP mesh`, `on the mesh`, `v12`, `v13`, and the variants the terminology
+pass retired in favour of the glossary's words: `hoster` / `хостер` (say *host*), `press Play` /
+`нажимаете Play` (the button is *Hold to play*), `guest mode` / `гостевой режим` (say *Test
+Drive*), `in the NodeMP sources` / `в исходниках NodeMP` (the examples ship in the release
+archive) and `directory.nodemp.com` (the directory is `api.nodemp.com`). Three pages are
+allow-listed by path: `introduction/differences-from-beammp.md` and `plugins/migrating.md` discuss
+the old stack on purpose, and `reference/glossary.md` names the retired variants in order to
+retire them (all in both locales). Add a phrase to `DEFAULT_PHRASES` rather than weakening a
+page; add a page to `DEFAULT_ALLOW` only when it has to name the old words.
+
+`reference/glossary.md` is the arbiter for terminology: one word per thing, in both locales, with
+the Russian term beside each English one. When a page needs a word for something the glossary
+covers, use the glossary's word; when the software itself prints another word (a log line, a
+toast), quote the software and say which glossary term it means. `reference/faq.md` collects the
+questions readers actually asked, each answered in a few lines with a link to the page that has
+the details; a new recurring question goes there, not into a new page.
+
+A behaviour that the *next* server release changes is documented from the release branch ahead of
+time, marked `(server 1.2.1)` wherever it is described, next to what the current release does;
+`check-claims` flags the version mention, so `scripts/claims-allow.json` carries an entry for
+`server 1.2.1` / `сервер 1.2.1` (and for the flags and keys that only exist there) with the
+reason. When `versions.json` moves to that release, the entries become unused and are removed,
+and the "(server 1.2.0)" mentions the checker then flags are rewritten as history.
 
 The expected clean output is:
 

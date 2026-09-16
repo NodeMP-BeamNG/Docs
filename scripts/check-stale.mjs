@@ -8,10 +8,18 @@ import { fileURLToPath } from 'node:url';
 export const DEFAULT_PHRASES = [
   'BeamMP-compatible', 'BeamMP compatible', 'ServerConfig.toml', '[Backend]',
   'NODEMP_BACKEND_URL', 'backend-less', 'Resources/Server', 'NodeMP mesh', 'on the mesh', 'v12', 'v13',
+  // Retired by the 2026-09 terminology pass (reference/glossary.md is the arbiter):
+  // the person running a server is the "host"; the join button is "Hold to play";
+  // playing without an account is "Test Drive"; the examples ship in the release
+  // archive, not "in the NodeMP sources"; the directory is api.nodemp.com.
+  'hoster', 'хостер', 'press Play', 'нажимаете Play', 'guest mode', 'гостевой режим',
+  'in the NodeMP sources', 'в исходниках NodeMP', 'directory.nodemp.com',
 ];
 export const DEFAULT_ALLOW = [
   /introduction[\\/]differences-from-beammp\.md$/,
   /plugins[\\/]migrating\.md$/,
+  // The glossary names the retired variants on purpose, to retire them.
+  /reference[\\/]glossary\.md$/,
 ];
 
 export function findStale(files, phrases = DEFAULT_PHRASES, allow = DEFAULT_ALLOW) {
