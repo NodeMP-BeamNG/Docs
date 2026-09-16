@@ -39,8 +39,9 @@ the generated pages.** The Russian copy of the reference is the English text by 
 |---|---|
 | `npm run dev` | Imports the API reference, then starts the Astro dev server. |
 | `npm run build` | Imports the API reference, builds `dist/` and validates every internal link and anchor (`starlight-links-validator`; relative links are errors). |
-| `npm test` | Runs the unit tests of the scripts (`node --test "scripts/*.test.mjs"`). |
+| `npm test` | Runs the unit tests of the scripts (`node --test "scripts/*.test.mjs"`) and of the doctest runner (`scripts/doctest/run.py --self-test`). |
 | `npm run check` | Runs `check:locales`, `check:stale` and `check:claims`; exit code 1 on the first problem. |
+| `npm run doctest` | Runs every Lua example of the plugin guides against a real `Node-Server` ([Doctests](#doctests)). `-- --only <page>`, `-- --keep`, `-- --list`. |
 | `npm run check:locales` | EN/RU parity: every page under `src/content/docs/` needs a twin at `ru/<same path>`, and every RU page needs an EN original. The generated `plugins/api/` is exempt. |
 | `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line. The generated `plugins/api/` is exempt. |
 | `npm run check:claims` | Compares what the pages state with the code that defines it (section below). Needs the `server`, `sdk`, `launcher`, `NodeMP` and `UI-launcher` checkouts beside this repository; without one of them the checks that need it are skipped with a warning (CI fails instead). |
@@ -51,14 +52,18 @@ the generated pages.** The Russian copy of the reference is the English text by 
 CI (`.github/workflows/ci.yml`, on pull requests and non-`main` pushes) and the Pages deploy
 (`.github/workflows/deploy.yml`, on `main`) both check out the sdk, the server, the launcher, the
 client mod (`NodeMP`) and the launcher interface (`UI-launcher`) with read-only deploy keys and
-run `npm test`, `npm run check` and `npm run build` with `IMPORT_API_STRICT=1`. A change fails CI when:
+run `npm test`, `npm run check` and `npm run build` with `IMPORT_API_STRICT=1`; a second job,
+`doctest`, runs the Lua examples of the plugin guides against the released server ([Doctests](#doctests)).
+A change fails CI when:
 
 - a page has no twin in the other locale (`check-locales`);
 - a page contains one of the stale phrases (`check-stale`);
 - a page states something the code does not (`check-claims`, below);
 - an internal link or `#anchor` does not resolve (the build);
 - a guide page the API reference links to does not exist (`IMPORT_API_STRICT=1`; without the
-  flag the import links such guides to `/plugins/overview/` and prints one summary line).
+  flag the import links such guides to `/plugins/overview/` and prints one summary line);
+- a Lua example under `plugins/` has no doctest tag, does not load, logs an error or a deprecated
+  event name, misses a line it says it prints, or differs from its Russian twin (`doctest`).
 
 Stale phrases (`scripts/check-stale.mjs`, `DEFAULT_PHRASES`): `BeamMP-compatible`,
 `BeamMP compatible`, `ServerConfig.toml`, `[Backend]`, `NODEMP_BACKEND_URL`, `backend-less`,
@@ -103,6 +108,62 @@ sentence about *when* a kick happens), messages of the directory (Backend) and o
 event names written in a form none of the recognisers know, and the completeness of
 `players/troubleshooting` (only `reference/error-codes` is checked for missing rows).
 
+## Doctests
+
+Every ```` ```lua ```` block under `src/content/docs/plugins/` is executed, or says why it is not.
+The line above the fence classifies it:
+
+```md
+<!-- doctest: server -->                         runs as server/main.lua of a throwaway resource
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
+                                                 ... and a fake player joins; the JSON lists what it sends
+<!-- doctest: pg -->  /  <!-- doctest: pg+client -->   the same, on a server with a PostgreSQL database
+<!-- doctest: client -->                         a client script: syntax-checked with luac and packaged
+                                                 by the server; the game is not here to run it
+<!-- doctest: skip <reason> -->                  not run; still syntax-checked
+```
+
+The runner, `scripts/doctest/run.py`, writes each block into `resources/dt<N>/` of a scratch
+server home together with the `chat` example resource (the guides tell the reader to install it
+for `player:tell` and chat commands), starts one `Node-Server` per page, lets the fake players
+join and send their events, stops the server cleanly (so `serverShutdown` and `resourceUnload`
+run) and judges the log. A block **fails** when its resource never prints its load line, logs
+`error in …`, a `[deprecated]` event name or a manifest problem, or misses an expectation.
+Expectations are comments inside the block, so the reader sees what the example prints:
+
+```lua
+-- expect: Player#\d+ Alice joined from \S+      a regex one of this resource's own log lines must match
+-- expect-not: credit failed                      ... must not match
+-- expect-log: Bob kicked — Spamming              a line anywhere in the server log (the server's own tags)
+-- expect-client: Alice chat:msg .*2 online       an event a fake player received: `<player> <event> <payload>`
+```
+
+The `+client` options: `players` (`["Alice", "Bob"]`; Alice is account 42, Bob 108, Carol a
+directory admin, Guest a Test Drive session without an account - the runner brings its own
+stand-in directory), `emit` (`[event, payload]` or `[event, payload, "Bob"]`, a table payload is
+sent as JSON), `spawn` (`"coupe"`: the first player spawns a vehicle before the events). For any
+running block: `config` (the resource's `[config]` table), `files` (extra files inside the
+resource, `{"server/util.lua": "return {}"}`), `with` (`[5]`: the code of earlier blocks of the
+page runs in front of this one - for a definition and its use split across two blocks), `wait`
+(seconds to wait for the expectations, default 15).
+
+The Russian twin carries the same tag comment and the same code byte for byte; the runner
+compares the blocks by position and only the English ones execute. `--list` prints the
+classification without running anything, `--only <page>` runs one page, `--keep` keeps every
+scratch home under `.doctest/` (a failing page's home, with its `server.log` and the players'
+`received.log`, is kept anyway), `--strict` makes a missing database a failure (CI).
+
+To run it locally you need the server binary (`--server <path>`, `DOCTEST_SERVER`, or
+`../server/run/Node-Server[.exe]`, or `.server/Node-Server` as CI unpacks it), `luac` (Lua 5.4;
+`DOCTEST_LUAC` names another), the `zstandard` Python package (the fake player's frames are
+compressed) and, for the `pg` blocks, `NODE_DATABASE_URL` pointing at a throwaway PostgreSQL
+database - without it those blocks are skipped. CI downloads
+`Node-Server-<version>-linux-x64.tar.gz` from `NodeMP-BeamNG/releases` (checked against its
+`.sha256`; the version is `SERVER_VERSION` in the workflow) and runs against a `postgres:16-alpine`
+service. `scripts/doctest/lib/` holds the vendored wire codec and fake client from the server
+repository and the `chat` resource from the examples; `lib/SYNC.md` says which commits and how to
+resync.
+
 ## Writing pages
 
 Content lives in `src/content/docs/`: English directly under it, Russian under `ru/` at the same
@@ -119,7 +180,9 @@ To add a page:
 4. Link internally with absolute paths and a trailing slash (`/hosting/quick-start/`; Russian pages
    link `/ru/hosting/quick-start/`). Do not link into private repositories; quote paths in
    backticks instead.
-5. Run `npm run check` and `npm run build`.
+5. Run `npm run check` and `npm run build`. A page under `plugins/` with a ```` ```lua ```` block
+   also needs the block tagged ([Doctests](#doctests)) in both locales and
+   `npm run doctest -- --only <slug>` green.
 
 Slugs that are removed get an entry in `redirects` in `astro.config.mjs`.
 
