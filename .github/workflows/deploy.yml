@@ -137,6 +137,7 @@ jobs:
           path: |
             .doctest/*/server.log
             .doctest/*/received.log
+          include-hidden-files: true  # .doctest/ is a dot-directory
           if-no-files-found: ignore
           retention-days: 7
 
