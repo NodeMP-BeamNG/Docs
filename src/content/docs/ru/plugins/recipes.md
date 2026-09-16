@@ -28,7 +28,7 @@ node.commands.add("online", function(player, args, raw)
 end)
 
 -- expect: Player#\d+ Alice asked who is online
--- expect-client: Alice chat:msg .*2 online: Alice, Bob
+-- expect-client: Alice chat:msg .*2 online: (Alice, Bob|Bob, Alice)
 ```
 
 `node.commands.add(name, fn, opts?)` регистрирует обработчик строки чата `/name ...`: `fn` получает
@@ -37,7 +37,9 @@ end)
 публикует каждую строку с `/` на шине как `chat:command`, так что команда, которую никто не
 зарегистрировал, просто отбрасывается - и никогда не показывается в чате.
 
-Алиса набирает `/online` и видит `2 online: Alice, Bob` системной строкой. Консоль печатает:
+Алиса набирает `/online` и видит `2 online: Alice, Bob` системной строкой - `node.players.all()`
+перечисляет игроков в произвольном порядке, так что отсортируйте имена, если порядок важен.
+Консоль печатает:
 
 ```
 online · Player#0 Alice asked who is online

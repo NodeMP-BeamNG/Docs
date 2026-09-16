@@ -27,7 +27,7 @@ node.commands.add("online", function(player, args, raw)
 end)
 
 -- expect: Player#\d+ Alice asked who is online
--- expect-client: Alice chat:msg .*2 online: Alice, Bob
+-- expect-client: Alice chat:msg .*2 online: (Alice, Bob|Bob, Alice)
 ```
 
 `node.commands.add(name, fn, opts?)` registers a handler for the chat line `/name ...`: `fn`
@@ -36,7 +36,8 @@ are case-insensitive, one handler per name per resource, `node.commands.remove(n
 back. The `chat` resource publishes every `/` line on the bus as `chat:command`, so a command
 nobody registered is simply dropped - never shown in chat.
 
-Alice types `/online` and sees `2 online: Alice, Bob` as a system line. The console prints:
+Alice types `/online` and sees `2 online: Alice, Bob` as a system line - `node.players.all()`
+lists players in no particular order, so sort the names if the order matters. The console prints:
 
 ```
 online · Player#0 Alice asked who is online
