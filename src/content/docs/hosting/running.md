@@ -18,7 +18,7 @@ the two are the same.
 | `resources/<name>/` | working directory | Resources: server-side scripts and streamed client scripts. |
 | `content/` | working directory (`[Content] Folder`) | Client mod zips, plus the hash cache `content/mods.json`. |
 | `storage/<store>.json`, `.log` | working directory | Persistent data resources keep through the storage API. |
-| `bans.json` | working directory | Banned addresses and accounts. |
+| `bans.json` | working directory | Banned addresses and accounts ([Bans](#bans)). |
 | `logs/server.log`, `logs/server.old.log` | working directory | The current and the previous run's log. |
 | `node_cert.pem`, `node_key.pem` | executable folder (`[Network] TlsCert`, `TlsKey`) | The server's TLS identity. |
 | `modules/` | executable folder | Native modules (`.so`, `.dll`). |
@@ -125,7 +125,50 @@ Files you copy into `data/resources/` or `data/content/` must be readable by use
 zip: `docker compose restart gameserver`.
 
 There is no console: the process reads nothing from standard input, in a container or outside
-one. Administration happens through resources.
+one. Administration happens through resources - chat commands such as the ones in
+[Recipes](/plugins/recipes/#kick-and-ban-with-a-reason) - and, for bans, through the file
+described [below](#bans).
+
+## Bans
+
+Bans live in `bans.json` in the working directory. The file does not exist until the first ban;
+the server reads it once at start and writes it back after every new ban. It is one JSON object
+whose keys are the banned IP address (`"203.0.113.7"`, or an IPv6 address without brackets) or
+the NodeMP account as `"nodemp:<account id>"`, and whose values carry the reason the player is
+shown, the time and the name at the time:
+
+```json
+{
+  "203.0.113.7": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
+  "nodemp:108": { "reason": "Spamming", "at": 1789558100, "name": "Bob" }
+}
+```
+
+A ban placed on a connected player through `node.bans.add(player)` or `player:ban()` writes two
+entries, the address and the account; a ban on a bare address or account id writes one. A player
+whose address or account is in the file is refused at the door with the stored reason, or with
+`You are banned from this server` when the reason is empty. The start-up log counts what it
+loaded: `2 banned IPs and 1 banned account loaded from bans.json`.
+
+To lift a ban on server 1.2.0: **stop the server**, delete the entry (both entries for a player
+banned in a session) from `bans.json`, start it again. Editing the file while the server runs does
+not work - the server keeps the list in memory and writes the old list back on its next ban. A
+resource can also lift one at run time with `node.bans.remove(who)`; the `/unban` command of the
+[moderation recipe](/plugins/recipes/#kick-and-ban-with-a-reason) is that in eight lines, and
+needs the `chat` resource.
+
+From server 1.2.1 on, the same file is read and edited from the command line, with the server
+stopped:
+
+```
+Node-Server --bans list
+Node-Server --bans remove 203.0.113.7
+Node-Server --bans remove nodemp:108
+```
+
+`list` prints every entry with its key, date, name and reason; `remove` takes an IP address, an
+account as `nodemp:<id>` or a bare account id, removes it and says how many bans are left.
+`--working-directory=` is honoured, `server.toml` is not read.
 
 ## Logs
 
@@ -146,12 +189,47 @@ Lines worth knowing at a glance:
   will be obfuscated; a `Warn` instead names what is missing.
 - `startup not successful, systems [Directory] had errors — this may or may not cause issues` —
   one subsystem failed; the lines above it say which and why.
+- `Error › bind() failed: …` (`Only one usage of each socket address … is normally permitted` on
+  Windows, `Address already in use` on Linux) — **the port is taken**, almost always by a
+  previous instance of the server that is still running. Server 1.2.0 then goes on for a few
+  seconds - it may still print `listening on …` and even `server is ready` - and shuts itself
+  down, which looks like a crash but is not one; stop the other instance (or change
+  `[General] Port` / `--port=`) and start again. From server 1.2.1 on the line reads
+  `Cannot listen on port 30814 (…): the port is already in use …`, names the usual cause, no
+  `server is ready` follows, and the process exits with code 1 after `Closing in 10 seconds`.
+- `Kick › <name> kicked — <reason>` — the server refused or ended a player's session; the reason
+  is the text the player quotes to you (see [When a player is refused](#when-a-player-is-refused)).
 
 ## Stopping
 
 Ctrl+C, `systemctl stop`, or `docker compose stop` send SIGINT or SIGTERM. The server logs
 `gracefully shutting down via SIGTERM`, kicks every player with the reason `Server shutdown`,
-stops its subsystems and ends with `Shutdown.`. Pressing Ctrl+C repeatedly forces the exit.
+stops its subsystems and ends with `Shutdown.`. Pressing Ctrl+C repeatedly forces the exit. Two
+things a clean stop of server 1.2.0 prints are noise, not damage: on Windows, after `Shutdown.`,
+`Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall`
+and `Error › Failed to accept() new client: …` are the network threads reporting their own
+cancellation; with a database configured, `Warn › pg: no live database connection (reconnecting)`
+is the pool announcing a reconnect it will not make.
+
+## When a player is refused
+
+A player who cannot join quotes a toast; [Error codes](/reference/error-codes/) lists every text
+with its meaning. On your side:
+
+- The server logs every refusal and kick under the `Kick` tag as `<name> kicked — <reason>`
+  (`connection from 203.0.113.5 refused (banned: Spamming)` for a ban at the door), so
+  `logs/server.log` says whom it refused and why, in the same words the player saw.
+- `Invalid mod "…"`, `Failed to verify "…"`, `Server cannot find …`: a zip in `content/` is broken,
+  was replaced while the server ran, or is missing. Look at the content lines of the start-up log
+  (`serving 2 mods (148.3 MB) from content/`, `'…' is not a ZIP file and will be ignored`), fix or
+  remove the file and restart - the folder is indexed at start only.
+- `Connection refused` with no reason: a resource denied `playerConnectRequest` without giving
+  one. The resource's own log lines (its name is the tag) say which; the server does not.
+- `You are banned from this server` or a ban reason: the entry is in `bans.json`,
+  [above](#bans).
+- Anything about game files or the reference manifest: the `VerifyGame` level you set; the
+  player's side is on [Troubleshooting → Strict servers](/players/troubleshooting/#strict-servers),
+  yours on [Strict verification](/hosting/strict-verification/).
 
 ## What to back up
 

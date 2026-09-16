@@ -101,7 +101,10 @@ The check is a check on an honest client, not a security boundary. Where it stop
 The generator is built into the server binary. Run it on a Windows machine with a **clean**
 BeamNG.drive install of the version your players run (verify the files in Steam first, and
 make sure nothing is installed into the game folder), using the Windows build of `Node-Server`
-from the release archive:
+from the release archive. The game has to be installed on the machine that runs the generator -
+a Linux or Docker server has no game to read, so a host on Linux generates the file on a Windows
+PC (the players' game is a Windows program anyway) and copies the one file to the server; the
+manifest is portable and does not depend on where it was made:
 
 ```powershell
 .\Node-Server.exe --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
@@ -184,10 +187,16 @@ On a strict server the join has two extra steps in the launcher: `Downloading th
 integrity manifest` — once per manifest, about 1.2 MB in 32 KiB chunks, then cached as
 `%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest` — and
 `Checking game files`. A clean install then joins as on any other server; its log says
-`game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. A refused player sees
-`Disconnected · Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`
-in the launcher and, if the check failed later in the session,
-`Session ended · Game files changed while you were playing and no longer match this server's reference (1 problem). …`
+`game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. The server refuses a
+mismatch with
+`Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
+launcher 1.1.0 shows that in its own words, as
+`Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
+with the first problem explained in the panel under the server's card. If the check fails later
+in the session the server ends it with
+`Game files changed while you were playing and no longer match this server's reference (1 problem). …`,
+shown as
+`Session ended · Your game files changed while you were playing and no longer match this server's reference (1 problem)`
 in the game.
 
 During the session the launcher checks again: on Windows when files change under the install's

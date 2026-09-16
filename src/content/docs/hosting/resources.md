@@ -15,7 +15,22 @@ settings that apply; writing them is the subject of [Plugin development](/plugin
 
 ## Installing a resource
 
-Copy the folder into `resources/` and restart. The log confirms it:
+A resource is a folder; installing it is copying the folder into `resources/` and restarting.
+Where a folder comes from:
+
+- **You write it.** The smallest one, `hello`, is typed in on
+  [Getting started](/plugins/getting-started/) - a manifest and two short Lua files - and every
+  recipe on [Recipes](/plugins/recipes/) is a complete resource of a few lines.
+- **The examples.** The pages name several example resources - `chat` (the chat and the `/`
+  commands, which `player:tell` and `node.commands.add` in every other resource rely on),
+  `demo-numbers`, `vehicle-cleanup`, `gatekeeper-example`, `nodegrab-allow`, `nodemp-relay`,
+  `devapi-example`, `session-report`. From server 1.2.1 on they ship in the release archive
+  under `examples/`, next to `Node-Server`: copy `examples/chat` to `resources/chat` and
+  restart. The 1.2.0 archive does not contain them and they are not published separately.
+- **Someone else's.** A resource written for NodeMP is a folder you copy; nothing is installed
+  system-wide, and a resource never reaches outside its folder except through the API.
+
+The log confirms each one:
 
 ```
 demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
@@ -25,6 +40,10 @@ demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 A folder that has neither a server script nor client scripts is skipped silently. Under Docker
 the folder is `data/resources/<name>/`; make it readable for user id 10001
 (`sudo chown -R 10001:10001 data`) and restart the container.
+
+Without `chat` installed, the chat helpers of every other resource (`player:tell`,
+`node.chat.say`, `node.commands.add`) do nothing at all - no chat line, and no console line
+either; a resource that wants to be seen while `chat` is missing uses `node.log`.
 
 ## resource.toml
 
@@ -81,7 +100,16 @@ and with `tools/` missing `Prometheus not found under any tools/ dir, client scr
 In both cases the server runs and ships plain source. A file Prometheus cannot handle is also
 shipped plain, with a `Warn` line naming it, so a join never fails on obfuscation.
 `Node-Server --obf-selftest` runs the same check from the command line and prints
-`[obf-selftest] available=1` when it works.
+`[obf-selftest] available=1` when it works (the flag is missing from the 1.2.0 `--help` text;
+server 1.2.1 lists it).
+
+A client file that is not valid Lua is one thing Prometheus cannot handle. Server 1.2.0 reports
+it only in that indirect way - `Prometheus failed on 'main.lua' (…), shipping it unobfuscated` -
+and with obfuscation off not at all: the first sign is then the compile error in a player's
+`beamng.log`. From server 1.2.1 on every client file is syntax-checked when it is packaged,
+whatever the obfuscation setting, and a file that does not parse gets an `Error` line naming the
+resource, the file and the parser's message; the file still ships, since the check is a check on
+syntax, not a promise that the game will run it.
 
 The three tiers, from `[client] obfuscation`: `light` renames locals and hides string constants
 (safe for code that runs every frame); `medium` adds indirection on locals and rewrites numbers

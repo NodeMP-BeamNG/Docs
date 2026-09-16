@@ -101,7 +101,10 @@ description: VerifyGame = strict - что покрывает эталонный 
 Генератор встроен в бинарник сервера. Запускайте его на Windows-машине с **чистой** установкой
 BeamNG.drive той версии, на которой играют ваши игроки (сначала проверьте файлы в Steam и
 убедитесь, что в папку игры ничего не установлено), Windows-сборкой `Node-Server` из релизного
-архива:
+архива. Игра должна быть установлена на той машине, где работает генератор, — серверу на Linux
+или в Docker читать нечего, поэтому хост на Linux генерирует файл на ПК с Windows (игра ваших
+игроков в любом случае программа для Windows) и копирует единственный файл на сервер; манифест
+переносим и не зависит от того, где сделан:
 
 ```powershell
 .\Node-Server.exe --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
@@ -186,11 +189,16 @@ strict game verification ON: reference manifest for game 0.39.4.0 (e326499d…)
 manifest` — один раз на манифест, около 1,2 МБ кусками по 32 КиБ, затем кэш в
 `%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest` — и
 `Checking game files`. Чистая установка затем подключается как на любом другом сервере; её лог
-говорит `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. Отклонённый игрок
-видит
-`Disconnected · Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`
-в лаунчере, а если проверка провалилась позже по ходу сессии —
-`Session ended · Game files changed while you were playing and no longer match this server's reference (1 problem). …`
+говорит `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. Несовпадение
+сервер отклоняет с
+`Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
+лаунчер 1.1.0 показывает это своими словами, как
+`Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
+с объяснением первой проблемы в панели под карточкой сервера. Если проверка провалилась позже по
+ходу сессии, сервер завершает её с
+`Game files changed while you were playing and no longer match this server's reference (1 problem). …`,
+что показывается как
+`Session ended · Your game files changed while you were playing and no longer match this server's reference (1 problem)`
 в игре.
 
 Во время сессии лаунчер проверяет снова: в Windows — когда меняются файлы под `content/`,
