@@ -93,28 +93,39 @@ Url = "postgres://nodemp:change-me@127.0.0.1:5432/nodemp"
 затронутые `INSERT`, `UPDATE` или `DELETE`, или строки, которые вернул бы `SELECT`, - не
 материализуя ни одной. Значения передаются параметрами `$1..$n` и никогда не склеиваются с текстом.
 
-С колбэком, из любого обработчика:
+С колбэком, из любого обработчика - таблица `wallets` здесь та, которую создаёт
+[миграция ниже](#миграции):
 
+<!-- doctest: pg+client -->
 ```lua
-node.pg.query("SELECT name, balance FROM wallets WHERE account_id = $1", { player.accountId },
-    function(result, err)
-        if err then
-            node.log.warn("wallet lookup failed: %s (%s)", err.message, err.code)
-            return
-        end
-        for _, row in ipairs(result.rows) do
-            node.log("%s has %d", row.name, row.balance)
-        end
-    end)
+node.on("playerJoined", function(player)
+    if not player.accountId then
+        return -- a Test Drive guest has no account to key a wallet by
+    end
 
-node.pg.exec("UPDATE wallets SET balance = balance + $2 WHERE account_id = $1", { player.accountId, 500 },
-    function(count, err)
-        if err then
-            node.log.warn("credit failed: %s", err.message)
-        elseif count == 0 then
-            node.log.warn("no wallet for account %d", player.accountId)
-        end
-    end)
+    node.pg.query("SELECT name, balance FROM wallets WHERE account_id = $1", { player.accountId },
+        function(result, err)
+            if err then
+                node.log.warn("wallet lookup failed: %s (%s)", err.message, err.code)
+                return
+            end
+            for _, row in ipairs(result.rows) do
+                node.log("%s has %d", row.name, row.balance)
+            end
+        end)
+
+    node.pg.exec("UPDATE wallets SET balance = balance + $2 WHERE account_id = $1", { player.accountId, 500 },
+        function(count, err)
+            if err then
+                node.log.warn("credit failed: %s", err.message)
+            elseif count == 0 then
+                node.log.warn("no wallet for account %d", player.accountId)
+            end
+        end)
+end)
+
+-- expect-not: wallet lookup failed
+-- expect-not: credit failed
 ```
 
 `cb(result, err)` выполняется в рабочем потоке, когда оператор завершён, как и любой другой колбэк;
@@ -126,6 +137,7 @@ node.pg.exec("UPDATE wallets SET balance = balance + $2 WHERE account_id = $1", 
 Без колбэка, внутри `node.async`, те же вызовы приостанавливают корутину и возвращают те же два
 значения:
 
+<!-- doctest: pg+client -->
 ```lua
 node.on("playerJoined", function(player)
     if not player.accountId then
@@ -145,6 +157,9 @@ node.on("playerJoined", function(player)
         end
     end)
 end)
+
+-- expect-client: Alice chat:msg .*Balance: \d+
+-- expect-not: wallet:
 ```
 
 Вне корутины приостанавливающая форма не ждёт: она выбрасывает
@@ -178,24 +193,44 @@ end)
 `nil, err`; с `cb` она выполняет `fn` как собственную задачу `node.async` и вызывает `cb(...)` с теми
 же значениями.
 
+<!-- doctest: pg+client -->
 ```lua
-local newBalance, err = node.pg.tx(function(tx)
-    local r, e = tx:query("SELECT balance FROM wallets WHERE account_id = $1 FOR UPDATE", { id })
-    if not r then
-        error(e) -- rollback; e.code (a SQLSTATE) survives in err.cause.code
+-- inside node.async: tx suspends the caller and returns what fn returned, or nil, err
+local function withdraw(id, amount)
+    return node.pg.tx(function(tx)
+        local r, e = tx:query("SELECT balance FROM wallets WHERE account_id = $1 FOR UPDATE", { id })
+        if not r then
+            error(e) -- rollback; e.code (a SQLSTATE) survives in err.cause.code
+        end
+        if not r.rows[1] then
+            tx:rollback("no such wallet")
+        end
+        if r.rows[1].balance < amount then
+            tx:rollback("insufficient funds")
+        end
+        local _, e2 = tx:exec("UPDATE wallets SET balance = balance - $2 WHERE account_id = $1", { id, amount })
+        if e2 then
+            error(e2)
+        end
+        return r.rows[1].balance - amount
+    end)
+end
+
+node.on("playerJoined", function(player)
+    if not player.accountId then
+        return
     end
-    if not r.rows[1] then
-        tx:rollback("no such wallet")
-    end
-    if r.rows[1].balance < amount then
-        tx:rollback("insufficient funds")
-    end
-    local _, e2 = tx:exec("UPDATE wallets SET balance = balance - $2 WHERE account_id = $1", { id, amount })
-    if e2 then
-        error(e2)
-    end
-    return r.rows[1].balance - amount
+    node.async(function()
+        local newBalance, err = withdraw(player.accountId, 100000)
+        if newBalance then
+            node.log("%s withdrew 1000.00, %d left", player.name, newBalance)
+        else
+            node.log("%s could not withdraw: %s (%s)", player.name, err.message, err.code)
+        end
+    end)
 end)
+
+-- expect: Alice could not withdraw: (no such wallet|insufficient funds) \(rollback\)
 ```
 
 Что возвращается:
@@ -318,16 +353,20 @@ end)
 запись. Заставьте базу данных отказать повтору: дайте каждой записи ключ, уникальный для задуманного
 действия, храните его в колонке `UNIQUE` и считайте `23505` на этом ограничении «уже сделано».
 
+<!-- doctest: pg -->
 ```lua
--- key: made once, before the first attempt; every retry reuses it
-local _, err = tx:exec(
-    "INSERT INTO ledger (idem_key, from_id, to_id, amount) VALUES ($1, $2, $3, $4)",
-    { key, fromId, toId, amount })
-if err then
-    if err.code == "23505" and err.constraint == "ledger_idem_key_key" then
-        tx:rollback("already applied") -- the retry of a transfer that went through
+-- the first statement of the transfer's fn; key: made once, before the first
+-- attempt, and reused by every retry
+local function recordTransfer(tx, key, fromId, toId, amount)
+    local _, err = tx:exec(
+        "INSERT INTO ledger (idem_key, from_id, to_id, amount) VALUES ($1, $2, $3, $4)",
+        { key, fromId, toId, amount })
+    if err then
+        if err.code == "23505" and err.constraint == "ledger_idem_key_key" then
+            tx:rollback("already applied") -- the retry of a transfer that went through
+        end
+        error(err)
     end
-    error(err)
 end
 ```
 
@@ -343,6 +382,7 @@ end
 чтобы мигратор выполнялся только один, и таблица `schema_migrations`, которая записывает, до какой
 версии дошёл каждый ресурс.
 
+<!-- doctest: pg -->
 ```lua
 local MIGRATIONS = {
     "CREATE TABLE wallets (account_id bigint PRIMARY KEY, name text NOT NULL, balance bigint NOT NULL DEFAULT 0)",
@@ -375,6 +415,7 @@ end
 
 Запускайте при загрузке, когда пул доступен, и ставьте остальной ресурс в зависимость от результата:
 
+<!-- doctest: pg {"with": [5]} -->
 ```lua
 local schemaReady = false
 
@@ -392,6 +433,8 @@ node.async(function()
     schemaReady = true
     node.log("schema at version %d", version)
 end)
+
+-- expect: schema at version 2
 ```
 
 ## Производительность
@@ -442,6 +485,7 @@ version = "1.0.0"
 main = "server/main.lua"
 ```
 
+<!-- doctest: pg+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/balance"}], ["chat:send", {"text": "/pay Bob 5"}]]} -->
 ```lua
 -- resources/wallet/server/main.lua
 local schemaReady = false
@@ -582,6 +626,10 @@ node.async(function()
     schemaReady = true
     node.log("schema at version %d", version)
 end)
+
+-- expect: schema at version 2
+-- expect-client: Alice chat:msg .*Balance: \d+\.\d\d
+-- expect-client: Alice chat:msg .*(Sent 5 coins to Bob, \d+\.\d\d left|Transfer refused: insufficient funds)
 ```
 
 Что даёт такая форма: вставка в журнал идёт первой, так что повтор с тем же ключом останавливается
