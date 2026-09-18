@@ -142,7 +142,8 @@ Two rules cover most of the API, and three exceptions cover the rest.
 | Code | Runs on | Rule |
 |---|---|---|
 | Any `NodeApi` function you call | the calling thread, inline | Thread-safe from any thread, including threads the module spawns; queries snapshot state under internal locks, emits and kicks write to the network directly. |
-| Registered callbacks: client events, builtin events, verdicts, vehicle notifications, timers, `done` of a job, HTTP responses, bus messages, module-channel data, a language host's `load`/`unload` | the single framework worker thread, one at a time | Never two at once, and never concurrent with a Lua handler. Blocking here stalls every resource: keep callbacks short and hand long work to `submit_job` or your own thread. |
+| Registered callbacks: client events, builtin events, verdicts, vehicle notifications, timers, `done` of a job, HTTP responses, bus messages, module-channel data | the single framework worker thread, one at a time | Never two at once, and never concurrent with a Lua handler. Blocking here stalls every resource: keep callbacks short and hand long work to `submit_job` or your own thread. |
+| A language host's `load` and `unload` | the main thread at start-up (before the worker exists); the worker for a reload; the thread stopping the server at shutdown (after the worker was joined) | The three paths never overlap a worker callback. `unregister_language_host` is the exception: it calls `unload` inline on the calling thread without stopping the worker. |
 | `set_log_sink` | whatever thread produced the log line, under the log-hook lock | Fast, never blocking; lines you log from inside the sink bypass it. Return nonzero to suppress the line from the console and `logs/server.log`. |
 | `register_relay_filter` | the network thread relaying the packet - the UDP loop, a client's TCP thread, or the worker | A pure function of module data. Never call a state-mutating function (`seat_player`, `kick_player`, `spawn_vehicle`, ...) from it; it can run under internal locks. Verdicts are cached per (from, to, category, subtype, vehicle) - call `invalidate_relay_cache` when the data the filter reads changed. |
 | `work` of `submit_job` | a background pool thread | Must not call into Lua; every `NodeApi` function is safe. Its return value is handed to `done` on the worker. |
@@ -200,9 +201,13 @@ Register in `node_plugin_init`: modules load before resources, so the host is in
 scan begins. `load` is called once per resource folder with the absolute `dir` and the manifest's
 `server.main` (already checked to stay inside the folder); return `0` to accept, anything else to
 refuse - the server then logs `<name> · the 'js' host refused it (returned -1)` and leaves the
-resource unloaded. `unload` runs at shutdown and on `reload_resource` for that name. Both run on
-the worker, one at a time. Client files are packaged for a hosted resource exactly as for a Lua
-one: what the client runs is the game's Lua whatever language wrote the server half.
+resource unloaded. `unload` runs at shutdown and on `reload_resource` for that name. Which thread
+calls them depends on the moment: the start-up `load` of every resource runs on the main thread,
+before the worker is started; a reload runs `unload` and then `load` on the worker, in sequence
+with the dispatches; at shutdown `unload` runs on the thread stopping the server, after the
+worker has been joined, in reverse load order. No worker callback runs concurrently with any of
+the three. Client files are packaged for a hosted resource exactly as for a Lua one: what the
+client runs is the game's Lua whatever language wrote the server half.
 `register_language_host` returns `-1` for a `struct_size` that does not match the server's
 (`register_language_host: struct size mismatch ...; rebuild the module`) or a type already taken,
 including the built-in `lua`.
@@ -213,6 +218,23 @@ and dropped when it unloads. For registrations made later, from a callback or yo
 whom they belong to with `set_resource_owner(name)` and `set_resource_owner(NULL)` afterwards; it
 applies per thread until changed. Work already in flight is not covered: a `submit_job` or
 `http_request` completion fires whether or not the resource that started it still exists.
+
+**One worker, whatever the host.** Every callback the framework delivers to a hosted resource -
+events, verdicts, timers, job and HTTP completions, bus messages, module-channel data - arrives on
+the single framework worker thread, one at a time, exactly as for a Lua resource.
+`NodeLanguageHost` has no field to ask for anything else (a struct of another size is refused),
+and there is no call that makes the server dispatch to a host from several threads; a host whose
+runtime is asynchronous hands each callback over itself - `examples/js-host` queues it and wakes
+Node's event loop, and waits for the JavaScript side only where the framework needs an answer:
+`load`, `unload`, a `…Request` verdict and the relay filter (with a timeout that allows).
+What a thread-safe host can run in parallel today is everything that is not a delivery: `NodeApi`
+calls from any thread, a `register_relay_filter` callback (inline on the network threads), the
+work function of `submit_job`, its own threads. Parallel delivery as an opt-in is not implemented
+and not scheduled. If it were added, it could cover the fire-and-forget deliveries only: a
+`…Request` verdict is computed while the requesting client's network thread waits and the request
+after it depends on the answer; the coalesced stream events promise one pending dispatch per
+vehicle; `load` and `unload` rely on no callback running meanwhile. Those would stay sequential by
+contract.
 
 `examples/js-host` is the reference host: a module that claims `type = "js"` and runs resources on
 Node. It starts the runtime on demand at the first `load`, so a server without JavaScript
