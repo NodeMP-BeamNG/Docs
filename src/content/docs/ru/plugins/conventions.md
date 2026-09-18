@@ -111,6 +111,42 @@ description: Именование, объекты и идентификатор�
 Журнал изменений провода живёт в `server/include/net/Protocol.h`, история ABI - в описаниях записей
 `sdk/node.h` (`ABI 1.8`, `ABI 1.9`, ...). Ни то ни другое здесь не дублируется.
 
+## Окружение Lua
+
+Каждый ресурс работает в собственном Lua-стейте версии 5.4 с открытыми стандартными библиотеками -
+`string`, `table`, `math`, `os`, `io`, `coroutine`, `utf8`, `debug` - и убранными только
+загрузчиками C-модулей ([Нативные модули](/ru/plugins/native-modules/#загрузка-c-модулей-lua-через-require)).
+`node` добавляет сервер и не дублирует стандартную библиотеку, поэтому у нескольких вопросов «как
+мне…» ответ - стандартный Lua, а у нескольких ответа пока нет:
+
+| Мне нужно | Используйте | Примечания |
+|---|---|---|
+| Случайное число с плавающей точкой в `[0, 1)` | `math.random()` | Lua 5.4 сеет генератор случайным зерном при создании стейта; вызывать `math.randomseed` не нужно. |
+| Случайное целое в `[a, b]` | `math.random(a, b)` | |
+| Случайное число с плавающей точкой в `[a, b)` | `a + (b - a) * math.random()` | Помощника в `node` для этого нет. |
+| Случайные байты для токена или ключа | `node.crypto.randomBytes(n)`, `node.crypto.randomHex(n?)` | Криптографические; `math.random` - нет. |
+| Сколько времени что-то заняло | `node.server.uptime()` до и после: монотонные секунды с дробной частью | `os.clock()` - процессорное время процесса по всем потокам, так что оно измеряет код, нагружающий процессор в рабочем потоке, и мало что ещё. Вызова со статистикой по обработчикам вроде `Util.DebugExecutionTime` из BeamMP нет; сервер сам логирует каждый срез обработчика дольше 250 мс ([Конкурентность](/ru/plugins/concurrency/#один-рабочий-поток)). |
+| Часы | `node.server.time()` (unix, с дробной частью), `node.server.unixTime()` (целые секунды), `os.date`, `os.time` | |
+| Память, занятая этим ресурсом | `collectgarbage("count") * 1024` - байты этого Lua-стейта | Только текущий стейт: цифры по всем стейтам вместе или по процессу нет, а `node.server.metrics()` несёт счётчики (игроки, машины, глубина очереди), не байты. |
+| Операционная система | в `node` нет | `package.config:sub(1, 1)` - это `"\\"` на Windows и `"/"` в остальных случаях, что и нужно для пути; имя и версия ОС не раскрываются. `node.server.version()` - версия самого сервера. |
+| JSON | `node.json.encode(value)`, `node.json.decode(text)` | `encode` пишет компактный JSON и не принимает опций: ни красивой печати, ни минификации, ни flatten (RFC 6901), ни diff или patch (RFC 6902) - у `Util.JsonPrettify`, `JsonFlatten`, `JsonDiff` и `JsonDiffApply` из BeamMP аналога нет. Красивую печать для файла, который читают люди, делают несколько строк Lua; diff - сравнение таблиц, которое вы пишете сами. |
+
+<!-- doctest: server -->
+```lua
+local t0 = node.server.uptime()
+local sum = 0
+for _ = 1, 100000 do sum = sum + math.random(1, 6) end
+node.log("100000 dice rolls in %.2f ms, average %.3f", (node.server.uptime() - t0) * 1000, sum / 100000)
+
+node.log("float %.3f · int %d · float in [10, 20) %.3f · token %s",
+    math.random(), math.random(1, 6), 10 + 10 * math.random(), node.crypto.randomHex(4))
+node.log("this Lua state uses %d KB · path separator %s",
+    math.floor(collectgarbage("count")), package.config:sub(1, 1))
+
+-- expect: 100000 dice rolls in \d+\.\d\d ms, average 3\.\d+
+-- expect: this Lua state uses \d+ KB
+```
+
 ## Логирование
 
 Каждая строка консоли - `HH:MM:SS  Tag    › message`: время, тег, дополненный до шести символов,

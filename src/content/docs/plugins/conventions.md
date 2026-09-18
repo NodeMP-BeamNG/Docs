@@ -109,6 +109,42 @@ has the buffer loop.
 The wire changelog lives in `server/include/net/Protocol.h`, and the ABI history in the entry
 docs of `sdk/node.h` (`ABI 1.8`, `ABI 1.9`, ...). Neither is duplicated here.
 
+## The Lua environment
+
+Each resource runs in its own Lua 5.4 state with the standard libraries open - `string`, `table`,
+`math`, `os`, `io`, `coroutine`, `utf8`, `debug` - and only the C module loaders removed
+([Native modules](/plugins/native-modules/#loading-c-lua-modules-with-require)). `node` adds the
+server; it does not duplicate the standard library, so several "how do I" questions have a
+standard Lua answer, and a few have none yet:
+
+| I want to | Use | Notes |
+|---|---|---|
+| A random float in `[0, 1)` | `math.random()` | Lua 5.4 seeds the generator randomly when the state is created; no `math.randomseed` call is needed. |
+| A random integer in `[a, b]` | `math.random(a, b)` | |
+| A random float in `[a, b)` | `a + (b - a) * math.random()` | There is no `node` helper for it. |
+| Random bytes for a token or a key | `node.crypto.randomBytes(n)`, `node.crypto.randomHex(n?)` | Cryptographic; `math.random` is not. |
+| How long something took | `node.server.uptime()` before and after: monotonic, fractional seconds | `os.clock()` is the process's CPU time over every thread, so it measures CPU-bound code on the worker and little else. There is no per-handler statistics call like BeamMP's `Util.DebugExecutionTime`; the server itself logs every handler slice over 250 ms ([Concurrency](/plugins/concurrency/#one-worker-thread)). |
+| The wall clock | `node.server.time()` (unix, fractional), `node.server.unixTime()` (whole seconds), `os.date`, `os.time` | |
+| Memory used by this resource | `collectgarbage("count") * 1024` - bytes of this Lua state | The current state only: there is no figure for all states together, nor for the process, and `node.server.metrics()` carries counts (players, vehicles, queue depth), not bytes. |
+| The operating system | not in `node` | `package.config:sub(1, 1)` is `"\\"` on Windows and `"/"` elsewhere, which is what a path needs; the OS name and version are not exposed. `node.server.version()` is the server's own version. |
+| JSON | `node.json.encode(value)`, `node.json.decode(text)` | `encode` writes compact JSON and takes no options: no pretty-printing, no minify, no flatten (RFC 6901), no diff or patch (RFC 6902) - BeamMP's `Util.JsonPrettify`, `JsonFlatten`, `JsonDiff` and `JsonDiffApply` have no equivalent. Pretty-print with a few lines of Lua when a file is for humans; a diff is a table comparison you write. |
+
+<!-- doctest: server -->
+```lua
+local t0 = node.server.uptime()
+local sum = 0
+for _ = 1, 100000 do sum = sum + math.random(1, 6) end
+node.log("100000 dice rolls in %.2f ms, average %.3f", (node.server.uptime() - t0) * 1000, sum / 100000)
+
+node.log("float %.3f · int %d · float in [10, 20) %.3f · token %s",
+    math.random(), math.random(1, 6), 10 + 10 * math.random(), node.crypto.randomHex(4))
+node.log("this Lua state uses %d KB · path separator %s",
+    math.floor(collectgarbage("count")), package.config:sub(1, 1))
+
+-- expect: 100000 dice rolls in \d+\.\d\d ms, average 3\.\d+
+-- expect: this Lua state uses \d+ KB
+```
+
 ## Logging
 
 Every console line is `HH:MM:SS  Tag    › message`: the time, a tag padded to six characters, a
