@@ -62,7 +62,7 @@ ported against an older server keeps running - but write the new name.
 | `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - the record is gone; only `vehicle.id` is meaningful. | |
 | `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - observe only, it cannot be denied. | |
 | `onVehiclePaintChanged(pid, vid, data)` | `vehiclePaintRequest(player, vehicle, paints)` to decide, `vehiclePainted` to observe. | `onVehiclePaintRequest` |
-| `onFileChanged(path)` | No equivalent. | |
+| `onFileChanged(path)` | No equivalent; poll with a timer ([Events → No file-watch event](/plugins/events/#no-file-watch-event)). | |
 | `onConsoleInput(cmd)` | No equivalent: the server has no console input. Use chat commands (`node.commands.add`). | |
 
 Every cancellable handler runs even after one has denied, and an erroring handler never denies.
@@ -132,20 +132,25 @@ blocks the worker for a network round trip.
 | BeamMP | NodeMP |
 |---|---|
 | state in files of your own (`FS.*`, `io`) | `node.storage.get(key, default)`, `node.storage.set(key, value)`, `node.storage.delete(key)` - a JSON store per resource under `storage/<name>.json` + `.log`, durable before `set` returns |
-| `FS.Exists`, `FS.IsFile`, `FS.ListFiles`, `FS.ListDirectories` | `node.fs.list(path?)` (`name`, `dir`, `size` per entry); `node.fs.read(path)` is `nil` when the file is missing |
+| `FS.Exists`, `FS.IsFile`, `FS.IsDirectory`, `FS.ListFiles`, `FS.ListDirectories` | `node.fs.list(path?)` (`name`, `dir`, `size` per entry) - an `exists` is a lookup in it ([Resources → What node.fs does not have](/plugins/resources/#what-nodefs-does-not-have)); `node.fs.read(path)` is `nil` when the file is missing |
 | reading and writing files anywhere | `node.fs.read`, `node.fs.write`, `node.fs.writeAsync` - inside the resource folder only |
-| `FS.CreateDirectory`, `FS.Remove`, `FS.Rename`, `FS.Copy` | `node.fs.write` creates parent folders; the rest has no equivalent |
+| `FS.CreateDirectory`, `FS.Copy` | `node.fs.write` creates parent folders and, given `node.fs.read(from)`, copies; an empty folder cannot be created |
+| `FS.Remove`, `FS.Rename` | No `node` equivalent; the standard `os.remove` and `os.rename` are open and work with an absolute path built from the resource folder |
+| `FS.ConcatPaths`, `FS.GetFilename`, `FS.GetExtension`, `FS.GetParentFolder` | No equivalent; join with `/`, which the server accepts on Windows and Linux, and take a path apart with `string.match` |
 
 ### Utilities
 
 | BeamMP | NodeMP |
 |---|---|
 | `Util.JsonEncode`, `Util.JsonDecode` | `node.json.encode`, `node.json.decode` (`nil` on a parse error) |
+| `Util.JsonPrettify`, `Util.JsonMinify`, `Util.JsonFlatten`, `Util.JsonUnflatten`, `Util.JsonDiff`, `Util.JsonDiffApply` | No equivalent: `node.json.encode` writes compact JSON and takes no options ([Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)) |
 | `print`, `Util.LogInfo`, `Util.LogWarn`, `Util.LogError`, `Util.LogDebug` | `node.log(msg, ...)`, `node.log.warn`, `node.log.error` - `string.format` arguments, tagged with the resource name |
 | `MP.GetServerVersion()` | `node.server.version()` |
 | `MP.Settings.*`, `MP.Get`, `MP.Set` | `node.server.name()`, `map()`, `maxPlayers()`, `maxCars()`, `port()`; `node.server.setName`, `setMaxPlayers`, `setMaxCars` |
-| `MP.GetOSName`, `MP.GetStateMemoryUsage`, `MP.GetLuaMemoryUsage` | No equivalent; `node.server.metrics()` is the live metrics table |
-| `Util.Random`, `Util.RandomIntRange` | `math.random`; `node.crypto.randomHex(n)` for a token |
+| `MP.GetStateMemoryUsage` | `collectgarbage("count") * 1024` - the bytes of this resource's Lua state |
+| `MP.GetOSName`, `MP.GetLuaMemoryUsage` | No equivalent: neither the OS name nor a total over every Lua state is exposed; `node.server.metrics()` is the live metrics table (counts, not bytes) |
+| `Util.Random`, `Util.RandomIntRange`, `Util.RandomRange` | `math.random()`, `math.random(a, b)`, `a + (b - a) * math.random()`; `node.crypto.randomHex(n)` for a token |
+| `Util.DebugExecutionTime`, `MP.CreateTimer` | No equivalent; `node.server.uptime()` before and after times a section, and the server logs every handler over 250 ms itself |
 
 ## What has no equivalent
 
@@ -160,7 +165,9 @@ blocks the worker for a network round trip.
   `onChatMessage`; in NodeMP the `chat` resource decides what it broadcasts, and another resource
   can only observe `chat:send`. To filter chat, change `chat` - it is a resource, not part of the
   server.
-- **Files outside the resource folder**, `FS.Remove`, `FS.Rename`, `FS.Copy`, `onFileChanged`.
+- **Files outside the resource folder** through `node.fs`; `onFileChanged`; the JSON utilities
+  beyond encode and decode (`Util.JsonPrettify`, `JsonFlatten`, `JsonDiff`, `JsonDiffApply`);
+  `MP.GetOSName`, `MP.GetLuaMemoryUsage`, `Util.DebugExecutionTime`.
 - **The `beammp` identifier.** Accounts are NodeMP accounts: `player.accountId` and
   `player.identifiers`, verified through the directory. A Test Drive guest has no account id.
 - **`MP.Settings` beyond the five values** `node.server` exposes; their counterparts `Public`,

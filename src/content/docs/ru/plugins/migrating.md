@@ -63,7 +63,7 @@ main = "server/main.lua"
 | `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - записи уже нет; значим только `vehicle.id`. | |
 | `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - только наблюдение, отклонить нельзя. | |
 | `onVehiclePaintChanged(pid, vid, data)` | `vehiclePaintRequest(player, vehicle, paints)`, чтобы решить, `vehiclePainted`, чтобы наблюдать. | `onVehiclePaintRequest` |
-| `onFileChanged(path)` | Эквивалента нет. | |
+| `onFileChanged(path)` | Эквивалента нет; опрашивайте по таймеру ([События → События о файлах нет](/ru/plugins/events/#события-о-файлах-нет)). | |
 | `onConsoleInput(cmd)` | Эквивалента нет: у сервера нет консольного ввода. Используйте команды чата (`node.commands.add`). | |
 
 Каждый отменяемый обработчик выполняется даже после того, как один уже отказал, а обработчик с
@@ -134,20 +134,25 @@ main = "server/main.lua"
 | BeamMP | NodeMP |
 |---|---|
 | состояние в собственных файлах (`FS.*`, `io`) | `node.storage.get(key, default)`, `node.storage.set(key, value)`, `node.storage.delete(key)` - JSON-хранилище на ресурс в `storage/<name>.json` + `.log`, надёжно записано до возврата из `set` |
-| `FS.Exists`, `FS.IsFile`, `FS.ListFiles`, `FS.ListDirectories` | `node.fs.list(path?)` (`name`, `dir`, `size` на запись); `node.fs.read(path)` - `nil`, когда файла нет |
+| `FS.Exists`, `FS.IsFile`, `FS.IsDirectory`, `FS.ListFiles`, `FS.ListDirectories` | `node.fs.list(path?)` (`name`, `dir`, `size` на запись) - `exists` это поиск в нём ([Ресурсы → Чего в node.fs нет](/ru/plugins/resources/#чего-в-nodefs-нет)); `node.fs.read(path)` - `nil`, когда файла нет |
 | чтение и запись файлов где угодно | `node.fs.read`, `node.fs.write`, `node.fs.writeAsync` - только внутри папки ресурса |
-| `FS.CreateDirectory`, `FS.Remove`, `FS.Rename`, `FS.Copy` | `node.fs.write` создаёт родительские папки; у остального эквивалента нет |
+| `FS.CreateDirectory`, `FS.Copy` | `node.fs.write` создаёт родительские папки и, получив `node.fs.read(from)`, копирует; пустую папку создать нельзя |
+| `FS.Remove`, `FS.Rename` | Эквивалента в `node` нет; стандартные `os.remove` и `os.rename` открыты и работают с абсолютным путём, собранным от папки ресурса |
+| `FS.ConcatPaths`, `FS.GetFilename`, `FS.GetExtension`, `FS.GetParentFolder` | Эквивалента нет; склеивайте через `/`, который сервер принимает на Windows и Linux, и разбирайте путь через `string.match` |
 
 ### Утилиты
 
 | BeamMP | NodeMP |
 |---|---|
 | `Util.JsonEncode`, `Util.JsonDecode` | `node.json.encode`, `node.json.decode` (`nil` при ошибке разбора) |
+| `Util.JsonPrettify`, `Util.JsonMinify`, `Util.JsonFlatten`, `Util.JsonUnflatten`, `Util.JsonDiff`, `Util.JsonDiffApply` | Эквивалента нет: `node.json.encode` пишет компактный JSON и не принимает опций ([Соглашения → Окружение Lua](/ru/plugins/conventions/#окружение-lua)) |
 | `print`, `Util.LogInfo`, `Util.LogWarn`, `Util.LogError`, `Util.LogDebug` | `node.log(msg, ...)`, `node.log.warn`, `node.log.error` - аргументы `string.format`, тег - имя ресурса |
 | `MP.GetServerVersion()` | `node.server.version()` |
 | `MP.Settings.*`, `MP.Get`, `MP.Set` | `node.server.name()`, `map()`, `maxPlayers()`, `maxCars()`, `port()`; `node.server.setName`, `setMaxPlayers`, `setMaxCars` |
-| `MP.GetOSName`, `MP.GetStateMemoryUsage`, `MP.GetLuaMemoryUsage` | Эквивалента нет; `node.server.metrics()` - таблица живых метрик |
-| `Util.Random`, `Util.RandomIntRange` | `math.random`; `node.crypto.randomHex(n)` для токена |
+| `MP.GetStateMemoryUsage` | `collectgarbage("count") * 1024` - байты Lua-стейта этого ресурса |
+| `MP.GetOSName`, `MP.GetLuaMemoryUsage` | Эквивалента нет: ни имя ОС, ни сумма по всем Lua-стейтам не раскрываются; `node.server.metrics()` - таблица живых метрик (счётчики, не байты) |
+| `Util.Random`, `Util.RandomIntRange`, `Util.RandomRange` | `math.random()`, `math.random(a, b)`, `a + (b - a) * math.random()`; `node.crypto.randomHex(n)` для токена |
+| `Util.DebugExecutionTime`, `MP.CreateTimer` | Эквивалента нет; `node.server.uptime()` до и после измеряет участок, а каждый обработчик дольше 250 мс сервер логирует сам |
 
 ## Чему нет эквивалента
 
@@ -161,7 +166,9 @@ main = "server/main.lua"
 - **Вето на поведение другого ресурса.** Плагин BeamMP блокировал чат через `return 1` в
   `onChatMessage`; в NodeMP ресурс `chat` сам решает, что рассылать, а другой ресурс может лишь
   наблюдать `chat:send`. Чтобы фильтровать чат, меняйте `chat` - это ресурс, а не часть сервера.
-- **Файлы вне папки ресурса**, `FS.Remove`, `FS.Rename`, `FS.Copy`, `onFileChanged`.
+- **Файлы вне папки ресурса** через `node.fs`; `onFileChanged`; JSON-утилиты помимо encode и
+  decode (`Util.JsonPrettify`, `JsonFlatten`, `JsonDiff`, `JsonDiffApply`); `MP.GetOSName`,
+  `MP.GetLuaMemoryUsage`, `Util.DebugExecutionTime`.
 - **Идентификатор `beammp`.** Аккаунты - это аккаунты NodeMP: `player.accountId` и
   `player.identifiers`, проверенные через директорию. У гостя Test Drive идентификатора аккаунта нет.
 - **`MP.Settings` за пределами пяти значений**, которые открывает `node.server`; их аналоги `Public`,
