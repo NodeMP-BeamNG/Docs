@@ -126,6 +126,12 @@ delivered again while a copy is running replaces that copy. Client files are pac
 once, at server start: editing `client/` needs a restart, and players already in the session keep
 what they received.
 
+Streamed files are compiled in memory under the resource's own name and never written to the
+player's disk, so a resource cannot overwrite or shadow a file of the game or of the client mod -
+it adds modules and hooks beside them. What can be changed at run time, and how a built-in client
+module is switched off, is on
+[Client scripting](/plugins/client-scripting/#what-a-client-file-can-and-cannot-do).
+
 ### Obfuscation
 
 Unless the server disables it, each `ge` and `vehicle` file is run through Prometheus before it is
@@ -216,6 +222,57 @@ end)
 ```
 
 Use the folder for data you ship and for reports; use storage for state.
+
+### What node.fs does not have
+
+Those four calls are the whole API: there is no `exists`, `mkdir`, `remove`, `rename` or `copy`,
+and no path helper. What to do instead today:
+
+- **Paths.** Write them with `/` on Windows and Linux alike - the server accepts `/` on both, while
+  `\` is a separator on Windows only (on Linux it is an ordinary character in a file name).
+  `node.fs.list` returns names, not paths, so join them yourself: `dir .. "/" .. entry.name`.
+- **Does a file exist?** `node.fs.list(folder)` and look for the name - the entry also tells you
+  `dir` and `size` - or `node.fs.read(path) ~= nil`, which reads the whole file. Both answer `nil`
+  for a missing folder and for a path outside yours alike.
+- **Create a folder.** `node.fs.write` creates the parent folders of the path it writes; an empty
+  folder cannot be created.
+- **Copy.** `node.fs.write(to, node.fs.read(from))`.
+- **Delete and rename.** Not in `node.fs`. The standard `os` and `io` libraries are open in the
+  resource's Lua state (Lua 5.4: `os.remove`, `os.rename`, `io.open`), and they work - but they
+  know nothing of the folder boundary and resolve a relative path against the server's working
+  directory, not your folder. Build an absolute path first: the `here` line from
+  [Layout](#layout) gives `.../resources/<name>/server`, its parent is your folder.
+- **Watching for changes.** Nothing fires when a file changes; poll with a timer
+  ([Events → No file-watch event](/plugins/events/#no-file-watch-event)).
+
+<!-- doctest: server {"files": {"data/config.json": "{\"level\": 1}"}} -->
+```lua
+local function exists(path) -- a name inside a folder, from node.fs.list
+    local dir, name = path:match("^(.-)/?([^/]+)$")
+    for _, entry in ipairs(node.fs.list(dir ~= "" and dir or nil) or {}) do
+        if entry.name == name then return true, entry.dir end
+    end
+    return false
+end
+
+node.log("data/config.json exists: %s", tostring(exists("data/config.json")))
+node.log("data/missing.json exists: %s", tostring(exists("data/missing.json")))
+
+-- copy with node.fs (backup/ is created on the way); rename and delete with the standard library
+node.fs.write("backup/config.json", node.fs.read("data/config.json"))
+local here = debug.getinfo(1, "S").source:sub(2):match("^(.*)[/\\]") -- .../resources/<name>/server
+local folder = here:match("^(.*)[/\\]")                                -- .../resources/<name>
+assert(os.rename(folder .. "/backup/config.json", folder .. "/backup/config.old"))
+assert(os.remove(folder .. "/backup/config.old"))
+node.log("backup/ holds %d file(s)", #(node.fs.list("backup") or {}))
+
+-- expect: data/config.json exists: true
+-- expect: data/missing.json exists: false
+-- expect: backup/ holds 0 file\(s\)
+```
+
+`exists`, `mkdir`, `remove`, `rename`, `copy`, a `stat` with the modification time and a path
+helper are not in the API yet; until they are, the lines above are the way.
 
 ## State: node.storage
 

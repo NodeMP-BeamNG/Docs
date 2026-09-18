@@ -131,6 +131,12 @@ maxCars = 2
 один раз, при запуске сервера: правка `client/` требует перезапуска, а игроки, уже находящиеся в
 сессии, остаются с тем, что получили.
 
+Переданные файлы компилируются в памяти под собственным именем ресурса и никогда не пишутся на
+диск игрока, так что ресурс не может перезаписать или подменить файл игры или клиентского мода -
+он добавляет модули и хуки рядом с ними. Что можно изменить во время выполнения и как выключить
+встроенный клиентский модуль - на странице
+[Клиентские скрипты](/ru/plugins/client-scripting/#что-клиентский-файл-может-и-чего-не-может).
+
 ### Обфускация
 
 Если сервер её не отключил, каждый файл `ge` и `vehicle` перед упаковкой прогоняется через
@@ -228,6 +234,57 @@ end)
 
 Используйте папку для данных, которые вы поставляете, и для отчётов; для состояния используйте
 хранилище.
+
+### Чего в node.fs нет
+
+Эти четыре вызова - весь API: нет ни `exists`, ни `mkdir`, ни `remove`, ни `rename`, ни `copy`,
+ни помощника для путей. Что делать сегодня:
+
+- **Пути.** Пишите их через `/` и на Windows, и на Linux - сервер принимает `/` на обеих, а `\`
+  является разделителем только на Windows (на Linux это обычный символ в имени файла).
+  `node.fs.list` возвращает имена, а не пути, так что склеивайте сами: `dir .. "/" .. entry.name`.
+- **Существует ли файл?** `node.fs.list(folder)` и поиск по имени - запись заодно сообщает `dir` и
+  `size` - либо `node.fs.read(path) ~= nil`, что читает весь файл. Оба отвечают `nil` одинаково и
+  для отсутствующей папки, и для пути за пределами вашей.
+- **Создать папку.** `node.fs.write` создаёт родительские папки того пути, который пишет; пустую
+  папку создать нельзя.
+- **Скопировать.** `node.fs.write(to, node.fs.read(from))`.
+- **Удалить и переименовать.** В `node.fs` этого нет. В Lua-стейте ресурса открыты стандартные
+  библиотеки `os` и `io` (Lua 5.4: `os.remove`, `os.rename`, `io.open`), и они работают - но они
+  ничего не знают о границе папки и разрешают относительный путь от рабочего каталога сервера, а не
+  от вашей папки. Сначала соберите абсолютный путь: строка `here` из раздела
+  [Структура](#структура) даёт `.../resources/<name>/server`, её родитель - ваша папка.
+- **Следить за изменениями.** При изменении файла ничего не срабатывает; опрашивайте по таймеру
+  ([События → События о файлах нет](/ru/plugins/events/#события-о-файлах-нет)).
+
+<!-- doctest: server {"files": {"data/config.json": "{\"level\": 1}"}} -->
+```lua
+local function exists(path) -- a name inside a folder, from node.fs.list
+    local dir, name = path:match("^(.-)/?([^/]+)$")
+    for _, entry in ipairs(node.fs.list(dir ~= "" and dir or nil) or {}) do
+        if entry.name == name then return true, entry.dir end
+    end
+    return false
+end
+
+node.log("data/config.json exists: %s", tostring(exists("data/config.json")))
+node.log("data/missing.json exists: %s", tostring(exists("data/missing.json")))
+
+-- copy with node.fs (backup/ is created on the way); rename and delete with the standard library
+node.fs.write("backup/config.json", node.fs.read("data/config.json"))
+local here = debug.getinfo(1, "S").source:sub(2):match("^(.*)[/\\]") -- .../resources/<name>/server
+local folder = here:match("^(.*)[/\\]")                                -- .../resources/<name>
+assert(os.rename(folder .. "/backup/config.json", folder .. "/backup/config.old"))
+assert(os.remove(folder .. "/backup/config.old"))
+node.log("backup/ holds %d file(s)", #(node.fs.list("backup") or {}))
+
+-- expect: data/config.json exists: true
+-- expect: data/missing.json exists: false
+-- expect: backup/ holds 0 file\(s\)
+```
+
+`exists`, `mkdir`, `remove`, `rename`, `copy`, `stat` со временем изменения и помощник для путей в
+API пока нет; до их появления способ - строки выше.
 
 ## Состояние: node.storage
 
