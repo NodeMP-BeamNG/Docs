@@ -200,3 +200,37 @@ runs no client code), and the game's own compile error is in the player's `beamn
 to the server executable (`examples/README.txt` lists them). `chat`'s protocol - `chat:send` and
 `chat:msg` on the wire, `chat:command` and `chat:say` on the bus - is documented, so a stand-in
 is a few lines. → [Events → node.bus](/plugins/events/#between-resources-nodebus)
+
+**Can a resource overwrite a file of the game or of the client mod with a client file of its
+own?** No. Streamed client files are compiled in memory under the resource's own name and never
+written to the player's disk, so they add modules and hooks beside the originals and shadow
+nothing. Change behaviour at run time instead: the same events, a `ge` extension of your own, the
+module manifest that switches a built-in client module off.
+→ [Client scripting → What a client file can and cannot do](/plugins/client-scripting/#what-a-client-file-can-and-cannot-do)
+
+**How do I check that a file exists, create a folder, rename or copy a file with `node.fs`?**
+`node.fs` has `read`, `write`, `writeAsync` and `list`, nothing else. Exists: look the name up in
+`node.fs.list(folder)`. A folder: `node.fs.write` creates the parents of the path it writes. Copy:
+`node.fs.write(to, node.fs.read(from))`. Rename and delete: the standard `os.rename` and
+`os.remove`, with an absolute path built from the resource folder. Write paths with `/` on
+Windows and Linux alike. → [Resources → What node.fs does not have](/plugins/resources/#what-nodefs-does-not-have)
+
+**Is there a `fileChanged` event?** No, and the server watches no files. Poll with `node.every`,
+comparing the sizes `node.fs.list` reports or a hash of the content.
+→ [Events → No file-watch event](/plugins/events/#no-file-watch-event)
+
+**Random numbers, execution time, memory use, the operating system - where?** Standard Lua for
+the first three: `math.random()` and `math.random(a, b)` (seeded for you), `node.server.uptime()`
+before and after a section, `collectgarbage("count")` for this resource's state. There is no total
+over all states, no per-handler statistics and no OS name or version in `node`.
+→ [Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)
+
+**Can `node.json` pretty-print, or diff and patch two documents?** No. `node.json.encode` writes
+compact JSON and takes no options; there is no diff, patch or flatten.
+→ [Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)
+
+**Can the server call my language host from several threads?** No. Every delivery to a hosted
+resource arrives on the single framework worker, one at a time; `NodeLanguageHost` has no flag
+for anything else, and none is scheduled. A host with its own event loop hands callbacks over
+itself, as `js-host` does; `NodeApi` calls, the relay filter and `submit_job` work run off the
+worker already. → [Native modules → Language hosts](/plugins/native-modules/#language-hosts)
