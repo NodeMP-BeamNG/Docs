@@ -49,5 +49,35 @@
     "page": "hosting/updating.md",
     "claim": "this server speaks 2.0",
     "reason": "A made-up example of a future major ABI bump (a module built against SDK ABI 1.0 meeting a 2.0 server); the current ABI is 1.12 and stated on plugins/conventions."
+  },
+  {
+    "check": "config.table",
+    "page": "hosting/configuration.md",
+    "claim": "[Http] Insecure",
+    "reason": "Server main carries the unreleased [Http] Insecure (node.http verifies peer certificates by default there, this key switches it off); these pages describe the released 1.2.1, where verification is off unless [Http] CaFile is set. Document the key with the server release that ships it and remove this entry then."
+  },
+  {
+    "check": "config.example",
+    "page": "hosting/configuration.md",
+    "claim": "[Http] Insecure",
+    "reason": "The example file's twin of the [Http] Insecure row above; same reason, remove together with it."
+  },
+  {
+    "check": "config.table",
+    "page": "hosting/configuration.md",
+    "claim": "[Http] AllowPrivateNetworks",
+    "reason": "Server main carries the unreleased [Http] AllowPrivateNetworks (node.http refuses loopback, link-local and private addresses unless it is set); not in the released 1.2.1 these pages describe. Document it with the release that ships it and remove this entry then."
+  },
+  {
+    "check": "config.example",
+    "page": "hosting/configuration.md",
+    "claim": "[Http] AllowPrivateNetworks",
+    "reason": "The example file's twin of the [Http] AllowPrivateNetworks row above; same reason, remove together with it."
+  },
+  {
+    "check": "versions.code",
+    "page": "src/content/versions.json",
+    "claim": "mod",
+    "reason": "The client mod's main is 1.4.1 (release: mod v1.4.1, the client RCE fix in server-controlled dialogs) while these pages still describe 1.4.0 throughout. Bump versions.json and every '1.4.0' mention together in a release commit and remove this entry then."
   }
 ]
