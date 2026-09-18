@@ -335,6 +335,48 @@ Lua, а неустановленный сосед просто никогда н
 `node.modules.send(target, channel, data)` отправляет `Player` или всем через `"all"`. Ничего не
 разбирается и не логируется. Модуль `dimensions` владеет каналом `0x44494D53`.
 
+## События о файлах нет
+
+При изменении файла ничего не срабатывает. События `fileChanged` нет - у `onFileChanged` из BeamMP
+аналога нет - и сервер не следит за `resources/`: правка `server/main.lua` вступает в силу при
+следующем `node.resources.reload` или перезапуске, а `client/` упаковывается один раз при старте.
+Чтобы следить за файлом данных, который хост правит на работающем сервере, опрашивайте его по
+таймеру: сравнивайте `size` из `node.fs.list` (времени изменения прочитать негде) или хешируйте
+содержимое через `node.crypto.sha256(node.fs.read(path))`, если файл может измениться без
+изменения размера. Для настроек `node.resources.manifest().config` перечитывает `resource.toml`
+при каждом вызове.
+
+<!-- doctest: server {"files": {"data/rules.json": "[]"}} -->
+```lua
+local sizes = {}
+local function scan()
+    local now = {}
+    for _, entry in ipairs(node.fs.list("data") or {}) do now[entry.name] = entry.size end
+    return now
+end
+sizes = scan()
+
+node.every(2000, function()
+    local now = scan()
+    for name, size in pairs(now) do
+        if sizes[name] ~= size then
+            sizes[name] = size
+            node.log("data/%s changed (%d bytes)", name, size)
+        end
+    end
+    for name in pairs(sizes) do
+        if now[name] == nil then
+            sizes[name] = nil
+            node.log("data/%s removed", name)
+        end
+    end
+end)
+
+node.after(500, function() node.fs.write("data/rules.json", '[{"speed": 90}]') end) -- the host editing the file
+
+-- expect: data/rules\.json changed \(15 bytes\)
+```
+
 ## Отписка
 
 `node.off(name, fn?)` снимает обработчики этого ресурса для имени - все или только `fn` - и

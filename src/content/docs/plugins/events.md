@@ -321,6 +321,47 @@ encoding. `node.modules.on(channel, fn)` subscribes `fn(player, data)` to what c
 sends to a `Player` or to everyone with `"all"`. Nothing is parsed or logged. The `dimensions`
 module owns channel `0x44494D53`.
 
+## No file-watch event
+
+Nothing fires when a file changes. There is no `fileChanged` event - BeamMP's `onFileChanged` has
+no equivalent - and the server does not watch `resources/`: an edit to `server/main.lua` takes
+effect at the next `node.resources.reload` or restart, and `client/` is packaged once at start.
+To follow a data file the host edits while the server runs, poll it with a timer: compare the
+`size` from `node.fs.list` (there is no modification time to read), or hash the content with
+`node.crypto.sha256(node.fs.read(path))` for a file that can change without changing size. For
+settings, `node.resources.manifest().config` re-reads `resource.toml` on every call.
+
+<!-- doctest: server {"files": {"data/rules.json": "[]"}} -->
+```lua
+local sizes = {}
+local function scan()
+    local now = {}
+    for _, entry in ipairs(node.fs.list("data") or {}) do now[entry.name] = entry.size end
+    return now
+end
+sizes = scan()
+
+node.every(2000, function()
+    local now = scan()
+    for name, size in pairs(now) do
+        if sizes[name] ~= size then
+            sizes[name] = size
+            node.log("data/%s changed (%d bytes)", name, size)
+        end
+    end
+    for name in pairs(sizes) do
+        if now[name] == nil then
+            sizes[name] = nil
+            node.log("data/%s removed", name)
+        end
+    end
+end)
+
+node.after(500, function() node.fs.write("data/rules.json", '[{"speed": 90}]') end) -- the host editing the file
+
+-- expect: data/rules\.json changed \(15 bytes\)
+```
+
 ## Unsubscribing
 
 `node.off(name, fn?)` removes this resource's handlers for a name - all of them, or only `fn` - and
