@@ -98,6 +98,22 @@ script; keep state in locals or in the table you return.
   path (forward slashes, a leading `./` and the `.lua` suffix are ignored); each file runs once
   and its return value is cached. A name that is not one of the resource's files falls through to
   the game's `require`. A cycle fails with `circular require of resource module "lib/helpers"`.
+- **Replacing the game's or the client mod's files.** Not possible. A client file is never written
+  to disk: the client mod compiles the delivered text in memory under the chunk name
+  `node/<resource>/<path>` and runs it inside the resource's own environment, so a streamed
+  `lua/ge/extensions/nodemp/net/relay.lua` is a module of yours with a long name, not a
+  replacement of the mod's - the game and the client mod keep loading their own files from the
+  install and from `NodeMP.zip`, and the resource's `require` resolves your files for your files
+  only. The delivery also rejects a path with `..`, a backslash or any character outside letters,
+  digits, `.`, `_`, `-` and `/`. To change behaviour, work at run time instead: react to the same
+  events (`node.on`, `NodeMP.events.on`, the game's extension hooks such as `onVehicleSpawned`),
+  ship your feature as a `ge` extension of your own, and switch a built-in client module off
+  with the module manifest - a server resource answers the mod's `modules:request` wire event
+  with `player:send("modules:manifest", { modules = { nametags = { enabled = false } } })`
+  (`nametags` and `damage` are the modules that register with it in client mod 1.4.0;
+  `NodeMP.modules.list()` on the client lists them). Assigning a game global from a client file
+  does work, because the environment is not sandboxed - but nothing in `NodeMP.internal` is
+  promised to keep its name between versions, so treat that as a last resort.
 - **Extensions.** A `ge` file that returns a table with `on…` functions is registered as a game
   extension named `node_<resource>_<path>` (non-alphanumeric characters become `_`): `onUpdate(dt)`,
   `onPreRender`, `onVehicleSpawned` and the other game hooks are delivered to it.
