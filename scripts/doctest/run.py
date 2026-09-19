@@ -8,7 +8,8 @@ the block runs (an untagged block fails the check):
     <!-- doctest: server+client -->      ... and a fake player joins the server; optional JSON:
                                          {"emit": [["chat:send", {"text": "/hello"}]],
                                           "players": ["Alice", "Bob"], "spawn": "coupe"}
-    <!-- doctest: pg -->  / pg+client    the same, on a server with NODE_DATABASE_URL set
+    <!-- doctest: db -->  / db+client    the same, on a server with the db module loaded and a
+                                         PostgreSQL connection configured for it
     <!-- doctest: client -->             a client script: syntax-checked with luac and packaged by
                                          the server as the resource's client file (the game is not
                                          here to run it)
@@ -29,15 +30,18 @@ expectation.
 The Russian pages carry the same blocks byte for byte (tag comment and code, compared by
 position), so only the English blocks run. One server per page: each block is its own resource
 `dtN`, so the log attributes every line, and the examples of a page share the players and,
-for the pg blocks, the database -- as the resources of one server do.
+for the db blocks, the database -- as the resources of one server do.
 
     python scripts/doctest/run.py [--only <page>] [--keep] [--list] [--strict] [--server <exe>]
 
 Environment: DOCTEST_SERVER (the Node-Server binary; default ../server/run/Node-Server[.exe] or
 .server/Node-Server), NODEMP_SERVER_DIR (a checkout of NodeMP-BeamNG/server -- its run/ holds
 the wire codec and the fake client the runner imports; default ./server as CI clones it, then
-../server), NODE_DATABASE_URL (a libpq URL to a throwaway database; without it the pg blocks are
-skipped, or fail with --strict), DOCTEST_LUAC (the luac to use), DOCTEST_PORT (the first port of
+../server), NODE_DB_URL (a PostgreSQL URL to a throwaway database; NODE_DATABASE_URL is read
+as its old name), DOCTEST_DB_MODULE (the built db module; default: the build directories beside
+plugins/db) and DOCTEST_DB_LUA (its Lua library; default plugins/db/lua/db.lua). Without a URL or
+without the module the db blocks are skipped, or fail with --strict. DOCTEST_LUAC (the luac to
+use), DOCTEST_PORT (the first port of
 the range the servers use, default 30950). The fake players need the `zstandard` package. Exit 0
 when every block passed or was skipped with a reason, 1 on any failure, 2 when the runner itself
 cannot run.
@@ -81,7 +85,7 @@ ERROR_RE = re.compile(r"^(error in |\[deprecated\] |failed to parse resource\.to
                       r"|resource type .* has no language host|.*\(over the 900 KB cap\))")
 STALL_RE = re.compile(r"plugin worker job stalled the thread")
 
-KINDS = ("server", "server+client", "pg", "pg+client", "client", "skip")
+KINDS = ("server", "server+client", "db", "db+client", "client", "skip")
 OPTS = ("emit", "players", "spawn", "config", "files", "with", "wait")
 DEFAULT_WAIT = 15.0
 DEFAULT_PORT = 30950
@@ -122,15 +126,15 @@ class Block:
     @property
     def runs(self):
         """Whether the block is written into a resource and loaded by a server."""
-        return self.error is None and self.kind in ("server", "server+client", "pg", "pg+client", "client")
+        return self.error is None and self.kind in ("server", "server+client", "db", "db+client", "client")
 
     @property
-    def needs_pg(self):
-        return self.kind in ("pg", "pg+client")
+    def needs_db(self):
+        return self.kind in ("db", "db+client")
 
     @property
     def needs_client(self):
-        return self.kind in ("server+client", "pg+client")
+        return self.kind in ("server+client", "db+client")
 
 
 def read_text(path):
@@ -186,7 +190,7 @@ def parse_tag(tag):
         return "skip", {}, reason
     if tag == "client":
         return "client", {}, ""
-    m = re.match(r"^(server|pg)(\+client)?(?:\s+(\S.*))?$", tag, re.S)
+    m = re.match(r"^(server|db)(\+client)?(?:\s+(\S.*))?$", tag, re.S)
     if not m:
         raise ValueError("unknown tag %r (one of: %s)" % (tag, ", ".join(KINDS)))
     kind = m.group(1) + (m.group(2) or "")
@@ -672,6 +676,69 @@ def settle(srv, blocks, max_wait, quiet, minimum, inbox=None, clients=()):
         time.sleep(0.2)
 
 
+
+# ---------------------------------------------------------------------------
+# the db module
+# ---------------------------------------------------------------------------
+
+DB_PRELUDE = """-- doctest: db.lua travels with the resource, as it does for a real one
+local here = debug.getinfo(1, "S").source:sub(2):match("^(.*)[/\\\\]")
+package.path = here .. "/?.lua;" .. package.path
+local db = require("db").open()
+"""
+
+
+def db_sources():
+    """(module, db.lua) for the db blocks, or (None, why) / (module, None).
+
+    The module is built out of tree, so it is looked for where the project's
+    builds land; the library is a file in the same repository as its sources.
+    DOCTEST_DB_MODULE and DOCTEST_DB_LUA name either directly.
+    """
+    name = "db.dll" if os.name == "nt" else "db.so"
+    module = os.environ.get("DOCTEST_DB_MODULE") or ""
+    if module and not os.path.exists(module):
+        return None, "DOCTEST_DB_MODULE points at %s, which is not there" % module
+    src_roots = [os.path.join(os.path.dirname(ROOT), d, "db")
+                 for d in ("plugins", "examples")]
+    lua = os.environ.get("DOCTEST_DB_LUA") or ""
+    if not lua:
+        for root in src_roots:
+            candidate = os.path.join(root, "lua", "db.lua")
+            if os.path.exists(candidate):
+                lua = candidate
+                break
+    if not module:
+        looked = []
+        for root in src_roots:
+            looked += [os.path.join(root, "build"), os.path.join(root, "build", "Release")]
+        up = os.path.dirname(ROOT)
+        for base in (os.path.join(up, "_build"),
+                     os.path.join(os.path.dirname(up), "_build"),
+                     os.path.join(os.path.dirname(os.path.dirname(up)), "_build")):
+            looked += [base, os.path.join(base, "node-db-static"), os.path.join(base, "node-db")]
+        for folder in looked:
+            candidate = os.path.join(folder, name)
+            if os.path.exists(candidate):
+                module = candidate
+                break
+    if not module:
+        return None, "the db module (%s) was not found; set DOCTEST_DB_MODULE" % name
+    if not lua:
+        return None, "db.lua was not found; set DOCTEST_DB_LUA"
+    return (module, lua), None
+
+
+def stage_db(home, module, lua, url):
+    """modules/ with the module and a db.toml naming one PostgreSQL connection."""
+    folder = os.path.join(home, "modules")
+    os.makedirs(folder, exist_ok=True)
+    shutil.copy2(module, os.path.join(folder, os.path.basename(module)))
+    with open(os.path.join(folder, "db.toml"), "w", encoding="utf-8", newline="\n") as f:
+        f.write('[connections.default]\ndriver = "postgres"\nurl = "%s"\nconnections = 4\n'
+                % url.replace("\\", "\\\\").replace('"', '\\"'))
+
+
 # ---------------------------------------------------------------------------
 # running a page
 # ---------------------------------------------------------------------------
@@ -681,7 +748,8 @@ class Context:
         self.tmp = os.path.abspath(args.tmp)
         self.keep = args.keep
         self.strict = args.strict
-        self.pg_url = os.environ.get("NODE_DATABASE_URL", "")
+        self.db_url = os.environ.get("NODE_DB_URL") or os.environ.get("NODE_DATABASE_URL", "")
+        self.db, self.db_why = db_sources()
         self.port = args.port
         self.exe = None
         self.luac = None
@@ -720,17 +788,33 @@ def run_page(page, blocks, ctx, port):
             elif b.kind == "skip":
                 r.skip(b.reason)
     runnable = [b for b in blocks if b.runs and results[b.index].status != "FAIL"]
-    needs_pg = any(b.needs_pg for b in runnable)
-    if needs_pg and not ctx.pg_url:
-        for b in [b for b in runnable if b.needs_pg]:
-            if ctx.strict:
-                results[b.index].fail("NODE_DATABASE_URL is not set (--strict)")
+    needs_db = any(b.needs_db for b in runnable)
+    # Two things a db block needs and cannot make for itself: a database to
+    # talk to, and the module that talks to it (built out of this tree).
+    missing, fatal = "", False
+    if needs_db and not ctx.db_url:
+        # A URL is configuration, and --strict exists to catch a CI that lost it.
+        missing, fatal = "NODE_DB_URL is not set", True
+    elif needs_db and ctx.db is None:
+        # The module is a build artifact of another repository. Not having it
+        # is not a mistake this run can be blamed for, so it is a skip even
+        # under --strict -- with the reason on the line, not a silent pass.
+        missing = ctx.db_why
+    if missing:
+        for b in [b for b in runnable if b.needs_db]:
+            if ctx.strict and fatal:
+                results[b.index].fail(missing + " (--strict)")
             else:
-                results[b.index].skip("NODE_DATABASE_URL not set")
-        runnable = [b for b in runnable if not b.needs_pg]
-        needs_pg = False
+                results[b.index].skip(missing)
+        runnable = [b for b in runnable if not b.needs_db]
+        needs_db = False
+    if needs_db:
+        stage_db(home, ctx.db[0], ctx.db[1], ctx.db_url)
     for b in runnable:
-        write_resource(home, b, resource_code(b, blocks))
+        code = resource_code(b, blocks)
+        folder = write_resource(home, b, (DB_PRELUDE + code) if b.needs_db else code)
+        if b.needs_db:
+            shutil.copy2(ctx.db[1], os.path.join(folder, "server", "db.lua"))
     if not runnable:
         return results, None
 
@@ -740,7 +824,8 @@ def run_page(page, blocks, ctx, port):
         "NODE_VERIFY_GAME": "off",
         "NODE_DEBUG": "false",
         "NODE_NAME": "docs doctest " + page,
-        "NODE_DATABASE_URL": ctx.pg_url if needs_pg else "",
+        # The module reads modules/db.toml; nothing about the database is the
+        # server's business any more.
     })
     srv = Server(ctx.exe, port, home, env)
     warnings = []
@@ -750,10 +835,10 @@ def run_page(page, blocks, ctx, port):
         srv.start()
         if not srv.wait_log(r"server is ready", 30) or not srv.alive():
             raise RuntimeError("the server never became ready: " + srv.why_not_up())
-        if needs_pg:
-            if not srv.wait_log(r"pg: database reachable", 20):
+        if needs_db:
+            if not srv.wait_log(r"db\[default\]: connected to", 20):
                 raise RuntimeError("the database never became reachable: " + srv.why_not_up())
-            # The examples poll node.pg.ready every 500 ms and then run their migrations; a player
+            # The examples poll db:ready() every 500 ms and then run their migrations; a player
             # joins once that has gone quiet, so the tables the join handlers query exist.
             settle(srv, None, 10.0, quiet=1.5, minimum=2.0)
         else:
@@ -908,7 +993,7 @@ def main(argv=None):
     ap.add_argument("--keep", action="store_true", help="keep every scratch server home (the failing ones are kept anyway)")
     ap.add_argument("--list", action="store_true", help="classify the blocks and print the table without running anything")
     ap.add_argument("--strict", action="store_true", default=os.environ.get("DOCTEST_STRICT") == "1",
-                    help="a missing NODE_DATABASE_URL fails the pg blocks instead of skipping them (CI)")
+                    help="a missing NODE_DB_URL or db module fails the db blocks instead of skipping them (CI)")
     ap.add_argument("--server", metavar="EXE", help="the Node-Server binary (default: $DOCTEST_SERVER, ../server/run, .server/)")
     ap.add_argument("--tmp", default=os.path.join(ROOT, ".doctest"), help="the scratch directory (default: .doctest/)")
     ap.add_argument("--port", type=int, default=int(os.environ.get("DOCTEST_PORT", DEFAULT_PORT)),
@@ -963,8 +1048,8 @@ def main(argv=None):
         except ImportError as e:
             print("doctest: the fake client needs the `zstandard` package (pip install zstandard): %s" % e)
             return 2
-    if args.strict and not ctx.pg_url and any(b.needs_pg for _, blocks in pages for b in blocks):
-        print("doctest: --strict and NODE_DATABASE_URL is not set; the pg blocks cannot run")
+    if args.strict and not ctx.db_url and any(b.needs_db for _, blocks in pages for b in blocks):
+        print("doctest: --strict and NODE_DB_URL is not set; the db blocks cannot run")
         return 2
 
     os.makedirs(ctx.tmp, exist_ok=True)
@@ -978,7 +1063,7 @@ def main(argv=None):
                              errors="replace").stdout.strip().splitlines()
     print("doctest: %s (%s), luac: %s, database: %s%s" % (
         exe, version[0] if version else "version unknown", " ".join(ctx.luac[:1]),
-        "NODE_DATABASE_URL set" if ctx.pg_url else "none (pg blocks %s)" % ("fail" if args.strict else "skip"),
+        "NODE_DB_URL set" if ctx.db_url else "none (db blocks %s)" % ("fail" if args.strict else "skip"),
         (", wire helpers: " + os.path.dirname(ctx.testclient.__file__)) if ctx.testclient else ""))
 
     all_results = []

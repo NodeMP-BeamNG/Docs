@@ -1,7 +1,7 @@
 // Check 4: event names on every page against sdk/api.toml -- canonical names and
-// their deprecated aliases.
+// the names they were renamed from (`formerly`, refused since 1.2.1).
 //
-//   events.alias    an old name (an `aliases` entry) outside an allowed context;
+//   events.alias    an old name (a `formerly` entry) outside an allowed context;
 //   events.unknown  an event-looking name that api.toml does not know;
 //   events.mapping  `old` → `new` and "Before 1.2.0" table columns must pair an
 //                   alias with its canonical name.
@@ -77,7 +77,7 @@ export function checkEvents(pages, sources) {
           if (!cols[i] || /beammp/i.test(t.header[i])) return;
           for (const s of inlineCode(c)) {
             const old = s.text.trim();
-            if (!aliasOf.has(old)) { if (/^[a-z][A-Za-z]+$/.test(old)) out.push(finding('events.mapping', page, row.line, old, 'a deprecated alias listed in api.toml', 'unknown alias')); return; }
+            if (!aliasOf.has(old)) { if (/^[a-z][A-Za-z]+$/.test(old)) out.push(finding('events.mapping', page, row.line, old, 'a former event name listed in api.toml', 'not a former name')); return; }
             const canon = aliasOf.get(old);
             if (!row.cells.some((x, j) => j !== i && x.includes(canon))) out.push(finding('events.mapping', page, row.line, old, `the row names ${canon} (its canonical name in api.toml)`, 'not in the row'));
           }
@@ -91,7 +91,7 @@ export function checkEvents(pages, sources) {
       if (!inCode) {
         for (const m of line.matchAll(/`([a-z][A-Za-z]+)`\s*(?:→|->)\s*`([a-z][A-Za-z]+)`/g)) {
           if (aliasOf.has(m[1]) && aliasOf.get(m[1]) !== m[2]) out.push(finding('events.mapping', page, ln, `${m[1]} → ${m[2]}`, `${m[1]} → ${aliasOf.get(m[1])}`, `${m[1]} → ${m[2]}`));
-          else if (!aliasOf.has(m[1]) && canonical.has(m[2]) && /^(?:on[A-Z]|player|vehicle|server|can)/.test(m[1])) out.push(finding('events.mapping', page, ln, `${m[1]} → ${m[2]}`, `an alias of ${m[2]} listed in api.toml`, `${m[1]} is not an alias`));
+          else if (!aliasOf.has(m[1]) && canonical.has(m[2]) && /^(?:on[A-Z]|player|vehicle|server|can)/.test(m[1])) out.push(finding('events.mapping', page, ln, `${m[1]} → ${m[2]}`, `a former name of ${m[2]} listed in api.toml`, `${m[1]} was never called ${m[2]}`));
         }
       }
       const reported = new Set();

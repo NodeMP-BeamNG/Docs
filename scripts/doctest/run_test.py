@@ -67,7 +67,7 @@ class ExtractTests(unittest.TestCase):
 class TagTests(unittest.TestCase):
     def test_plain_kinds(self):
         self.assertEqual(run.parse_tag("server"), ("server", {}, ""))
-        self.assertEqual(run.parse_tag("pg"), ("pg", {}, ""))
+        self.assertEqual(run.parse_tag("db"), ("db", {}, ""))
         self.assertEqual(run.parse_tag("client"), ("client", {}, ""))
         self.assertEqual(run.parse_tag("skip needs the launcher"), ("skip", {}, "needs the launcher"))
 
@@ -76,8 +76,8 @@ class TagTests(unittest.TestCase):
         self.assertEqual(kind, "server+client")
         self.assertEqual(opts["emit"], [["chat:send", {"text": "/hello"}]])
         self.assertEqual(opts["players"], ["Alice", "Bob"])
-        kind, opts, _ = run.parse_tag('pg+client {"config": {"admins": [42]}, "wait": 20, "with": [5], "files": {"server/util.lua": "return {}"}}')
-        self.assertEqual(kind, "pg+client")
+        kind, opts, _ = run.parse_tag('db+client {"config": {"admins": [42]}, "wait": 20, "with": [5], "files": {"server/util.lua": "return {}"}}')
+        self.assertEqual(kind, "db+client")
         self.assertEqual(opts["config"], {"admins": [42]})
 
     def test_rejections(self):
@@ -129,20 +129,20 @@ class PageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = self.write(d, "p.md",
                               "<!-- doctest: server -->\n```lua\nlocal function f() end\n```\n\n"
-                              '<!-- doctest: pg {"with": [1]} -->\n```lua\nf()\n-- expect: ok\n```\n\n'
+                              '<!-- doctest: db {"with": [1]} -->\n```lua\nf()\n-- expect: ok\n```\n\n'
                               '<!-- doctest: server {"with": [3]} -->\n```lua\nx()\n```\n\n'
                               "```lua\nuntagged()\n```\n\n"
                               "<!-- doctest: server -->\n```lua\ny()\n-- expect-client: z\n```\n")
             page, blocks = run.load_page(path)
             self.assertEqual(page, "p")
-            self.assertEqual([b.kind for b in blocks], ["server", "pg", "server", None, "server"])
+            self.assertEqual([b.kind for b in blocks], ["server", "db", "server", None, "server"])
             self.assertIsNone(blocks[0].error)
             self.assertIsNone(blocks[1].error)
             self.assertIn("not an earlier block", blocks[2].error)
             self.assertIn("no <!-- doctest", blocks[3].error)
             self.assertIn("+client", blocks[4].error)
             self.assertEqual(run.resource_code(blocks[1], blocks), "local function f() end\n\nf()\n-- expect: ok\n")
-            self.assertTrue(blocks[1].needs_pg and not blocks[1].needs_client and blocks[1].runs)
+            self.assertTrue(blocks[1].needs_db and not blocks[1].needs_client and blocks[1].runs)
             self.assertFalse(blocks[3].runs)
 
     def test_ru_parity(self):

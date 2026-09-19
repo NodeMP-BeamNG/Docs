@@ -138,7 +138,8 @@ The line above the fence classifies it:
 <!-- doctest: server -->                         runs as server/main.lua of a throwaway resource
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
                                                  ... and a fake player joins; the JSON lists what it sends
-<!-- doctest: pg -->  /  <!-- doctest: pg+client -->   the same, on a server with a PostgreSQL database
+<!-- doctest: db -->  /  <!-- doctest: db+client -->   the same, with the db module loaded and a
+                                                 PostgreSQL connection configured for it
 <!-- doctest: client -->                         a client script: syntax-checked with luac and packaged
                                                  by the server; the game is not here to run it
 <!-- doctest: skip <reason> -->                  not run; still syntax-checked
@@ -181,8 +182,12 @@ To run it locally you need the server binary (`--server <path>`, `DOCTEST_SERVER
 `server` repository for the fake player's wire codec (`run/wire.py`, `run/wire_taxonomy.py`,
 `run/testclient.py`, imported at run time from `NODEMP_SERVER_DIR`, else `./server`, else
 `../server`), `luac` (Lua 5.4; `DOCTEST_LUAC` names another), the `zstandard` Python package (the
-fake player's frames are compressed) and, for the `pg` blocks, `NODE_DATABASE_URL` pointing at a
-throwaway PostgreSQL database - without it those blocks are skipped. CI downloads
+fake player's frames are compressed) and, for the `db` blocks, two things: `NODE_DB_URL` pointing
+at a throwaway PostgreSQL database, and the built `db` module - `DOCTEST_DB_MODULE` and
+`DOCTEST_DB_LUA` name it and its Lua library, else the build directories beside `plugins/db` are
+searched. Without either, those blocks are skipped. The runner copies the module into the scratch
+server's `modules/` with a `db.toml`, and `db.lua` into each db resource, so the examples say
+`db:query(...)` with no setup of their own. CI downloads
 `Node-Server-<version>-linux-x64.tar.gz` from `NodeMP-BeamNG/releases` (checked against its
 `.sha256`; the version is `SERVER_VERSION` in the workflow), clones the server's `run/` with the
 read-only `SERVER_DEPLOY_KEY` (as it clones the sdk) and runs against a `postgres:16-alpine`

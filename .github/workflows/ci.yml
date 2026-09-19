@@ -152,7 +152,7 @@ jobs:
         env:
           DOCTEST_SERVER: ${{ github.workspace }}/.server/Node-Server
           NODEMP_SERVER_DIR: ${{ github.workspace }}/server
-          NODE_DATABASE_URL: postgres://docs:docs@127.0.0.1:5432/docs
+          NODE_DB_URL: postgres://docs:docs@127.0.0.1:5432/docs
         run: python scripts/doctest/run.py --strict
       - name: Upload the server logs of the failed pages
         if: failure()

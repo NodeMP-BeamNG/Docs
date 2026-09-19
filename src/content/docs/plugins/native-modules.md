@@ -73,26 +73,30 @@ arrives at the player's client files as an ordinary wire event.
 
 `NodeApi` is positional: a module reads each capability at an offset fixed when it was compiled.
 Against a reordered struct it would not fail, it would call whatever now sits at that offset - so
-the layout is a contract, with a version. The header carries `NODE_ABI_VERSION_MAJOR` `1` and
-`NODE_ABI_VERSION_MINOR` `12`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`.
+the layout is a contract, with a version. The header carries `NODE_ABI_VERSION_MAJOR` `2` and
+`NODE_ABI_VERSION_MINOR` `0`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`. Major 2 is
+the first break: the `pg_*` entries left the struct when the database moved out of the core into
+the `db` module, so every module built against a 1.x header must be rebuilt against this one.
+Nothing else about the layout changed.
 
 - The loader calls `node_plugin_abi()` **first**, before `node_plugin_init` and before touching any
   field. A module whose major differs is refused:
-  `module 'x.dll' was built against SDK ABI 2.0, this server speaks 1.12 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.1 -- refusing to load it. Rebuild the module.`
   A module without the symbol at all is refused too:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - A module built against a **newer minor** loads with a warning
-  (`was built against a NEWER SDK (1.13 vs 1.12); it may expect capabilities this server does not have`).
+  (`was built against a NEWER SDK (2.1 vs 2.0); it may expect capabilities this server does not have`).
   A module built against an older minor loads silently: everything it knows about is where it
   expects it.
-- New capabilities are appended and bump the minor. Nothing is reordered or removed; a retired
-  call becomes a stub that keeps its slot. Any change that moves a field bumps the major.
+- New capabilities are appended and bump the minor. Within a major nothing is reordered or
+  removed; a retired call becomes a stub that keeps its slot. Any change that moves a field bumps
+  the major, as taking the `pg_*` entries out did.
 - The first two members are plain fields for your own check: `abi_version` (index 0) is
   `NODE_ABI_VERSION` as the server was built, `struct_size` (index 1) is `sizeof(NodeApi)` as the
   server built it. When `struct_size` is smaller than your `sizeof(NodeApi)`, the server predates
   some capability you compiled against, and you must not read past it - refuse to load, as the
   example above does, or degrade. The `dimensions` module refuses when the visibility-group calls
-  it needs are missing (`dimensions: this server has no visibility groups (needs ABI 1.7)`).
+  it needs are missing (`dimensions: this server has no visibility groups (set_player_group and the three beside it; they arrived in ABI 1.7 and are part of 2.0)`).
 
 A module that returns nonzero from `node_plugin_init` is unloaded with
 `module 'x.dll' failed to initialize (returned -1), skipping`; the server starts without it.
@@ -271,8 +275,13 @@ which works for a trivial table and is undefined for anything that touches the G
 or `luaL_error`. Rather than let that appear to work, the loaders are off.
 
 Native code takes the route this page describes: a module in `modules/` against the C ABI, or a
-language host that embeds its own runtime. For a database, `node.pg` is built in - see
-[Database access](/plugins/database/).
+language host that embeds its own runtime. The database is the worked example: `plugins/db` owns
+the pools and the engine drivers in `modules/db.dll`, and because it cannot add a `node.db` table
+either, it publishes on the resource bus and ships a Lua shim, `plugins/db/lua/db.lua`, that a
+resource copies next to its `main.lua`. The shim hides one request name and one reply name per
+resource behind `db:query`, `db:exec` and `db:tx`, and `node.suspend` is what lets those return
+values inside `node.async` instead of only taking a callback - the pattern for any module that
+wants to look like a library. See [Database access](/plugins/database/).
 
 ## Events, channels and the bus from C
 

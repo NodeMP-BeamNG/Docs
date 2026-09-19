@@ -18,10 +18,11 @@ HTTP and job completions all land on the same thread. Two consequences:
   other, so a plain Lua table is a safe place for shared state.
 - **Blocking blocks everyone.** A handler that loops for a second stalls every other resource's
   handlers, every timer and `serverTick` for that second. The server watches for it: every piece
-  of plugin code the worker runs - event, bus and request handlers, timer callbacks, the slices of
-  a `node.async` coroutine between two suspensions, HTTP, job and `node.pg` completion callbacks,
-  log sinks - is timed on its own, and one that takes more than 250 ms is logged with the resource
-  and the kind: `plugin worker job stalled the thread for 699 ms (resource race, timer) — move heavy work to node.await/node.job`.
+  of plugin code the worker runs - event, bus and request handlers (a `db` answer comes back as
+  one), timer callbacks, the slices of a `node.async` coroutine between two suspensions, HTTP and
+  job completion callbacks, log sinks - is timed on its own, and one that takes more than 250 ms is
+  logged with the resource and the kind:
+  `plugin worker job stalled the thread for 699 ms (resource race, timer) — move heavy work to node.await/node.job`.
   A slice nested in another (a timer callback that starts a coroutine whose first slice stalls)
   is reported once, for the inner one. (Before 1.2.1 only whole worker jobs were timed, so a slow
   timer callback or coroutine slice went unreported, and the line named no resource.) When the
@@ -44,8 +45,8 @@ worker wakes for the earliest deadline, and `serverTick` fires every 100 ms alon
 timer belongs to the resource that set it and dies with a reload; at shutdown `serverShutdown` fires,
 then each resource's own `resourceUnload("shutdown")`, and timers do not run again. The same hook
 fires as `resourceUnload("reload")` right before a reload drops the state - the place to flush
-what a timer was accumulating; a `node.storage` write or a plain `node.pg.exec` (callback form)
-made there is kept, a callback, timer or coroutine started there never runs
+what a timer was accumulating; a `node.storage` write made there is kept, while a callback, timer,
+coroutine or `db` request started there never completes - the bus delivers on a later worker turn
 ([Resources](/plugins/resources/#reload)).
 
 <!-- doctest: server -->

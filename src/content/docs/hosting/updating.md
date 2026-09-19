@@ -108,7 +108,7 @@ the same commands.
   Deleting it is always safe.
 - **Native modules** in `modules/` are checked against the server's plugin ABI at load. A module
   built for an older major ABI is refused with
-  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.0 -- refusing to load it. Rebuild the module.`
+  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.1 -- refusing to load it. Rebuild the module.`
   (the numbers are the live values) and needs a rebuild; resources written in a language such a module provides then do not
   load. Lua resources need nothing rebuilt, but re-test them after a major update.
 
@@ -118,8 +118,8 @@ and rewrites the file without them.
 ## Protocol versions
 
 Launcher and server speak a versioned wire protocol, `v18` since 1.1.0 (which raised it from
-`v17` for the strict install check; 1.2.0 and 1.2.1 kept it: server 1.2.1, launcher 1.1.0 and
-client mod 1.4.0 belong together).
+`v17` for the strict install check; 1.2.0 and 1.2.1 kept it: server 1.2.1, launcher 1.1.7 and
+client mod 1.5.2 belong together).
 When a release changes it, a launcher on the old version is refused at the handshake with
 `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
 (the two numbers are the live values). Players fix that by installing the current launcher from

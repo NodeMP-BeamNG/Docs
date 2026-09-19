@@ -1,6 +1,6 @@
 ---
 title: How synchronization works
-description: Transport hops, the packet categories of wire protocol v18, control modes, the position snapshot, seats, damage, identity, events and the relay.
+description: Transport hops, the packet categories of wire protocol v20, control modes, the position snapshot, seats, damage, identity, events and the relay.
 ---
 
 This page follows the data through a NodeMP session on wire protocol **v18**: what travels
