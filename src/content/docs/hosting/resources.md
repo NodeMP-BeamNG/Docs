@@ -24,7 +24,7 @@ Where a folder comes from:
 - **The examples.** The release archive carries them under `examples/`, next to `Node-Server`:
   `chat` (the chat and the `/` commands, which `player:tell` and `node.commands.add` in every
   other resource rely on), `demo-numbers`, `vehicle-cleanup`, `gatekeeper-example`,
-  `nodegrab-allow`, `nodemp-relay`, `devapi-example`, `freeroam-example`, `seat-demo` and
+  `nodegrab-allow`, `devapi-example`, `freeroam-example`, `seat-demo` and
   `session-report` (written in JavaScript; it needs the `js-host` native module and is skipped
   without it). `examples/README.txt` says what each one does, `examples/LICENSE` is their
   licence (GPL-3.0, separate from the server's), and `EXAMPLES_COMMIT` next to the executable

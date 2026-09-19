@@ -89,7 +89,7 @@ Plugins written for other multiplayer servers do not run here as they are; see
 - [Wire protocol](/plugins/protocol/) - the frames underneath, for module authors.
 
 Every example named in these pages - `demo-numbers`, `chat`, `vehicle-cleanup`,
-`gatekeeper-example`, `devapi-example`, `nodemp-relay` - is a resource folder in the release
+`gatekeeper-example`, `devapi-example`, `nodegrab-allow` - is a resource folder in the release
 archive under `examples/`, next to the server executable; `examples/README.txt` says what each
 one does. Copy one into `resources/` to run it. `chat` - the one the others lean on - is also
 described by its protocol on [Events → node.bus](/plugins/events/#between-resources-nodebus).

@@ -179,8 +179,8 @@ end)
 применил их оптимистично, поэтому отказ откатывает инициатора к закэшированной сервером
 конфигурации или окраске), `vehicleTriggerRequest` (по умолчанию разрешено),
 `vehicleNodeGrabRequest` (закрыт по умолчанию: без единого обработчика захват отклоняется,
-поэтому экспериментальному захвату узлов нужен ресурс, который скажет «да», - `nodemp-relay` так и
-делает).
+поэтому экспериментальному захвату узлов нужен ресурс, который скажет «да», - `nodegrab-allow` так и
+делает; синхронизированный захват клиентского мода этим путём не ходит).
 
 Разобранный пример из `gatekeeper-example`: ограничить число машин, которые игрок может
 заспавнить, с причиной.
@@ -257,11 +257,10 @@ end
 любому из них, кодируется в JSON за вас.
 
 События, отправленные клиентом, заканчиваются на сервере: они доходят до серверных ресурсов и
-больше ни до кого. Функция, которая должна дойти до других игроков, - это ресурс, который её
-пересылает; именно это `nodemp-relay` делает для событий `vehicle:fire` и `vehicle:grab`
-клиентского мода:
+больше ни до кого. Ваша функция, которая должна дойти до других игроков, - это ресурс, который её
+пересылает; скажем, `team:ping`, которое отправляет ваш клиентский скрипт:
 
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["vehicle:fire", "{\"weapon\": 1}"]]} -->
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["team:ping", "{\"at\": 1}"]]} -->
 ```lua
 node.on("chat:send", function(player, data)
     local msg = node.json.decode(data)
@@ -269,12 +268,12 @@ node.on("chat:send", function(player, data)
     node.broadcast("chat:msg", { fromPid = player.id, name = player.name, text = msg.text })
 end)
 
-node.on("vehicle:fire", function(sender, data)
-    node.broadcast("vehicle:fire", data or "", sender) -- everyone but the author
+node.on("team:ping", function(sender, data)
+    node.broadcast("team:ping", data or "", sender) -- everyone but the author
 end)
 
 -- expect-client: Bob chat:msg .*"text":"hello everyone"
--- expect-client: Bob vehicle:fire \{"weapon": 1\}
+-- expect-client: Bob team:ping \{"at": 1\}
 ```
 
 Относитесь к `data` как к недоверенному вводу: проверяйте тип и длину перед использованием, как

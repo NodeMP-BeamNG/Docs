@@ -172,7 +172,8 @@ role), `vehicleCouplerRequest`, `vehicleEditRequest` and `vehiclePaintRequest` (
 applied these optimistically, so a denial rolls the initiator back to the server's cached
 config or paint), `vehicleTriggerRequest` (default allow), `vehicleNodeGrabRequest`
 (fail-closed: with no handler at all the grab is denied, so the experimental node grabber needs a
-resource that says yes - `nodemp-relay` does).
+resource that says yes - `nodegrab-allow` does; the client mod's synced grabber does not take this
+path).
 
 A worked example, from `gatekeeper-example`: cap the vehicles a player may spawn, with a reason.
 
@@ -247,10 +248,10 @@ the excepted player counts as the sender for the relay filter. A table given to 
 JSON-encoded for you.
 
 Client-emitted events are server-terminal: they reach server resources and nothing else. A
-feature that must reach other players is a resource that forwards it, which is what `nodemp-relay`
-does for the client mod's `vehicle:fire` and `vehicle:grab` events:
+feature of yours that must reach other players is a resource that forwards it - a
+`team:ping` your client script emits, say:
 
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["vehicle:fire", "{\"weapon\": 1}"]]} -->
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["team:ping", "{\"at\": 1}"]]} -->
 ```lua
 node.on("chat:send", function(player, data)
     local msg = node.json.decode(data)
@@ -258,12 +259,12 @@ node.on("chat:send", function(player, data)
     node.broadcast("chat:msg", { fromPid = player.id, name = player.name, text = msg.text })
 end)
 
-node.on("vehicle:fire", function(sender, data)
-    node.broadcast("vehicle:fire", data or "", sender) -- everyone but the author
+node.on("team:ping", function(sender, data)
+    node.broadcast("team:ping", data or "", sender) -- everyone but the author
 end)
 
 -- expect-client: Bob chat:msg .*"text":"hello everyone"
--- expect-client: Bob vehicle:fire \{"weapon": 1\}
+-- expect-client: Bob team:ping \{"at": 1\}
 ```
 
 Treat `data` as untrusted input: check its type and length before you use it, as `chat` does.

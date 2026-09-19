@@ -1,10 +1,10 @@
 ---
 title: Wire protocol
-description: Wire protocol v20 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
+description: Wire protocol v21 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
 This is the protocol between the launcher's helper and a NodeMP server, **v18**
-(`Wire::ProtoVersion = 20`). Resources never see it: they send and receive events. Native module
+(`Wire::ProtoVersion = 21`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the
 frames and orders them; it does not give byte layouts. The normative definition, field by field,
@@ -87,7 +87,7 @@ channel (4444).
 | `IntegrityManifestChunk` | S→L, T | `0x0D` (v18). `u32 index, u32 total, tail:bytes part`: one slice of the zstd-compressed manifest, at most `IntegrityChunkBytes` (32 KiB), sent in order, `index` from `0` to `total - 1`. An empty manifest is one empty chunk. TCP only, never cached; the one handshake body that outgrows the 4 KB cap. |
 | `IntegrityManifestDone` | S→L, T | `0x0E` (v18). `tail:str hash`: every chunk was sent; the SHA-256 of the reassembled compressed bytes, which the launcher recomputes and compares before it caches the file under that id (`cache/integrity/<id>.manifest`) and runs the check. |
 
-### Session (7)
+### Session (8)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -98,6 +98,7 @@ channel (4444).
 | `PlayerList` | S→G, T and R | The roster: count, maximum, and every id and name. |
 | `SessionEnd` | L→G, R | The helper tells the game the session ended - server closed it, connection lost or the player quit - with a detail line. |
 | `ClientId` | L→G, R | The helper tells the game its client id. |
+| `Policy` | G→S | The player's preferences for the cars it spawns: the lock mode the server puts on each (whitelist = the player) and whether others may press their triggers or grab their nodes; applied to existing spawns on change, enforced on `TriggerReq` and `Grab` (v21, replaces the `player:policy` event). |
 
 ### Content (8)
 
@@ -148,7 +149,7 @@ channel (4444).
 
 Vehicle packets are TCP (`T` and `R`); none of them is UDP-valid.
 
-### State (10)
+### State (11)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -162,6 +163,7 @@ Vehicle packets are TCP (`T` and `R`); none of them is UDP-valid.
 | `Engine` | G↔S, T | Engine and ignition state. |
 | `HeadPose` | G↔S, U with T fallback | The sender's camera or head pose, per player; ephemeral, never cached. |
 | `PosBatch` | S→G, U | Several `Pos` snapshots in one datagram, one per vehicle, each identical to the body of a single `Pos`. Sent only by the server: a client always sends `Pos`. Batching is what keeps the number of datagrams flat as player count grows. |
+| `Fire` | G↔S | The vehicle's fire state from its sync authority as opaque JSON, relayed and cached for join replay like `Electrics` (v21, replaces the `vehicle:fire` event). |
 
 All but `Inputs` and `HeadPose` are cached per (vehicle, subtype) and replayed to joiners.
 

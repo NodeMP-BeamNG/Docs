@@ -23,7 +23,7 @@ description: Установка ресурсов в resources/ и клиентс
   рецепт на странице [Рецепты](/ru/plugins/recipes/) — законченный ресурс в несколько строк.
 - **Примеры.** Архив релиза несёт их в папке `examples/` рядом с `Node-Server`: `chat` (чат и
   команды `/`, на которые опираются `player:tell` и `node.commands.add` в любом другом ресурсе),
-  `demo-numbers`, `vehicle-cleanup`, `gatekeeper-example`, `nodegrab-allow`, `nodemp-relay`,
+  `demo-numbers`, `vehicle-cleanup`, `gatekeeper-example`, `nodegrab-allow`,
   `devapi-example`, `freeroam-example`, `seat-demo` и `session-report` (написан на JavaScript; ему
   нужен нативный модуль `js-host`, без него он пропускается). `examples/README.txt` говорит, что
   делает каждый, `examples/LICENSE` — их лицензия (GPL-3.0, отдельная от серверной), а

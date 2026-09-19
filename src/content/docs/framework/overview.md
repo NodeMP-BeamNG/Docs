@@ -122,10 +122,11 @@ deletes the decrypted copies when the session ends. See [Resources and content](
 ## The relay
 
 Client-emitted events are server-terminal: `node.emitServer("name", data)` reaches server
-resources and nothing else. Anything that must reach other players goes through a resource. The
-`nodemp-relay` resource forwards the client mod's `vehicle:fire`, `vehicle:grab` and
-`vehicle:state` events to every other player and applies each player's vehicle policy
-(`player:policy`: lock mode, trigger and grab permissions); chat is its own `chat` resource. A
+resources and nothing else. Anything of YOUR resource's that must reach other players goes through
+your resource. The client mod's own peer features do not need one: fire (`State::Fire`), the
+synced grabber (`Vehicle::Grab`), in-world triggers (`Vehicle::TriggerReq`) and each player's
+vehicle policy (`Session::Policy`: lock mode, trigger and grab permissions) are typed packets the
+core relays and enforces itself since wire v21; chat is its own `chat` resource. A
 relay filter (`node.relay.filter` in Lua, the `relayRequest` hook) can veto every relayed packet per
 recipient. Parallel worlds do not need one: `dimensions` puts players and vehicles into the core's
 visibility groups (`Player:setGroup`, `Vehicle:setGroup`), and the core never relays between two

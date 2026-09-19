@@ -92,7 +92,7 @@ JavaScript - второй способ записи первой формы: с 
 - [Сетевой протокол](/ru/plugins/protocol/) - кадры под всем этим, для авторов модулей.
 
 Каждый пример, названный на этих страницах, - `demo-numbers`, `chat`, `vehicle-cleanup`,
-`gatekeeper-example`, `devapi-example`, `nodemp-relay` - это папка ресурса в архиве релиза, в
+`gatekeeper-example`, `devapi-example`, `nodegrab-allow` - это папка ресурса в архиве релиза, в
 папке `examples/` рядом с исполняемым файлом сервера; `examples/README.txt` говорит, что делает
 каждый. Скопируйте одну в `resources/`, чтобы запустить. `chat` - тот, на который опираются
 остальные, - описан ещё и своим протоколом на странице
