@@ -1,10 +1,10 @@
 ---
 title: Wire protocol
-description: Wire protocol v18 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
+description: Wire protocol v20 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
 This is the protocol between the launcher's helper and a NodeMP server, **v18**
-(`Wire::ProtoVersion = 18`). Resources never see it: they send and receive events. Native module
+(`Wire::ProtoVersion = 20`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the
 frames and orders them; it does not give byte layouts. The normative definition, field by field,
@@ -112,7 +112,7 @@ channel (4444).
 | `ResourceChunk` | S→G, T and R | One part of one resource's client files, as JSON. |
 | `ResourceDone` | S→G, T and R | Every resource has been delivered. |
 
-### Vehicle (28)
+### Vehicle (29)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -144,10 +144,11 @@ channel (4444).
 | `TriggerReq` | G→S | Ask the vehicle's sync authority to run a controller call; gated by `vehicleTriggerRequest`, forwarded as a targeted `Trigger`. |
 | `NodeGrab` | G→S | The experimental node grabber's request; dropped unless enabled and allowed. |
 | `NodeGrabSet` | S→one | An allowed grab, forwarded to the vehicle's sync authority. |
+| `Grab` | G↔S | The synced node grabber's stream (grab, move, release, deform snapshot, link, pin) as opaque JSON, relayed verbatim to every other client like `Coupler` and never cached; the owner's own client enforces its "let others grab my car" (v20, replaces the `vehicle:grab` event). |
 
 Vehicle packets are TCP (`T` and `R`); none of them is UDP-valid.
 
-### State (9)
+### State (10)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -160,6 +161,7 @@ Vehicle packets are TCP (`T` and `R`); none of them is UDP-valid.
 | `Powertrain` | G↔S, T | Powertrain device modes. |
 | `Engine` | G↔S, T | Engine and ignition state. |
 | `HeadPose` | G↔S, U with T fallback | The sender's camera or head pose, per player; ephemeral, never cached. |
+| `PosBatch` | S→G, U | Several `Pos` snapshots in one datagram, one per vehicle, each identical to the body of a single `Pos`. Sent only by the server: a client always sends `Pos`. Batching is what keeps the number of datagrams flat as player count grows. |
 
 All but `Inputs` and `HeadPose` are cached per (vehicle, subtype) and replayed to joiners.
 

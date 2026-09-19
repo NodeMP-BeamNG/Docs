@@ -268,8 +268,11 @@ export function parseApiEvents(source) {
     const head = b.split(/^\[\[/m)[0];
     const name = (/^name\s*=\s*"([^"]+)"/m.exec(head) || [])[1];
     const kind = (/^kind\s*=\s*"([^"]+)"/m.exec(head) || [])[1];
-    const aliasesRaw = (/^aliases\s*=\s*\[([^\]]*)\]/m.exec(head) || [])[1] || '';
-    const aliases = [...aliasesRaw.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    // `formerly`: the names this event was renamed FROM. They were aliases
+    // until 1.2.1 and are refused now, but the mapping a page may state --
+    // old name -> canonical name -- is the same table either way.
+    const formerlyRaw = (/^formerly\s*=\s*\[([^\]]*)\]/m.exec(head) || [])[1] || '';
+    const aliases = [...formerlyRaw.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
     if (name) events.push({ name, kind, aliases });
   }
   return events;

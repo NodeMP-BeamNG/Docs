@@ -63,7 +63,7 @@ export const NEEDS = {
 
 export function loadSources(dirs, versions) {
   const have = (r) => existsSync(dirs[r]) && existsSync(join(dirs[r], REPO_MARKER[r]));
-  const present = Object.fromEntries(Object.keys(dirs).map((r) => [r, have(r)]));
+  const present = Object.fromEntries(Object.keys(REPO_MARKER).map((r) => [r, have(r)]));
   const sources = { present, versions, codeVersions: {} };
   const templatesOf = (root, sub, ext, fn) => walk(join(root, sub), (p) => ext.test(p))
     .flatMap((p) => fn(read(p)).map((t) => ({ ...t, file: posix(relative(root, p)) })));
@@ -76,6 +76,12 @@ export function loadSources(dirs, versions) {
     // `NODE_*` identifiers of the SDK header count as known names (the sdk is
     // beside the server in every checkout that has the server).
     if (existsSync(join(dirs.sdk, 'node.h'))) for (const m of read(join(dirs.sdk, 'node.h')).matchAll(/\bNODE_[A-Z][A-Z0-9_]*\b/g)) sources.envNames.add(m[0]);
+    // The db module reads its own environment (NODE_DB_*), and the pages that
+    // document it are in this repository -- so its sources are a source of
+    // known names too, wherever the module is checked out beside us.
+    for (const cfg of (dirs.db ? [join(dirs.db, 'src/Config.cpp')] : [])) {
+      if (existsSync(cfg)) for (const n of S.envNames([read(cfg)])) sources.envNames.add(n);
+    }
     sources.serverMain = S.parseServerMain(read(join(d, 'src/core/main.cpp')));
     sources.wire = S.parseWireTaxonomy(read(join(d, 'run/wire_taxonomy.py')));
     // Kick texts: arguments of ClientKick anywhere, plus Network.cpp's two indirections
@@ -167,6 +173,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     sdk: resolve(process.env.NODEMP_SDK_DIR || '../sdk'),
     launcher: resolve(process.env.NODEMP_LAUNCHER_DIR || '../launcher'),
     mod: resolve(process.env.NODEMP_MOD_DIR || '../NodeMP'),
+    // The db module: plugins/db in the monorepo, examples/db where CI clones
+    // that repository. Only its environment names are read, so a checkout
+    // that does not have it simply contributes none.
+    db: resolve(process.env.NODEMP_DB_DIR
+      || (existsSync(resolve('../plugins/db')) ? '../plugins/db' : '../examples/db')),
     ui: resolve(process.env.NODEMP_UI_LAUNCHER_DIR || '../UI-launcher'),
   };
   const strict = Boolean(process.env.CI) || process.env.CHECK_CLAIMS_STRICT === '1';

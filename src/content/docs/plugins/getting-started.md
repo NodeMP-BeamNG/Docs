@@ -238,7 +238,7 @@ end)
 `name` must be lowercase - `chat` lowercases what the player typed before it publishes, and the
 prelude looks the handler up by the exact string. No player 0 exists here, so `player.name` is
 `nil` and the reply cannot be delivered to anyone; the bus line is what you check. Everything
-else - timers, `node.storage`, `node.pg`, `node.http`, a reload, `serverShutdown` and
+else - timers, `node.storage`, the `db` module, `node.http`, a reload, `serverShutdown` and
 `resourceUnload` at Ctrl+C - runs the same with or without players; a wire event handler is the
 one thing that needs a client, because only the client mod can send one. The client half cannot
 be run outside the game at all: the server packages the files and syntax-checks them but does

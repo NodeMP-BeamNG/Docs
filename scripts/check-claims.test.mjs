@@ -319,18 +319,18 @@ const API = `
 [[event]]
 name = "playerJoined"
 kind = "builtin"
-aliases = ["playerJoin"]
+formerly = ["playerJoin"]
 doc = """x"""
 
 [[event]]
 name = "vehicleSpawnRequest"
 kind = "cancellable"
-aliases = ["onVehicleSpawnRequest"]
+formerly = ["onVehicleSpawnRequest"]
 
 [[event]]
 name = "relayRequest"
 kind = "special"
-aliases = ["canRelay"]
+formerly = ["canRelay"]
 
 [[event]]
 name = "<domain>:<verb>"
@@ -341,7 +341,7 @@ name = "on"
 kind = "function"
 `;
 
-test('events: api.toml events with aliases; old names only in allowed contexts; unknown names', () => {
+test('events: api.toml events with former names; old names only in allowed contexts; unknown names', () => {
   const events = parseApiEvents(API);
   assert.deepEqual(events.map((e) => [e.name, e.aliases]), [['playerJoined', ['playerJoin']], ['vehicleSpawnRequest', ['onVehicleSpawnRequest']], ['relayRequest', ['canRelay']], ['<domain>:<verb>', []]]);
   const { canonical, aliasOf } = eventIndex(events);

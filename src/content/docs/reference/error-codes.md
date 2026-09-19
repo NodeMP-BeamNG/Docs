@@ -69,7 +69,7 @@ exit code, visible only when you start the helper from a terminal yourself. The 
 | Code | Last log line | Meaning | Action |
 |---|---|---|---|
 | `0` | `game closed - launcher closing soon` | BeamNG.drive was closed. The helper ends the session, waits 5 s and exits. | Nothing; the launcher window returns with `Session ended`. |
-| `0` | none; `Node-Launcher 1.1.0 proto 18` or the `USAGE:` text on stdout | `--version` or `--help` was asked for. | Nothing. |
+| `0` | none; `Node-Launcher 1.1.7 proto 20` or the `USAGE:` text on stdout | `--version` or `--help` was asked for. | Nothing. |
 | `0` | `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed (0.912 s)` | `--integrity-check <manifest>` ran the strict check and the install is clean. | Nothing. |
 | `1` | `game files DIFFER: … (strict), …`, then `counts: missing N, size N, hash N, unlisted N, archive N, userfolder N, folders skipped N` | `--integrity-check <manifest>` found problems; every one is printed above the summary as a reason (`overlay`, `unlisted`, `hash`, `crc`, …) and a path. | Read [Strict servers](/players/troubleshooting/#strict-servers). |
 | `2` | `cannot read the manifest file …`, `not a reference manifest: …`, `could not check: manifest format outdated (format 1)`, `could not check: the game's user folder … does not exist` | `--integrity-check <manifest>` could not run the check: no such file, not a manifest, an outdated one, or the game's user folder is missing. | Check the path; ask the host for a current reference; fix the user folder. |
@@ -78,7 +78,7 @@ exit code, visible only when you start the helper from a terminal yourself. The 
 | `1` | `failed to create HKEY_CURRENT_USER\Software\Valve\Steam\Apps\284160`, `failed to create the value "Name" under HKEY_CURRENT_USER\Software\Valve\Steam\Apps\284160` | Wine or Proton only: the registry patch the helper applies there failed. | Give the helper write access to the registry. |
 | `1` | `Exception in main(): …`, then `closing in 5 seconds` | An unhandled error during start-up, before the game was started. | Read the lines above it in `launcher.log`. |
 | `2` | `Failed to find the game please launch it. Report this if the issue persists code 8` | No BeamNG.drive install was found in **Settings → Game**, `BeamNG.Drive.ini`, the BeamNG and Steam registry keys or Steam's library folders. `8` is the code of that search and the only number the helper prints. The helper exits after 10 s. | Start the game once through Steam, or set the folder in **Settings → Game**. |
-| `2` | `Failed to Launch the game! launcher closing soon.` | `Bin64\BeamNG.drive.x64.exe` could not be started, and asking Steam (`steam://run/284160`) did not bring the game up either. The helper exits after 5 s. | Verify the game files in Steam; check **Settings → Game**. |
+| `2` | `Failed to Launch the game! launcher closing soon.` | Neither way of starting the game worked: Steam (`steam.exe -applaunch 284160`, the first choice for a Steam copy) never brought a game process up, and `Bin64\BeamNG.drive.x64.exe` could not be started either. The helper exits after 5 s. | Verify the game files in Steam; check **Settings → Game**. |
 
 Every `1` above except the `--integrity-check` verdict is a fatal log line: the helper waits a few
 seconds so the line can be read (5 s; 3 s for the cache folder), then exits.
@@ -88,7 +88,7 @@ seconds so the line can be read (5 s; 3 s for the cache folder), then exits.
 A server refuses or ends a session with a `Kick` frame that carries one line of text. During a
 join the launcher shows it as `Disconnected · …`; once you are in the game it arrives as
 `Session ended · …` and the game shows the dialog *The session has ended* with the same line. The
-server logs the same text as `<name> kicked — <reason>`. Launcher 1.1.0 rewrites the refusals of
+server logs the same text as `<name> kicked — <reason>`. Launcher 1.1.7 rewrites the refusals of
 the strict game-file check, the reference manifest and the protocol version into its own words:
 the toast is then `Could not join · …` (`Session ended · …` in the game) with the line the row
 gives under *Shown as*, and the panel under the server's card explains the first problem and what
@@ -97,7 +97,7 @@ to do. Plugins may send any text of their own; the rows below are the texts buil
 
 | Reason | When | What to do |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.0 and server 1.2.1 speak v18. Shown as `Could not join · This server needs a newer launcher — update from the Download page` when the launcher's number is the lower one, and as `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v18)` when the server's is. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download) (the panel has an *Open the Download page* button); when the server is behind, tell its host. |
+| `Protocol version mismatch: launcher speaks v17, server speaks v20 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.7 and server 1.2.1 speak v20. Shown as `Could not join · This server needs a newer launcher — update from the Download page` when the launcher's number is the lower one, and as `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v20)` when the server's is. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download) (the panel has an *Open the Download page* button); when the server is behind, tell its host. |
 | `Server full!` | `[General] MaxPlayers` is reached. | Filter by *Free slots*, or wait. |
 | `The server is still starting, please try joining again later.` | The server was still loading modules and resources; the handshake was held for a while and the hold ran out. | Try again in a minute. |
 | `Server shutdown` | The server is stopping; also sent to everyone in the session when it shuts down. | Wait for the host to bring it back. |

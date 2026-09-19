@@ -169,10 +169,12 @@ runs in the old instance right before its state is dropped, synchronously and on
 resource being unloaded - another resource's reload never fires yours. `reason` is `"reload"`
 here; at a server stop it is `"shutdown"`, after `serverShutdown` ran for everyone. It has the
 limitations of `serverShutdown`: a `node.storage` write made in it is kept (the new instance
-reads it at load; at a stop it is flushed to disk), a plain `node.pg.exec` or `node.pg.query` in
-the callback form is delivered (a handler is not a coroutine, so the suspending form raises), but
-no callback, timer or coroutine started there runs again - so write what you must and return, and
-put nothing after an `await`. Do not call `node.resources.reload` on yourself from it: on a reload
+reads it at load; at a stop it is flushed to disk), but a `db` call is not a way to flush
+anything - the bus carries the request on a later worker turn, and the suspending form raises
+here anyway, a handler not being a coroutine. No callback, timer or coroutine started there runs
+again - so write what you must and return, and put nothing after an `await`. `db.lua` hooks it
+for its own reason: to tell the module to release a transaction the resource still holds, rather
+than wait out `tx_timeout_ms`. Do not call `node.resources.reload` on yourself from it: on a reload
 that queues another reload of the fresh instance, an endless loop; at a stop the request is dropped
 (`false`), because nothing is loaded again while the server shuts down.
 
