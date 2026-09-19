@@ -78,7 +78,7 @@ cannot be moved over as it is. See [Differences from BeamMP](/introduction/diffe
 | Component | Version | Release |
 |---|---|---|
 | Game server (`Node-Server`) | 1.2.1 | tag `server-v1.2.1`: `Node-Server-1.2.1-linux-x64.tar.gz`, `Node-Server-1.2.1-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.2.1` |
-| Launcher | 1.1.8 | tag `launcher-v1.1.8`: `NodeMP-Setup-1.1.8.exe` |
+| Launcher | 1.1.9 | tag `launcher-v1.1.9`: `NodeMP-Setup-1.1.9.exe` |
 | Client mod (`NodeMP.zip`) | 1.5.4 | tag `mod-v1.5.4`: `NodeMP-1.5.4.zip`, installed by the launcher |
 | Wire protocol | v21 | launcher and server must match exactly; a mismatch is refused with a reason |
 

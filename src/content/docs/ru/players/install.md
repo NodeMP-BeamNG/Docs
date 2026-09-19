@@ -26,13 +26,13 @@ description: Скачайте и установите лаунчер NodeMP 1.1.
 
 ## Скачивание и установка
 
-1. Скачайте `NodeMP-Setup-1.1.8.exe` с [nodemp.com/download](https://nodemp.com/download)
-   (карточка *Launcher (Windows)*). Тот же файл приложен к тегу `launcher-v1.1.8` на
+1. Скачайте `NodeMP-Setup-1.1.9.exe` с [nodemp.com/download](https://nodemp.com/download)
+   (карточка *Launcher (Windows)*). Тот же файл приложен к тегу `launcher-v1.1.9` на
    [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases), рядом с ним —
    файл `.sha256`.
 2. Установщик пока не подписан кодовой подписью, поэтому Windows SmartScreen может предупредить
    о неизвестном издателе (**More info → Run anyway**). Перед запуском убедитесь, что файл — тот,
-   что опубликован: `Get-FileHash .\NodeMP-Setup-1.1.8.exe` в PowerShell печатает SHA-256 файла у
+   что опубликован: `Get-FileHash .\NodeMP-Setup-1.1.9.exe` в PowerShell печатает SHA-256 файла у
    вас, и он должен совпасть с опубликованным — значением из файла `.sha256` рядом с установщиком
    на странице релиза, которое показывает и страница загрузки.
 3. Запустите его. Установщик ставит лаунчер только для текущего пользователя, в
