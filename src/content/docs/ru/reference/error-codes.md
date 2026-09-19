@@ -70,7 +70,7 @@ description: Все тексты, которые показывает неуда
 | Код | Последняя строка лога | Значение | Действие |
 |---|---|---|---|
 | `0` | `game closed - launcher closing soon` | BeamNG.drive закрыли. Хелпер завершает сессию, ждёт 5 с и выходит. | Ничего; окно лаунчера возвращается с `Session ended`. |
-| `0` | нет; на stdout `Node-Launcher 1.1.7 proto 20` или текст `USAGE:` | Запрошены `--version` или `--help`. | Ничего. |
+| `0` | нет; на stdout `Node-Launcher 1.1.8 proto 21` или текст `USAGE:` | Запрошены `--version` или `--help`. | Ничего. |
 | `0` | `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed (0.912 s)` | `--integrity-check <manifest>` выполнил строгую проверку, и установка чистая. | Ничего. |
 | `1` | `game files DIFFER: … (strict), …`, затем `counts: missing N, size N, hash N, unlisted N, archive N, userfolder N, folders skipped N` | `--integrity-check <manifest>` нашёл проблемы; каждая напечатана над итогом как причина (`overlay`, `unlisted`, `hash`, `crc`, …) и путь. | Читайте [Строгие серверы](/ru/players/troubleshooting/#строгие-серверы). |
 | `2` | `cannot read the manifest file …`, `not a reference manifest: …`, `could not check: manifest format outdated (format 1)`, `could not check: the game's user folder … does not exist` | `--integrity-check <manifest>` не смог выполнить проверку: нет такого файла, это не манифест, он устаревший, или пользовательская папка игры отсутствует. | Проверьте путь; попросите у хоста текущий эталон; исправьте пользовательскую папку. |
@@ -89,7 +89,7 @@ description: Все тексты, которые показывает неуда
 Сервер отказывает в подключении или завершает сессию кадром `Kick`, который несёт одну строку
 текста. Во время подключения лаунчер показывает её как `Disconnected · …`; когда вы уже в игре,
 она приходит как `Session ended · …`, а игра показывает диалог *The session has ended* с той же
-строкой. Сервер пишет тот же текст в лог как `<name> kicked — <reason>`. Лаунчер 1.1.7
+строкой. Сервер пишет тот же текст в лог как `<name> kicked — <reason>`. Лаунчер 1.1.8
 переписывает отказы строгой проверки файлов игры, эталонного манифеста и версии протокола
 своими словами: уведомление тогда — `Could not join · …` (`Session ended · …` в игре) со строкой,
 которую строка таблицы приводит после *Показывается как*, а панель под карточкой сервера
@@ -98,7 +98,7 @@ description: Все тексты, которые показывает неуда
 
 | Причина | Когда | Что делать |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Лаунчер и сервер говорят на разных версиях сетевого протокола; оба числа — реальные значения. Лаунчер 1.1.7 и сервер 1.2.1 говорят на v18. Показывается как `Could not join · This server needs a newer launcher — update from the Download page`, если меньше число лаунчера, и как `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v18)`, если меньше число сервера. | Установите текущий лаунчер с [nodemp.com/download](https://nodemp.com/download) (в панели есть кнопка *Open the Download page*); если отстаёт сервер — сообщите его хосту. |
+| `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Лаунчер и сервер говорят на разных версиях сетевого протокола; оба числа — реальные значения. Лаунчер 1.1.8 и сервер 1.2.1 говорят на v18. Показывается как `Could not join · This server needs a newer launcher — update from the Download page`, если меньше число лаунчера, и как `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v18)`, если меньше число сервера. | Установите текущий лаунчер с [nodemp.com/download](https://nodemp.com/download) (в панели есть кнопка *Open the Download page*); если отстаёт сервер — сообщите его хосту. |
 | `Server full!` | Достигнут `[General] MaxPlayers`. | Фильтр *Free slots* или подождите. |
 | `The server is still starting, please try joining again later.` | Сервер ещё загружал модули и ресурсы; рукопожатие какое-то время удерживалось, и ожидание истекло. | Попробуйте через минуту. |
 | `Server shutdown` | Сервер останавливается; при выключении отправляется и всем, кто в сессии. | Дождитесь, когда хост его поднимет. |

@@ -1,6 +1,6 @@
 ---
 title: How synchronization works
-description: Transport hops, the packet categories of wire protocol v20, control modes, the position snapshot, seats, damage, identity, events and the relay.
+description: Transport hops, the packet categories of wire protocol v21, control modes, the position snapshot, seats, damage, identity, events and the relay.
 ---
 
 This page follows the data through a NodeMP session on wire protocol **v18**: what travels
@@ -122,19 +122,20 @@ half rate, and nobody beyond it. The default `0` relays every snapshot to everyo
 Client-emitted `Event` packets are **server-terminal**: they reach server resources only. Wire
 event names are `<domain>:<verb>` in lowercase (`chat:send`, `vehicle:fire`, `player:policy`,
 `modules:request`); camelCase names (`playerJoined`, `vehicleSpawnRequest`) are server-side hooks
-that never cross the wire. The client mod's peer features — fire sync, node grabbing, optional
-full-state blobs — ride `vehicle:*` events that the `nodemp-relay` server resource forwards to
-every other player; the same resource applies each player's `player:policy`. Chat is the `chat`
-resource. `Module::Data` is the binary counterpart of `Event`: arbitrary bytes on a `u32` channel
+that never cross the wire. The client mod's own peer features do not ride events at all
+since wire v21: fire is `State::Fire`, the synced grabber is `Vehicle::Grab`, in-world triggers
+go through `Vehicle::TriggerReq`, and a player's vehicle policy (lock mode, trigger and grab
+permissions for its cars) is `Session::Policy` — all relayed and enforced by the core, no
+resource needed. Chat is the `chat` resource. `Module::Data` is the binary counterpart of `Event`: arbitrary bytes on a `u32` channel
 id, server-terminal from the client, targeted or relay-filtered broadcast from the server.
 
 ## Node grabber (experimental)
 
 The client mod's synced grabber is off by default (`nodempSyncedGrabber` in the mod's settings).
-When on, Ctrl+drag picks a node and streams `vehicle:grab` events at up to 60 Hz; `nodemp-relay`
-forwards them verbatim to every other player; a player who has turned off `nodempAllowNodeGrab`
-ignores grabs on their own cars, and the resource's `allowGrab` policy gates only the typed path
-below. Every client — the grabber included — runs the same spring on its copy of the car, so the
+When on, Ctrl+drag picks a node and streams `Vehicle::Grab` frames at up to 60 Hz; the core
+relays them verbatim to every other player and drops those aimed at a car whose spawner cleared
+the grab bit of its `Session::Policy`; a player who has turned off `nodempAllowNodeGrab` also
+ignores grabs on their own cars. Every client — the grabber included — runs the same spring on its copy of the car, so the
 deformation is identical for everyone. The wire also has a typed, server-arbitrated path:
 `node.requestNodeGrab` in a client script sends `Vehicle::NodeGrab`, which the server forwards as
 `NodeGrabSet` to the vehicle's **sync authority** only when `[Experimental] NodeGrab = true` and a

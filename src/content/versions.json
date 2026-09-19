@@ -1,8 +1,8 @@
 {
   "server": "1.2.1",
-  "launcher": "1.1.7",
-  "mod": "1.5.3",
-  "protocol": 20,
+  "launcher": "1.1.8",
+  "mod": "1.5.4",
+  "protocol": 21,
   "abi": "2.1",
   "game": "0.39.4.0",
   "dockerTag": "v1.2.1"
