@@ -118,7 +118,7 @@ and rewrites the file without them.
 ## Protocol versions
 
 Launcher and server speak a versioned wire protocol, `v18` since 1.1.0 (which raised it from
-`v17` for the strict install check; 1.2.0 and 1.2.1 kept it: server 1.2.1, launcher 1.1.8 and
+`v17` for the strict install check; 1.2.0 and 1.2.1 kept it: server 1.2.1, launcher 1.1.9 and
 client mod 1.5.4 belong together).
 When a release changes it, a launcher on the old version is refused at the handshake with
 `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`
