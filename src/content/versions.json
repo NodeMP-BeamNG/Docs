@@ -3,7 +3,7 @@
   "launcher": "1.1.9",
   "mod": "1.5.4",
   "protocol": 21,
-  "abi": "2.1",
+  "abi": "2.2",
   "game": "0.39.4.0",
   "dockerTag": "v1.2.1"
 }

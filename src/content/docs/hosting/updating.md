@@ -108,7 +108,7 @@ the same commands.
   Deleting it is always safe.
 - **Native modules** in `modules/` are checked against the server's plugin ABI at load. A module
   built for an older major ABI is refused with
-  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.1 -- refusing to load it. Rebuild the module.`
+  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.2 -- refusing to load it. Rebuild the module.`
   (the numbers are the live values) and needs a rebuild; resources written in a language such a module provides then do not
   load. Lua resources need nothing rebuilt, but re-test them after a major update.
 

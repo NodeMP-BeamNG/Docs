@@ -81,7 +81,7 @@ Nothing else about the layout changed.
 
 - The loader calls `node_plugin_abi()` **first**, before `node_plugin_init` and before touching any
   field. A module whose major differs is refused:
-  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.1 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.2 -- refusing to load it. Rebuild the module.`
   A module without the symbol at all is refused too:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - A module built against a **newer minor** loads with a warning
