@@ -108,7 +108,7 @@ docker compose logs -f gameserver
   мере необходимости. Удалять его всегда безопасно.
 - **Нативные модули** в `modules/` при загрузке сверяются с ABI плагинов сервера. Модуль,
   собранный под другую мажорную версию ABI, отклоняется с сообщением
-  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.2 -- refusing to load it. Rebuild the module.`
+  `module 'js-host' was built against SDK ABI 1.0, this server speaks 2.3 -- refusing to load it. Rebuild the module.`
   (числа — реальные значения) и требует пересборки; ресурсы на языке, который даёт такой
   модуль, тогда не загружаются. Ресурсам на Lua пересборка не нужна, но после мажорного
   обновления проверьте их заново.

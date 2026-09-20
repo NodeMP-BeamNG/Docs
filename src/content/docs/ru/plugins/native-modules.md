@@ -83,7 +83,7 @@ NODE_EXPORT void node_plugin_shutdown(void) {
 
 - Загрузчик вызывает `node_plugin_abi()` **первым**, до `node_plugin_init` и до обращения к любому
   полю. Модуль с другим мажором отклоняется:
-  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.2 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.3 -- refusing to load it. Rebuild the module.`
   Модуль вовсе без этого символа тоже отклоняется:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - Модуль, собранный против **более нового минора**, загружается с предупреждением
