@@ -41,7 +41,7 @@ Node-Server  <-- HTTPS                                              -->  directo
 ```
 
 Every packet is a typed `(Category, SubType)` frame; the launcher and the server must speak the
-same wire protocol version (`v18`) and refuse each other otherwise. The server generates a
+same wire protocol version (`v21`) and refuse each other otherwise. The server generates a
 self-signed TLS certificate on first start and logs its SHA-256 fingerprint; a listed server's
 fingerprint reaches the launcher through the directory, and a direct connection pins it on first
 use. Of the game traffic, only `State::Pos` and `State::HeadPose` travel over UDP, each with an

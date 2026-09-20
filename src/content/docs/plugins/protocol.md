@@ -3,7 +3,7 @@ title: Wire protocol
 description: Wire protocol v21 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
-This is the protocol between the launcher's helper and a NodeMP server, **v18**
+This is the protocol between the launcher's helper and a NodeMP server, **v21**
 (`Wire::ProtoVersion = 21`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the
@@ -210,7 +210,7 @@ The order in which a player enters, packet by packet. The server's log lines in 
 what you see on the console.
 
 1. The helper opens the TLS connection and sends `Hello` with the protocol version and the name the
-   player asked for. A different version is answered with `Kick` (`Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side`).
+   player asked for. A different version is answered with `Kick` (`Protocol version mismatch: launcher speaks v18, server speaks v21 - update the outdated side`).
 2. The helper sends `Identity`, always: the join ticket, or an empty body. The server reads it before
    deciding anything, so the stream stays in step even when the answer is a refusal.
 3. The server holds the handshake while it is still starting, refuses a full server

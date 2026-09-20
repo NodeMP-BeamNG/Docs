@@ -94,11 +94,11 @@ description: Все тексты, которые показывает неуда
 своими словами: уведомление тогда — `Could not join · …` (`Session ended · …` в игре) со строкой,
 которую строка таблицы приводит после *Показывается как*, а панель под карточкой сервера
 объясняет первую проблему и говорит, что делать. Плагины могут прислать любой свой текст;
-строки ниже — тексты, встроенные в `Node-Server` 1.2.1, и значения по умолчанию API плагинов.
+строки ниже — тексты, встроенные в `Node-Server` 1.3.0, и значения по умолчанию API плагинов.
 
 | Причина | Когда | Что делать |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | Лаунчер и сервер говорят на разных версиях сетевого протокола; оба числа — реальные значения. Лаунчер 1.1.9 и сервер 1.2.1 говорят на v18. Показывается как `Could not join · This server needs a newer launcher — update from the Download page`, если меньше число лаунчера, и как `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v18)`, если меньше число сервера. | Установите текущий лаунчер с [nodemp.com/download](https://nodemp.com/download) (в панели есть кнопка *Open the Download page*); если отстаёт сервер — сообщите его хосту. |
+| `Protocol version mismatch: launcher speaks v18, server speaks v21 - update the outdated side` | Лаунчер и сервер говорят на разных версиях сетевого протокола; оба числа — реальные значения. Лаунчер 1.1.9 и сервер 1.3.0 говорят на v21; сервер версии 1.2.1 остался на предыдущей. Показывается как `Could not join · This server needs a newer launcher — update from the Download page`, если меньше число лаунчера, и как `Could not join · This server runs an older NodeMP server (protocol v18; this launcher speaks v21)`, если меньше число сервера. | Установите текущий лаунчер с [nodemp.com/download](https://nodemp.com/download) (в панели есть кнопка *Open the Download page*); если отстаёт сервер — сообщите его хосту. |
 | `Server full!` | Достигнут `[General] MaxPlayers`. | Фильтр *Free slots* или подождите. |
 | `The server is still starting, please try joining again later.` | Сервер ещё загружал модули и ресурсы; рукопожатие какое-то время удерживалось, и ожидание истекло. | Попробуйте через минуту. |
 | `Server shutdown` | Сервер останавливается; при выключении отправляется и всем, кто в сессии. | Дождитесь, когда хост его поднимет. |

@@ -3,7 +3,7 @@ title: How synchronization works
 description: Transport hops, the packet categories of wire protocol v21, control modes, the position snapshot, seats, damage, identity, events and the relay.
 ---
 
-This page follows the data through a NodeMP session on wire protocol **v18**: what travels
+This page follows the data through a NodeMP session on wire protocol **v21**: what travels
 where, at which rate, and who is allowed to send what. Every packet is named, with its purpose, on
 the [wire protocol](/plugins/protocol/) page; the byte layouts are in
 `server/include/net/Protocol.h`, the normative contract, kept byte-identical in the helper.

@@ -10,7 +10,7 @@ and MySQL/MariaDB sit behind that one interface, the placeholders are `$1..$n` o
 a value never goes into the statement text. Nothing blocks the worker thread: a statement runs on a
 database thread and its outcome comes back as a callback, or resumes your coroutine.
 
-Up to and including server 1.2.1 this was `node.pg` in the core. It is not any more - an engine,
+Up to and including release 1.2.1 this was `node.pg` in the core. It is not any more - an engine,
 its client library and its pool are not what a game server is for - so a server that never touches
 a database no longer carries one. [Migrating from node.pg](#migrating-from-nodepg) at the end of
 this page is the whole diff.

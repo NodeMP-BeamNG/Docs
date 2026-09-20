@@ -221,7 +221,7 @@ Whether and how the server announces itself to the directory;
 
 ### There is no `[Database]`
 
-There was, up to and including server 1.2.1: the server carried a PostgreSQL pool of its own. It
+There was, up to and including release 1.2.1: the server carried a PostgreSQL pool of its own. It
 does not any more. A database is now the `db` module, configured in its own `modules/db.toml` beside the
 module, and it speaks PostgreSQL, SQLite and MySQL/MariaDB. A `[Database]` section left in
 `server.toml` is ignored, and the `NODE_DATABASE_*` variables do nothing - except

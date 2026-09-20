@@ -93,11 +93,11 @@ the strict game-file check, the reference manifest and the protocol version into
 the toast is then `Could not join · …` (`Session ended · …` in the game) with the line the row
 gives under *Shown as*, and the panel under the server's card explains the first problem and what
 to do. Plugins may send any text of their own; the rows below are the texts built into
-`Node-Server` 1.2.1 and the defaults of the plugin API.
+`Node-Server` 1.3.0 and the defaults of the plugin API.
 
 | Reason | When | What to do |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v17, server speaks v21 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.9 and server 1.2.1 speak v21. Shown as `Could not join · This server needs a newer launcher — update from the Download page` when the launcher's number is the lower one, and as `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v21)` when the server's is. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download) (the panel has an *Open the Download page* button); when the server is behind, tell its host. |
+| `Protocol version mismatch: launcher speaks v18, server speaks v21 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.9 and server 1.3.0 speak v21; a 1.2.1 server is still on the previous one. Shown as `Could not join · This server needs a newer launcher — update from the Download page` when the launcher's number is the lower one, and as `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v21)` when the server's is. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download) (the panel has an *Open the Download page* button); when the server is behind, tell its host. |
 | `Server full!` | `[General] MaxPlayers` is reached. | Filter by *Free slots*, or wait. |
 | `The server is still starting, please try joining again later.` | The server was still loading modules and resources; the handshake was held for a while and the hold ran out. | Try again in a minute. |
 | `Server shutdown` | The server is stopping; also sent to everyone in the session when it shuts down. | Wait for the host to bring it back. |
