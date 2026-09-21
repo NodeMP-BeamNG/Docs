@@ -323,7 +323,7 @@ Parameters (`$1..$n`, sent as values, never spliced into the text):
 
 | Lua | Sent as |
 |---|---|
-| `nil` / `db.NULL` | `NULL` (the sentinel is needed inside a parameter array, where `nil` ends the array) |
+| `require("db").NULL` (and, with the current `db.lua` of the examples repository, `db.NULL` on a connection too) | `NULL` (the sentinel is needed inside a parameter array, where `nil` ends the array) |
 | `boolean` | `true`/`false` |
 | integer | integer (64-bit) |
 | float | floating point (`%.17g`) |
@@ -349,8 +349,13 @@ aliases); the order and the names are in `result.columns`.
 
 In practice:
 
-- **NULL.** `{ 1, nil, "x" }` sends *one* parameter - the `nil` ends the array - and the statement
-  then fails for want of `$2`. Write `{ 1, db.NULL, "x" }`. Coming back, a `NULL` cell is simply
+- **NULL.** `{ 1, nil, "x" }` has a hole where `$2` should be - the `nil` ends the array - and
+  `db.lua` refuses it (`db: params has a hole at #2`). The sentinel lives on the **module table**:
+  `local dbm = require("db")` ... `{ 1, dbm.NULL, "x" }`; the current `db.lua` of the examples
+  repository also exposes it on every connection, so `db.NULL` with `db` a connection is the same
+  object there (with the copy shipped in the 1.3.0 archive it is `nil` - SQLite then binds NULL by
+  accident, PostgreSQL answers `08P01`). With
+  an explicit length, `{ 1, nil, "x", n = 3 }`, a `nil` is sent as NULL. Coming back, a `NULL` cell is simply
   missing: `row.col == nil`.
 - **Casts.** PostgreSQL infers a parameter's type from where it is used; where it cannot, or gets
   it wrong, cast: `$1::int`, `$2::jsonb`, `$3::timestamptz`.
@@ -694,7 +699,7 @@ The calls are the same shape, so most of the work is mechanical:
 | Was | Is |
 |---|---|
 | `node.pg.query/exec/tx` | `db:query/exec/tx` on a connection from `require("db").open()` |
-| `node.pg.NULL` | `db.NULL` |
+| `node.pg.NULL` | `require("db").NULL` (or `db.NULL` on a connection with the current `db.lua`) |
 | `node.pg.enabled()` | gone: a missing connection answers `db_disabled` on the first statement |
 | `node.pg.ready()` | `db:ready()` (suspending or with a callback, like everything else) |
 | `node.server.metrics().plugin.pg` | `db:status()` |

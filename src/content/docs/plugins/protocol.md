@@ -113,7 +113,7 @@ channel (4444).
 | `ResourceChunk` | S→G, T and R | One part of one resource's client files, as JSON. |
 | `ResourceDone` | S→G, T and R | Every resource has been delivered. |
 
-### Vehicle (29)
+### Vehicle (30)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -127,7 +127,7 @@ channel (4444).
 | `Paint` | G↔S | The paint layers. |
 | `Camera` | G↔S | Which vehicle a player's camera is on. |
 | `SeatClaim` | G→S | A transactional seat request: driver, passenger or leave, with a claim id. |
-| `SeatVerdict` | S→one | The outcome of one `SeatClaim`: granted driver or passenger, left, or denied (by a plugin, occupied, a walking avatar, gone, or locked). |
+| `SeatVerdict` | S→one | The outcome of one `SeatClaim`: granted driver or passenger, left, or denied (by a plugin, occupied, a walking avatar, gone, or locked); since v22 a trailing reason -- the plugin's text on a plugin denial, `locked` on a lock denial, empty on a grant. |
 | `Driver` | S→G | Who drives the vehicle now, stamped with the seat epoch. |
 | `SeatFree` | S→G | The driver seat is empty. |
 | `Authority` | S→G | Which client simulates the vehicle. |
@@ -146,6 +146,7 @@ channel (4444).
 | `NodeGrab` | G→S | The experimental node grabber's request; dropped unless enabled and allowed. |
 | `NodeGrabSet` | S→one | An allowed grab, forwarded to the vehicle's sync authority. |
 | `Grab` | G↔S | The synced node grabber's stream (grab, move, release, deform snapshot, link, pin) as opaque JSON, relayed verbatim to every other client like `Coupler` and never cached; the owner's own client enforces its "let others grab my car" (v20, replaces the `vehicle:grab` event). |
+| `EditDeny` | S→one | (v22) `gid, what (1 edit / 2 paint), reason`: a `vehicleEditRequest` / `vehiclePaintRequest` handler refused WITH a reason; sent to the initiator before the rollback (`Resync` / `Paint`) so the player learns why. A refusal without a reason sends only the rollback. |
 
 Vehicle packets are TCP (`T` and `R`); none of them is UDP-valid.
 

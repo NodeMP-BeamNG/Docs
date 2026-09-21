@@ -49,5 +49,23 @@
     "page": "hosting/updating.md",
     "claim": "this server speaks 2.0",
     "reason": "A made-up example of a future major ABI bump (a module built against SDK ABI 1.0 meeting a 2.0 server); the current ABI is 1.12 and stated on plugins/conventions."
+  },
+  {
+    "check": "versions.code",
+    "page": "src/content/versions.json",
+    "claim": "server",
+    "reason": "Server 1.4.0 (wire v22, plugin API 2.3), launcher 1.1.10 and mod 1.5.5 are published as PRE-releases on 2026-09-21: the directory still serves launcher 1.1.9 / mod 1.5.4 (registering the new ones needs the directory's admin credentials the release pipeline did not have), so a host following these pages must stay on 1.3.0 or refuse every player. Flip versions.json to 1.4.0 / 1.1.10 / 1.5.5 / protocol 22, update the hosting pages and remove these three entries the moment the directory is updated."
+  },
+  {
+    "check": "versions.code",
+    "page": "src/content/versions.json",
+    "claim": "launcher",
+    "reason": "Server 1.4.0 (wire v22, plugin API 2.3), launcher 1.1.10 and mod 1.5.5 are published as PRE-releases on 2026-09-21: the directory still serves launcher 1.1.9 / mod 1.5.4 (registering the new ones needs the directory's admin credentials the release pipeline did not have), so a host following these pages must stay on 1.3.0 or refuse every player. Flip versions.json to 1.4.0 / 1.1.10 / 1.5.5 / protocol 22, update the hosting pages and remove these three entries the moment the directory is updated."
+  },
+  {
+    "check": "versions.code",
+    "page": "src/content/versions.json",
+    "claim": "protocol",
+    "reason": "Server 1.4.0 (wire v22, plugin API 2.3), launcher 1.1.10 and mod 1.5.5 are published as PRE-releases on 2026-09-21: the directory still serves launcher 1.1.9 / mod 1.5.4 (registering the new ones needs the directory's admin credentials the release pipeline did not have), so a host following these pages must stay on 1.3.0 or refuse every player. Flip versions.json to 1.4.0 / 1.1.10 / 1.5.5 / protocol 22, update the hosting pages and remove these three entries the moment the directory is updated."
   }
 ]
