@@ -103,8 +103,8 @@ has the buffer loop.
 | Wire protocol | `v22` (`Wire::ProtoVersion`) | Exact match. Launcher, client mod and server ship together; a mismatch is refused at the handshake with `Protocol version mismatch: launcher speaks v21, server speaks v22 - update the outdated side`. |
 | C ABI | `2.3` (`NODE_ABI_VERSION_MAJOR` `2`, `MINOR` `3`) | The major is the layout: nothing moves within it, new entries are appended and bump the minor, a retired entry becomes a stub that keeps its slot. A module built against an older `2.x` keeps working; a different major is refused by the loader -- major 2 is the first such break (the `pg_*` entries left with the database), so a module built against a `1.x` header must be rebuilt. |
 | Lua `node` and `node.raw` | server `1.4.1` | Generated from one schema, `sdk/api.toml`, together with `node.h` and the reference pages; `apigen.py docs --check` fails when they drift, so the [reference](/plugins/api/) says what the server does. `node.raw` is the one-to-one mirror of the C entries. |
-| Client `node` table | client mod `1.5.7` | The ten functions on [Client scripting](/plugins/client-scripting/). |
-| `NodeMP.*` | client mod `1.5.7` (`NodeMP.VERSION`) | One stable global; the original flat helpers stay as aliases of the namespaced calls. `NodeMP.internal` and the dotted module names underneath may move between versions. |
+| Client `node` table | client mod `1.5.8` | The ten functions on [Client scripting](/plugins/client-scripting/). |
+| `NodeMP.*` | client mod `1.5.8` (`NodeMP.VERSION`) | One stable global; the original flat helpers stay as aliases of the namespaced calls. `NodeMP.internal` and the dotted module names underneath may move between versions. |
 
 The wire changelog lives in `server/include/net/Protocol.h`, and the ABI history in the entry
 docs of `sdk/node.h` (`ABI 1.8`, `ABI 1.9`, ...). Neither is duplicated here.
