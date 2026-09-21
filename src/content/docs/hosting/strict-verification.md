@@ -4,7 +4,7 @@ description: VerifyGame = strict - what the reference manifest covers and what i
 ---
 
 `[General] VerifyGame = "strict"` is the fourth level of the game install check, added with
-server 1.1.9, launcher 1.1.9 and wire protocol v21. The three lower levels compare a player's
+server 1.1.9, launcher 1.1.10 and wire protocol v22. The three lower levels compare a player's
 BeamNG install with the game's own file list, `integrity.json` — a list the player can edit
 along with the files it names. `strict` compares against a **reference manifest**: a
 description of a clean install that you generate once per game version and put on the server.
@@ -190,7 +190,7 @@ integrity manifest` — once per manifest, about 1.2 MB in 32 KiB chunks, then c
 `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. The server refuses a
 mismatch with
 `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
-launcher 1.1.9 shows that in its own words, as
+launcher 1.1.10 shows that in its own words, as
 `Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
 with the first problem explained in the panel under the server's card. If the check fails later
 in the session the server ends it with

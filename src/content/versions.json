@@ -1,9 +1,9 @@
 {
-  "server": "1.3.0",
-  "launcher": "1.1.9",
-  "mod": "1.5.4",
-  "protocol": 21,
+  "server": "1.4.1",
+  "launcher": "1.1.10",
+  "mod": "1.5.7",
+  "protocol": 22,
   "abi": "2.3",
   "game": "0.39.4.0",
-  "dockerTag": "v1.3.0"
+  "dockerTag": "v1.4.1"
 }

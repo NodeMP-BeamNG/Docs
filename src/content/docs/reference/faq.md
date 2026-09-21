@@ -24,7 +24,7 @@ account gives you a fixed, verified name and works on every server. The website'
 page talks to hosts, but it is the same account. Test Drive is not remembered between launcher
 starts; a sign-in is. → [Install the launcher → Accounts](/players/install/#accounts)
 
-**Which BeamNG version do I need?** 0.39.4.0, the current release: client mod 1.5.4 is built
+**Which BeamNG version do I need?** 0.39.4.0, the current release: client mod 1.5.7 is built
 for it, and a strict server's reference describes one game version. A copy that is not from
 Steam works when **Settings → Game** points at its folder.
 → [Install the launcher → Requirements](/players/install/#requirements)
@@ -73,7 +73,7 @@ When you report a problem, attach `launcher.log`, the exact toast text and the s
 ## Hosts
 
 **Which server version do these pages describe?** The current release, 1.2.1 for the server,
-1.1.6 for the launcher, 1.5.0 for the client mod, wire protocol v21; the table on
+1.1.6 for the launcher, 1.5.0 for the client mod, wire protocol v22; the table on
 [What is NodeMP](/introduction/what-is-nodemp/#versions) is the reference. Where an older
 server behaved differently, a short `before 1.2.1` sentence says how.
 

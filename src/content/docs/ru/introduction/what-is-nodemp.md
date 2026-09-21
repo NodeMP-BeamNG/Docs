@@ -81,10 +81,10 @@ NodeMP — не замена BeamMP: он не запускает серверн
 
 | Компонент | Версия | Релиз |
 |---|---|---|
-| Игровой сервер (`Node-Server`) | 1.3.0 | тег `server-v1.3.0`: `Node-Server-1.3.0-linux-x64.tar.gz`, `Node-Server-1.3.0-windows-x64.zip`, образ `ghcr.io/nodemp-beamng/server:v1.3.0` |
-| Лаунчер | 1.1.9 | тег `launcher-v1.1.9`: `NodeMP-Setup-1.1.9.exe` |
-| Клиентский мод (`NodeMP.zip`) | 1.5.4 | тег `mod-v1.5.4`: `NodeMP-1.5.4.zip`, устанавливается лаунчером |
-| Сетевой протокол | v21 | версии лаунчера и сервера должны совпадать точно; при несовпадении подключение отклоняется с указанием причины |
+| Игровой сервер (`Node-Server`) | 1.4.1 | тег `server-v1.4.1`: `Node-Server-1.4.1-linux-x64.tar.gz`, `Node-Server-1.4.1-windows-x64.zip`, образ `ghcr.io/nodemp-beamng/server:v1.4.1` |
+| Лаунчер | 1.1.10 | тег `launcher-v1.1.10`: `NodeMP-Setup-1.1.10.exe` |
+| Клиентский мод (`NodeMP.zip`) | 1.5.7 | тег `mod-v1.5.7`: `NodeMP-1.5.7.zip`, устанавливается лаунчером |
+| Сетевой протокол | v22 | версии лаунчера и сервера должны совпадать точно; при несовпадении подключение отклоняется с указанием причины |
 
 Все релизы публикуются на
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).

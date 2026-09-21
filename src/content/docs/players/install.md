@@ -1,6 +1,6 @@
 ---
 title: Install the launcher
-description: Download and install the NodeMP launcher 1.1.9 on Windows, let it install the client mod, and sign in or continue as Test Drive.
+description: Download and install the NodeMP launcher 1.1.10 on Windows, let it install the client mod, and sign in or continue as Test Drive.
 ---
 
 The **launcher** is the Windows app that runs NodeMP for you: it signs you in, keeps the
@@ -14,7 +14,7 @@ client mod, content, Test Drive, strict - are defined in the
 ## Requirements
 
 - Windows 10 or 11, 64-bit.
-- BeamNG.drive **0.39.4.0**, the current release: client mod 1.5.4 is built for it, and a strict
+- BeamNG.drive **0.39.4.0**, the current release: client mod 1.5.7 is built for it, and a strict
   server's reference is made for one game version. Other versions are not what the mod is built
   or tested against.
 - The game started at least once: the first start creates the user folder the client mod is
@@ -25,13 +25,13 @@ client mod, content, Test Drive, strict - are defined in the
 
 ## Download and install
 
-1. Download `NodeMP-Setup-1.1.9.exe` from [nodemp.com/download](https://nodemp.com/download)
-   (the *Launcher (Windows)* card). The same file is attached to tag `launcher-v1.1.9` at
+1. Download `NodeMP-Setup-1.1.10.exe` from [nodemp.com/download](https://nodemp.com/download)
+   (the *Launcher (Windows)* card). The same file is attached to tag `launcher-v1.1.10` at
    [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases), with a
    `.sha256` file next to it.
 2. The installer is not code-signed yet, so Windows SmartScreen may warn about an unknown
    publisher (**More info → Run anyway**). Before you run it, check that the file is the
-   published one: `Get-FileHash .\NodeMP-Setup-1.1.9.exe` in PowerShell prints the SHA-256 of the
+   published one: `Get-FileHash .\NodeMP-Setup-1.1.10.exe` in PowerShell prints the SHA-256 of the
    file you have, and it must equal the published one - the value in the `.sha256` file next to
    the installer on the release page, which the Download page shows as well.
 3. Run it. The installer installs for the current user only, into `%LOCALAPPDATA%\NodeMP`, and
