@@ -118,7 +118,7 @@ and rewrites the file without them.
 ## Protocol versions
 
 Launcher and server speak a versioned wire protocol: **`v22` since server 1.4.0**, which belongs
-together with launcher 1.1.10 and client mod 1.5.10. 1.1.0 raised it from `v17` to `v18` for the
+together with launcher 1.1.10 and client mod 1.5.11. 1.1.0 raised it from `v17` to `v18` for the
 strict install check and 1.1.1, 1.2.0 and 1.2.1 kept `v18`; 1.3.0 moved it to `v21` (position
 batching, the synced node grabber and in-world triggers as core packets, vehicle fire and the
 player's entry policy as frames) and 1.4.0 to `v22` (a refusal carries its reason: the seat
