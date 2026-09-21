@@ -24,7 +24,7 @@ account gives you a fixed, verified name and works on every server. The website'
 page talks to hosts, but it is the same account. Test Drive is not remembered between launcher
 starts; a sign-in is. → [Install the launcher → Accounts](/players/install/#accounts)
 
-**Which BeamNG version do I need?** 0.39.4.0, the current release: client mod 1.5.9 is built
+**Which BeamNG version do I need?** 0.39.4.0, the current release: client mod 1.5.10 is built
 for it, and a strict server's reference describes one game version. A copy that is not from
 Steam works when **Settings → Game** points at its folder.
 → [Install the launcher → Requirements](/players/install/#requirements)
