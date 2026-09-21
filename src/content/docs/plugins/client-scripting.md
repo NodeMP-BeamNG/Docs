@@ -111,7 +111,11 @@ script; keep state in locals or in the table you return.
   with the module manifest - a server resource answers the mod's `modules:request` wire event
   with `player:send("modules:manifest", { modules = { nametags = { enabled = false } } })`
   (`nametags` and `damage` are the modules that register with it in client mod 1.5.4;
-  `NodeMP.modules.list()` on the client lists them). Assigning a game global from a client file
+  `NodeMP.modules.list()` on the client lists them). The same manifest can pin the nametags' look:
+  `nametags = { config = { style = "plain" | "plate", hideBehindObjects = true, maxDistance = 40,
+  fadeStart = 25, showDistance = false } }` -- text without a plate, hidden behind walls and cars, gone
+  past `maxDistance` metres and fading from `fadeStart`; a manifest without these keys leaves the look
+  as it was, and a mod that does not know them ignores them. Assigning a game global from a client file
   does work, because the environment is not sandboxed - but nothing in `NodeMP.internal` is
   promised to keep its name between versions, so treat that as a last resort.
 - **Extensions.** A `ge` file that returns a table with `on…` functions is registered as a game
