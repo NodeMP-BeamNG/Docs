@@ -87,7 +87,7 @@ This service is the shape the official server runs with:
 ```yaml
 services:
   gameserver:
-    image: ghcr.io/nodemp-beamng/server:v1.4.1
+    image: ghcr.io/nodemp-beamng/server:v1.5.0
     restart: unless-stopped
     ports:
       - "30814:30814/tcp"

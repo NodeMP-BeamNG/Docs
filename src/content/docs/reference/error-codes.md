@@ -69,7 +69,7 @@ exit code, visible only when you start the helper from a terminal yourself. The 
 | Code | Last log line | Meaning | Action |
 |---|---|---|---|
 | `0` | `game closed - launcher closing soon` | BeamNG.drive was closed. The helper ends the session, waits 5 s and exits. | Nothing; the launcher window returns with `Session ended`. |
-| `0` | none; `Node-Launcher 1.1.10 proto 22` or the `USAGE:` text on stdout | `--version` or `--help` was asked for. | Nothing. |
+| `0` | none; `Node-Launcher 1.1.11 proto 23` or the `USAGE:` text on stdout | `--version` or `--help` was asked for. | Nothing. |
 | `0` | `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed (0.912 s)` | `--integrity-check <manifest>` ran the strict check and the install is clean. | Nothing. |
 | `1` | `game files DIFFER: … (strict), …`, then `counts: missing N, size N, hash N, unlisted N, archive N, userfolder N, folders skipped N` | `--integrity-check <manifest>` found problems; every one is printed above the summary as a reason (`overlay`, `unlisted`, `hash`, `crc`, …) and a path. | Read [Strict servers](/players/troubleshooting/#strict-servers). |
 | `2` | `cannot read the manifest file …`, `not a reference manifest: …`, `could not check: manifest format outdated (format 1)`, `could not check: the game's user folder … does not exist` | `--integrity-check <manifest>` could not run the check: no such file, not a manifest, an outdated one, or the game's user folder is missing. | Check the path; ask the host for a current reference; fix the user folder. |
@@ -88,16 +88,16 @@ seconds so the line can be read (5 s; 3 s for the cache folder), then exits.
 A server refuses or ends a session with a `Kick` frame that carries one line of text. During a
 join the launcher shows it as `Disconnected · …`; once you are in the game it arrives as
 `Session ended · …` and the game shows the dialog *The session has ended* with the same line. The
-server logs the same text as `<name> kicked — <reason>`. Launcher 1.1.10 rewrites the refusals of
+server logs the same text as `<name> kicked — <reason>`. Launcher 1.1.11 rewrites the refusals of
 the strict game-file check, the reference manifest and the protocol version into its own words:
 the toast is then `Could not join · …` (`Session ended · …` in the game) with the line the row
 gives under *Shown as*, and the panel under the server's card explains the first problem and what
 to do. Plugins may send any text of their own; the rows below are the texts built into
-`Node-Server` 1.4.1 and the defaults of the plugin API.
+`Node-Server` 1.5.0 and the defaults of the plugin API.
 
 | Reason | When | What to do |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.10 and server 1.4.1 speak v22; a 1.3.0 server is still on v21. Shown as `Could not join · This server needs a newer launcher — update from the Download page` when the launcher's number is the lower one, and as `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v21)` when the server's is. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download) (the panel has an *Open the Download page* button); when the server is behind, tell its host. |
+| `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | Launcher and server speak different wire protocol versions; the two numbers are the live values. Launcher 1.1.11 and server 1.5.0 speak v23; a 1.3.0 server is still on v21. Shown as `Could not join · This server needs a newer launcher — update from the Download page` when the launcher's number is the lower one, and as `Could not join · This server runs an older NodeMP server (protocol v17; this launcher speaks v21)` when the server's is. | Install the current launcher from [nodemp.com/download](https://nodemp.com/download) (the panel has an *Open the Download page* button); when the server is behind, tell its host. |
 | `Server full!` | `[General] MaxPlayers` is reached. | Filter by *Free slots*, or wait. |
 | `The server is still starting, please try joining again later.` | The server was still loading modules and resources; the handshake was held for a while and the hold ran out. | Try again in a minute. |
 | `Server shutdown` | The server is stopping; also sent to everyone in the session when it shuts down. | Wait for the host to bring it back. |

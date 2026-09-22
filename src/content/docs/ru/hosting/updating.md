@@ -13,22 +13,22 @@ description: Проверка версии, замена бинарника ил
 ./Node-Server --version
 ```
 
-печатает `Node-Server v1.4.1`. Стартовый баннер показывает то же число в строке `version`, а
+печатает `Node-Server v1.5.0`. Стартовый баннер показывает то же число в строке `version`, а
 сервер из списка сообщает его директории в каждом маяке.
 
 ## Где лежат релизы
 
 Релизы сервера — теги `server-v*` на
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Каждый содержит
-два архива, названных по версии (`Node-Server-1.4.1-linux-x64.tar.gz`,
-`Node-Server-1.4.1-windows-x64.zip`) и их файлы `.sha256`, а его описание содержит заметки о
+два архива, названных по версии (`Node-Server-1.5.0-linux-x64.tar.gz`,
+`Node-Server-1.5.0-windows-x64.zip`) и их файлы `.sha256`, а его описание содержит заметки о
 релизе (раздел `RELEASE_NOTES.md` репозитория сервера для этого тега): что изменилось, менялось ли
 значение по умолчанию и двигался ли сетевой протокол. У релизов до 1.2.1 описание — одно
 предложение. Эти страницы описывают текущий релиз; [таблица версий](/ru/introduction/what-is-nodemp/#версии)
 говорит, какие сервер, лаунчер и клиентский мод идут вместе и на каком сетевом протоколе говорят,
 а возможность, пришедшая с более ранним релизом, помечена там, где описана
 (`добавлена в сервере 1.2.0`). Docker-образ той же сборки несёт тег с `v`
-(`ghcr.io/nodemp-beamng/server:v1.4.1`); `latest` следует за новейшей сборкой ветки main и может
+(`ghcr.io/nodemp-beamng/server:v1.5.0`); `latest` следует за новейшей сборкой ветки main и может
 опережать последний релиз — закрепляйте тег версии.
 
 ## Бинарник
@@ -38,11 +38,11 @@ Linux, с раскладкой из [быстрого старта](/ru/hosting/
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.4.1-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.5.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.4.1-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.5.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -56,10 +56,10 @@ Windows, с раскладкой из быстрого старта: остан�
 
 ```powershell
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-windows-x64.zip -OutFile Node-Server-1.4.1-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-windows-x64.zip.sha256 -OutFile Node-Server-1.4.1-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.4.1-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.4.1-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.4.1-windows-x64.zip -DestinationPath . -Force
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip -OutFile Node-Server-1.5.0-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip.sha256 -OutFile Node-Server-1.5.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.5.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.5.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.5.0-windows-x64.zip -DestinationPath . -Force
 .\Node-Server.exe --version
 ```
 
@@ -118,15 +118,17 @@ docker compose logs -f gameserver
 
 ## Версии протокола
 
-Лаунчер и сервер говорят на версионированном сетевом протоколе: **`v22` начиная с сервера 1.4.0**,
-который идёт вместе с лаунчером 1.1.10 и клиентским модом 1.5.16. 1.1.0 подняла его с `v17` до `v18`
+Лаунчер и сервер говорят на версионированном сетевом протоколе: **`v23` начиная с сервера 1.4.0**,
+который идёт вместе с лаунчером 1.1.11 и клиентским модом 1.6.0. 1.1.0 подняла его с `v17` до `v18`
 ради строгой проверки установки, 1.1.1, 1.2.0 и 1.2.1 оставили `v18`; 1.3.0 перевёл его на `v21`
 (пакетирование позиций, синхронизированный граббер узлов и триггеры карты как пакеты ядра, огонь
 машины и настройка «кто может сесть» как кадры), а 1.4.0 — на `v22` (отказ сообщает причину: текст вердикта
-на посадку и `Vehicle::EditDeny`), поэтому сервер версии 1.3.0 и лаунчер 1.1.10 отказывают
+на посадку и `Vehicle::EditDeny`); 1.5.0 — на `v23` (собственное ускорение отправителя едет
+в снимке позиции, 72 -> 78 байт, и прогнозу чужой машины больше не нужно дифференцировать
+два шумных пакета), поэтому сервер 1.4.x и лаунчер 1.1.11 отказывают
 друг другу в обе стороны — обновляйте сервер в то же окно, когда игроки получают лаунчер.
 Когда релиз меняет его, лаунчер старой версии отклоняется на рукопожатии с сообщением
-`Protocol version mismatch: launcher speaks v21, server speaks v22 - update the outdated side`
+`Protocol version mismatch: launcher speaks v22, server speaks v23 - update the outdated side`
 (два числа — реальные значения). Игроки исправляют это, установив текущий лаунчер с
 [nodemp.com/download](https://nodemp.com/download); клиентский мод лаунчер обновляет сам перед
 каждым подключением, а сам себя — нет. Как хост, обновите сервер вскоре после такого релиза, ведь

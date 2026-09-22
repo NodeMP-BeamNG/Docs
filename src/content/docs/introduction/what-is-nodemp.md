@@ -77,10 +77,10 @@ cannot be moved over as it is. See [Differences from BeamMP](/introduction/diffe
 
 | Component | Version | Release |
 |---|---|---|
-| Game server (`Node-Server`) | 1.4.1 | tag `server-v1.4.1`: `Node-Server-1.4.1-linux-x64.tar.gz`, `Node-Server-1.4.1-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.4.1` |
-| Launcher | 1.1.10 | tag `launcher-v1.1.10`: `NodeMP-Setup-1.1.10.exe` |
-| Client mod (`NodeMP.zip`) | 1.5.16 | tag `mod-v1.5.16`: `NodeMP-1.5.16.zip`, installed by the launcher |
-| Wire protocol | v22 | launcher and server must match exactly; a mismatch is refused with a reason |
+| Game server (`Node-Server`) | 1.5.0 | tag `server-v1.5.0`: `Node-Server-1.5.0-linux-x64.tar.gz`, `Node-Server-1.5.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.5.0` |
+| Launcher | 1.1.11 | tag `launcher-v1.1.11`: `NodeMP-Setup-1.1.11.exe` |
+| Client mod (`NodeMP.zip`) | 1.6.0 | tag `mod-v1.6.0`: `NodeMP-1.6.0.zip`, installed by the launcher |
+| Wire protocol | v23 | launcher and server must match exactly; a mismatch is refused with a reason |
 
 All releases are published at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases).

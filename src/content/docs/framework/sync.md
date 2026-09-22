@@ -1,6 +1,6 @@
 ---
 title: How synchronization works
-description: Transport hops, the packet categories of wire protocol v22, control modes, the position snapshot, seats, damage, identity, events and the relay.
+description: Transport hops, the packet categories of wire protocol v23, control modes, the position snapshot, seats, damage, identity, events and the relay.
 ---
 
 This page follows the data through a NodeMP session on wire protocol **v21**: what travels
@@ -79,7 +79,7 @@ an idle car sends almost nothing.
 
 ## Position: the only binary state channel
 
-`State::Pos` is a fixed **72-byte snapshot**: position, orientation quaternion, linear and angular
+`State::Pos` is a fixed **78-byte snapshot** (72 before v23): position, orientation quaternion, linear and angular
 velocity as `f32`, the five driving controls (steering, throttle, brake, clutch, parking brake)
 quantized to single bytes, the gear, the sender's timer, ping, a sequence counter and a flags byte
 (paused, controls valid, teleport, velocity step). It rides UDP with a per-datagram HMAC and an

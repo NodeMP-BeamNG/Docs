@@ -13,22 +13,22 @@ stays.
 ./Node-Server --version
 ```
 
-prints `Node-Server v1.4.1`. The startup banner shows the same number on its `version` line, and
+prints `Node-Server v1.5.0`. The startup banner shows the same number on its `version` line, and
 a listed server reports it to the directory in every beacon.
 
 ## Where releases are
 
 Server releases are tags `server-v*` at
 [github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases). Each carries
-the two archives named after the version (`Node-Server-1.4.1-linux-x64.tar.gz`,
-`Node-Server-1.4.1-windows-x64.zip`) and their `.sha256` files, and its body carries the release
+the two archives named after the version (`Node-Server-1.5.0-linux-x64.tar.gz`,
+`Node-Server-1.5.0-windows-x64.zip`) and their `.sha256` files, and its body carries the release
 notes (the server repository's `RELEASE_NOTES.md` section for that tag): what changed, whether a
 default changed and whether the wire protocol moved. Releases before 1.2.1 have a one-sentence
 body instead. These pages describe the current release; the
 [version table](/introduction/what-is-nodemp/#versions) says which server, launcher and client mod
 belong together and which wire protocol they speak, and a feature that arrived with an earlier
 release is marked where it is described (`added in server 1.2.0`). The Docker image of the same
-build carries the tag with the `v` (`ghcr.io/nodemp-beamng/server:v1.4.1`); `latest` follows the
+build carries the tag with the `v` (`ghcr.io/nodemp-beamng/server:v1.5.0`); `latest` follows the
 newest main-branch build, which may be ahead of the latest release — pin a version tag.
 
 ## Binary
@@ -38,11 +38,11 @@ Linux, with the layout from the [quick start](/hosting/quick-start/) and the sys
 
 ```bash
 cd /tmp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.4.1-linux-x64.tar.gz.sha256
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz
+curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz.sha256
+sha256sum -c Node-Server-1.5.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.4.1-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.5.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -57,10 +57,10 @@ Windows, with the layout from the quick start: stop the server, then in PowerShe
 
 ```powershell
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-windows-x64.zip -OutFile Node-Server-1.4.1-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.4.1/Node-Server-1.4.1-windows-x64.zip.sha256 -OutFile Node-Server-1.4.1-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.4.1-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.4.1-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.4.1-windows-x64.zip -DestinationPath . -Force
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip -OutFile Node-Server-1.5.0-windows-x64.zip
+Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip.sha256 -OutFile Node-Server-1.5.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.5.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.5.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.5.0-windows-x64.zip -DestinationPath . -Force
 .\Node-Server.exe --version
 ```
 
@@ -117,15 +117,17 @@ and rewrites the file without them.
 
 ## Protocol versions
 
-Launcher and server speak a versioned wire protocol: **`v22` since server 1.4.0**, which belongs
-together with launcher 1.1.10 and client mod 1.5.16. 1.1.0 raised it from `v17` to `v18` for the
+Launcher and server speak a versioned wire protocol: **`v23` since server 1.5.0**, which belongs
+together with launcher 1.1.11 and client mod 1.6.0. 1.1.0 raised it from `v17` to `v18` for the
 strict install check and 1.1.1, 1.2.0 and 1.2.1 kept `v18`; 1.3.0 moved it to `v21` (position
 batching, the synced node grabber and in-world triggers as core packets, vehicle fire and the
 player's entry policy as frames) and 1.4.0 to `v22` (a refusal carries its reason: the seat
-verdict's text and `Vehicle::EditDeny`), so a 1.3.0 server and a 1.1.10 launcher refuse each other in
+verdict's text and `Vehicle::EditDeny`); 1.5.0 moved it to `v23` (the sender's own acceleration
+rides the position snapshot, 72 -> 78 bytes, so a remote car's forecast no longer has to
+difference two noisy packets), so a 1.4.x server and a 1.1.11 launcher refuse each other in
 both directions -- update the server in the same window your players get the launcher.
 When a release changes it, a launcher on the old version is refused at the handshake with
-`Protocol version mismatch: launcher speaks v21, server speaks v22 - update the outdated side`
+`Protocol version mismatch: launcher speaks v22, server speaks v23 - update the outdated side`
 (the two numbers are the live values). Players fix that by installing the current launcher from
 [nodemp.com/download](https://nodemp.com/download); the client mod is kept current by the
 launcher automatically before every join, the launcher itself is not. As a host, update the

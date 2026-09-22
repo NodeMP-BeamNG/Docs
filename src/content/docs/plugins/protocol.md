@@ -1,10 +1,10 @@
 ---
 title: Wire protocol
-description: Wire protocol v22 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
+description: Wire protocol v23 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
 This is the protocol between the launcher's helper and a NodeMP server, **v21**
-(`Wire::ProtoVersion = 22`). Resources never see it: they send and receive events. Native module
+(`Wire::ProtoVersion = 23`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the
 frames and orders them; it does not give byte layouts. The normative definition, field by field,
@@ -296,7 +296,7 @@ The header is the only description. `sdk/tools/wiregen.py` parses it and regener
 that must match it byte for byte: the Python taxonomy the server's tests use, and the taxonomy block
 inside the client mod's Lua codec; `wiregen.py --check` fails when either has drifted. The helper
 carries an identical copy of the header, asserted by the same test suite. When you need a field
-layout - the 72-byte `Pos` snapshot, the `Spawn` body, the UDP trailer - read `Protocol.h`; this page
+layout - the 78-byte `Pos` snapshot, the `Spawn` body, the UDP trailer - read `Protocol.h`; this page
 will not repeat it.
 
 ## Next
