@@ -1,10 +1,10 @@
 ---
 title: Wire protocol
-description: Wire protocol v22 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
+description: Wire protocol v23 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
 This is the protocol between the launcher's helper and a NodeMP server, **v21**
-(`Wire::ProtoVersion = 22`). Resources never see it: they send and receive events. Native module
+(`Wire::ProtoVersion = 23`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the
 frames and orders them; it does not give byte layouts. The normative definition, field by field,
@@ -154,7 +154,7 @@ Vehicle packets are TCP (`T` and `R`); none of them is UDP-valid.
 
 | Subtype | Direction | Purpose |
 |---|---|---|
-| `Pos` | G↔S, U with T fallback | The kinematic snapshot: position, orientation, velocities, the driving controls, timers and flags. Fixed-size binary, as is `HeadPose`; the seven others are `gid + JSON`. |
+| `Pos` | G↔S, U with T fallback | The kinematic snapshot: position, orientation, velocities, the sender's acceleration (v23), the driving controls, timers and flags. Fixed-size binary (56 bytes since v23), as is `HeadPose`; the seven others are `gid + JSON`. |
 | `Inputs` | G↔S, T | Extra input axes beyond the controls folded into `Pos`, sent on change; driver-only, never cached. |
 | `Electrics` | G↔S, T | Lights, signals, gauges, as a delta. |
 | `Nodes` | G↔S, T | Node positions - deformation. |
@@ -296,7 +296,7 @@ The header is the only description. `sdk/tools/wiregen.py` parses it and regener
 that must match it byte for byte: the Python taxonomy the server's tests use, and the taxonomy block
 inside the client mod's Lua codec; `wiregen.py --check` fails when either has drifted. The helper
 carries an identical copy of the header, asserted by the same test suite. When you need a field
-layout - the 72-byte `Pos` snapshot, the `Spawn` body, the UDP trailer - read `Protocol.h`; this page
+layout - the 56-byte `Pos` snapshot, the `Spawn` body, the UDP trailer - read `Protocol.h`; this page
 will not repeat it.
 
 ## Next

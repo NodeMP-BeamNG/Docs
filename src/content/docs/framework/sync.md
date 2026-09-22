@@ -79,11 +79,20 @@ an idle car sends almost nothing.
 
 ## Position: the only binary state channel
 
-`State::Pos` is a fixed **72-byte snapshot**: position, orientation quaternion, linear and angular
-velocity as `f32`, the five driving controls (steering, throttle, brake, clutch, parking brake)
-quantized to single bytes, the gear, the sender's timer, ping, a sequence counter and a flags byte
-(paused, controls valid, teleport, velocity step). It rides UDP with a per-datagram HMAC and an
-anti-replay window on the sequence.
+`State::Pos` is a fixed **56-byte snapshot** (wire v23; 72 bytes of `f32` up to v22): position as
+`f32`, the orientation quaternion as three `i16` ("smallest three" -- the largest component is
+dropped and rebuilt from the other three), linear velocity (1/128 m/s), angular velocity
+(1/1024 rad/s) and the **sender's own acceleration** (1/256 m/s²) as `i16` fixed point, the five
+driving controls (steering, throttle, brake, clutch, parking brake) quantized to single bytes, the
+gear, the sender's timer, ping, a sequence counter and a flags byte (paused, controls valid,
+teleport, velocity step, the dropped quaternion index, acceleration valid). It rides UDP with a
+per-datagram HMAC and an anti-replay window on the sequence.
+
+The acceleration is a least-squares slope of the sender's velocity over the last 0.1 s of its
+2000 Hz physics steps. The receiver used to difference two consecutive 60 Hz velocities for it,
+which amplifies the sample noise by 2/h; integrating a measured value instead is what lets the
+fixed-point fields be this compact -- on the offline harness the layout is indistinguishable from
+`f32` in every scenario, while the acceleration itself improves pedal work and parking.
 
 The receiver applies it in the vehicle VM with the client mod's prediction math:
 extrapolation toward a dead-reckoned target, PD-style velocity corrections and a velocity-scaled

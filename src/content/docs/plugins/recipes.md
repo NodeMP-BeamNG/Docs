@@ -172,8 +172,9 @@ end)
 ```
 
 `vehicle:transform()` is the last position snapshot the vehicle's sync authority sent - `pos`,
-`vel` and `angVel` as `{x, y, z}`, `rot` as `{x, y, z, w}`, a few ticks old by construction,
-`nil` before the first snapshot. `player:position()` is the same point for a player, from the
+`vel`, `angVel` and (since wire v23) the sender's own `acc` as `{x, y, z}` with `hasAcc` saying
+whether it was measured, `rot` as `{x, y, z, w}`, a few ticks old by construction, `nil` before
+the first snapshot. `player:position()` is the same point for a player, from the
 vehicle it occupies or its walking avatar. The client half receives the target as JSON text,
 keeps the car's current rotation and calls the game's `setPositionRotation`; the new position then
 travels back to the server and everyone else through the normal position stream. On the server:
