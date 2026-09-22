@@ -110,7 +110,7 @@ script; keep state in locals or in the table you return.
   ship your feature as a `ge` extension of your own, and switch a built-in client module off
   with the module manifest - a server resource answers the mod's `modules:request` wire event
   with `player:send("modules:manifest", { modules = { nametags = { enabled = false } } })`
-  (`nametags` and `damage` are the modules that register with it in client mod 1.6.2;
+  (`nametags` and `damage` are the modules that register with it in client mod 1.6.3;
   `NodeMP.modules.list()` on the client lists them). The same manifest can pin the nametags' look:
   `nametags = { config = { style = "plain" | "plate", hideBehindObjects = true, maxDistance = 40,
   fadeStart = 25, showDistance = false } }` -- text without a plate, hidden behind walls and cars, gone
@@ -179,7 +179,7 @@ into the client mod's internal modules, which move between versions. For it, the
 publishes one stable global table, `NodeMP`, in both Lua states - the game engine and every
 vehicle. Every function resolves its target when called, so a mod that runs before the client mod
 has started, or while nobody is in a session, gets `nil`, `false` or an empty table instead of an
-error. `NodeMP.VERSION` is the mod version, `1.6.2`. Client files can call the same table; the
+error. `NodeMP.VERSION` is the mod version, `1.6.3`. Client files can call the same table; the
 [example above](#events-and-payloads) uses `NodeMP.ui.notify`.
 
 ### Namespaces
@@ -261,7 +261,7 @@ first.
 
 ## Strict sessions: `session:config.strict`
 
-Client mod 1.6.2 can run a player's session under **strict** rules - the client half of what
+Client mod 1.6.3 can run a player's session under **strict** rules - the client half of what
 [Strict verification](/hosting/strict-verification/) describes for the server: no free camera,
 no switching into cars the server did not seat the player in, no console, editor, pause, time
 scale or teleport actions, node grabber only on foot in first person, the spectate rows of the
