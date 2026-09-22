@@ -14,7 +14,7 @@ client mod, content, Test Drive, strict - are defined in the
 ## Requirements
 
 - Windows 10 or 11, 64-bit.
-- BeamNG.drive **0.39.4.0**, the current release: client mod 1.6.4 is built for it, and a strict
+- BeamNG.drive **0.39.4.0**, the current release: client mod 1.6.5 is built for it, and a strict
   server's reference is made for one game version. Other versions are not what the mod is built
   or tested against.
 - The game started at least once: the first start creates the user folder the client mod is
