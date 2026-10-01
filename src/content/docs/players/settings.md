@@ -95,7 +95,7 @@ NodeMP settings*). The header shows the mod and launcher versions.
 
 | Section | Settings |
 |---|---|
-| Gameplay & sync | *Correction strength* (0.25–2×) and *Teleport threshold* (0.25–4×) for other players' cars; *Ghost cars on reset (this machine)* (1.5 s without collisions on your screen; a server can override it). |
+| Gameplay & sync | *Correction strength* (0.25–2×) and *Teleport threshold* (0.25–4×) for other players' cars; *Hold other cars tightly* (off by default: other players' cars stay closer in corners and slides and recover better when their physics differs from the driver's, but push harder at the moment their driver touches throttle, brake or steering); *Steering look-ahead (experimental)* (off by default: other players' wheels turn slightly ahead of the received value, by half of the network delay); *Ghost cars on reset (this machine)* (1.5 s without collisions on your screen; a server can override it). |
 | Name tags | *Hide my own nametag*, *Show 'Empty' on empty cars*, *Show distance on tags*, *Hide tags behind objects*, *Fade distance* (0–2000 m, default 100). |
 | Markers | *Markers for non-spawned cars*, *Markers for deleted cars*. |
 | Vehicle | *My cars: access (0/1/2)* — 0 open, 1 passengers only, 2 only you; *Others may use my triggers*; *Name on license plates*; *Protect my configs*; *Auto-apply others' configs* (off: a player who edited their car is highlighted, click to apply); *3D player heads in cars*; *Freecam player markers*. |
