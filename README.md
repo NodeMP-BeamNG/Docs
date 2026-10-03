@@ -49,8 +49,7 @@ the generated pages.** The Russian copy of the reference is the English text by 
 
 ## Gates
 
-CI (`.github/workflows/ci.yml`, on pull requests and non-`main` pushes) and the Pages deploy
-(`.github/workflows/deploy.yml`, on `main`) both check out the sdk, the server, the launcher, the
+CI (`.github/workflows/ci.yml`, on pull requests and non-`main` pushes) checks out the sdk, the server, the launcher, the
 client mod (`NodeMP`) and the launcher interface (`UI-launcher`) with read-only deploy keys and
 run `npm test`, `npm run check` and `npm run build` with `IMPORT_API_STRICT=1`; a second job,
 `doctest`, runs the Lua examples of the plugin guides against the released server ([Doctests](#doctests)).
@@ -219,6 +218,7 @@ Slugs that are removed get an entry in `redirects` in `astro.config.mjs`.
 
 ## Deployment
 
-Pushing to `main` runs `.github/workflows/deploy.yml`, which builds the site and publishes it to
-GitHub Pages on the `docs.nodemp.com` domain. Design and implementation notes are in `specs/` and
+CI does not deploy: the GitHub Pages workflow was removed, and `ci.yml` only builds and checks.
+The site (`docs.nodemp.com`) is built locally with `npm run build` (output in `dist/`) and published
+by the owner by hand; releases and deploys are local-only (see `infra/README.md`). Design and implementation notes are in `specs/` and
 `plans/`.
