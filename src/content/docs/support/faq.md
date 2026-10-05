@@ -9,7 +9,7 @@ The words used here are defined in the [glossary](/reference/glossary/).
 ## Players
 
 **Is there a Play button or a hold button?** A hold button: **Hold to play**, held for about a
-second. There is no separate *Play*. → [Join a server](/players/join/#joining)
+second. There is no separate *Play*. → [Join a server](/players/join/#join)
 
 **What is the difference between the launcher and the helper?** The launcher is the window you
 see. The helper is the part of it that starts BeamNG.drive and holds the connection while you
@@ -22,12 +22,12 @@ account: you get a fresh `Guest…` name at every join and cannot choose it, and
 refuse guests (*Account required* in the panel; the *No account needed* filter hides them). An
 account gives you a fixed, verified name and works on every server. The website's registration
 page talks to hosts, but it is the same account. Test Drive is not remembered between launcher
-starts; a sign-in is. → [Install the launcher → Accounts](/players/sign-in/#accounts)
+starts; a sign-in is. → [Install the launcher → Accounts](/players/sign-in/)
 
 **Which BeamNG version do I need?** 0.39.4.0, the current release: client mod 1.6.15 is built
 for it, and a strict server's reference describes one game version. A copy that is not from
 Steam works when **Settings → Game** points at its folder.
-→ [Install the launcher → Requirements](/players/install/#requirements)
+→ [Install the launcher → Requirements](/players/install/#what-you-need)
 
 **Windows warns about an unknown publisher. Is the installer genuine?** The installer is not
 code-signed yet, so SmartScreen warns. Compare the file's SHA-256 (`Get-FileHash` in PowerShell)
@@ -52,7 +52,7 @@ offers the command with a **Copy** button. → [Troubleshooting → Strict serve
 sends you before the game starts - its own mod zips, downloaded by the launcher for that session.
 `Stock content` means the server sends nothing extra. Neither says anything about your own
 install. The loading screen's `Downloading Resource 2/5` is the same content, file by file.
-→ [Join a server → The server list](/players/join/#the-server-list)
+→ [Join a server → The server list](/players/join/#find-a-server)
 
 **Does the launcher update itself?** No. The client mod is updated for you before every join;
 the launcher is not. When a server needs a newer one, the join stops with

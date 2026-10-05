@@ -202,7 +202,7 @@ in the game.
 During the session the launcher checks again: on Windows when files change under the install's
 `content/`, `scripts/`, `lua/`, `ui/` or the user folder's `vehicles/`, `levels/`, `lua/`, `ui/`,
 `art/` (at most once a minute), and on a schedule every `StrictRecheckMin` minutes of its
-`Launcher.cfg` (default 10; see [Settings](/players/settings/#helper-configuration-launchercfg)).
+`Launcher.cfg` (default 10; see [Settings](/players/settings/#advanced-launchercfg)).
 A re-check that finds nothing is not reported; one that finds a change is, and the server ends
 the session with the text above. The refusal texts and the diagnostic a refused player can run
 are on [Troubleshooting](/support/strict-servers/#strict-servers) and in
