@@ -120,7 +120,7 @@ simply closed.
 |---|---|---|
 | `Kicked`, `Banned` or the host's own words | A host or a plugin removed you. | Ask the host. |
 | `Server shutdown` | The server stopped. | Wait for the host to bring it back. |
-| `Replaced` | Someone joined this server with your account — another PC, or a second launcher. | Do not play from two places at once; change your password if it was not you. |
-| `Resume rejected`, `Resume rejected: too many failed attempts, try again later` | The connection broke, and the server would not let the launcher pick the session back up. | Join again; after repeated failures, wait a minute. |
+| `Replaced` | Someone joined this server with your account — another PC, or a second launcher. (Next server release.) | Do not play from two places at once; change your password if it was not you. |
+| `Resume rejected`, `Resume rejected: too many failed attempts, try again later` | The connection broke, and the server would not let the launcher pick the session back up. (Next server release.) | Join again; after repeated failures, wait a minute. |
 | `Game files changed while you were playing and no longer match this server's reference (1 problem). …` | A strict server re-checked your files and found a change. | See [Strict servers](/support/strict-servers/#while-you-play). |
 | `Socket Closed Code 1`, `Invalid Socket`, `Malformed frame from server` | The connection to the server broke: the network, a VPN, the server itself. | Join again; check the connection. |

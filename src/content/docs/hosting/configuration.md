@@ -91,6 +91,14 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 | `[Network]` | `TlsCert` | string | `"node_cert.pem"` | `NODE_TLS_CERT` |
 | `[Network]` | `TlsKey` | string | `"node_key.pem"` | `NODE_TLS_KEY` |
 | `[Network]` | `StateRelayRadius` | int | `0` | `NODE_STATE_RELAY_RADIUS` |
+| `[Network]` | `LagGraceSec` | int | `8` | `NODE_NETWORK_LAG_GRACE_SEC` |
+| `[Network]` | `AuthTakeoverSec` | int | `10` | `NODE_NETWORK_AUTH_TAKEOVER_SEC` |
+| `[Network]` | `AuthReleaseSec` | int | `30` | `NODE_NETWORK_AUTH_RELEASE_SEC` |
+| `[Network]` | `DisconnectSec` | int | `30` | `NODE_NETWORK_DISCONNECT_SEC` |
+| `[Chat]` | `MaxLength` | int | `256` | `NODE_CHAT_MAX_LENGTH` |
+| `[Chat]` | `RatePerSec` | int | `2` | `NODE_CHAT_RATE_PER_SEC` |
+| `[Chat]` | `Burst` | int | `5` | `NODE_CHAT_BURST` |
+| `[Chat]` | `Log` | bool | `true` | `NODE_CHAT_LOG` |
 | `[Experimental]` | `NodeGrab` | bool | `false` | `NODE_EXPERIMENTAL_NODEGRAB` |
 | `[Directory]` | `Url` | string | `""` | `NODE_DIRECTORY_URL` |
 | `[Directory]` | `HostId` | string | `""` | `NODE_DIRECTORY_HOST_ID` |
@@ -107,6 +115,9 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
 | `[Http]` | `CaFile` | string | `""` | `NODE_HTTP_CA_FILE` |
 | `[Http]` | `Insecure` | bool | `false` | `NODE_HTTP_INSECURE` |
 | `[Http]` | `AllowPrivateNetworks` | bool | `false` | `NODE_HTTP_ALLOW_PRIVATE_NETWORKS` |
+
+The four `[Network]` timers and the `[Chat]` section come with the next server release: server 1.5.0 does
+not know them and drops them when it rewrites the file.
 
 ### `[General]`
 
@@ -172,6 +183,35 @@ Strings are quoted in TOML (`Name = "My server"`); integers and booleans are not
   relays every position update to every player. With a radius, players within half of it get
   updates at full rate, players in the outer half at half rate, and nobody beyond it.
   [How synchronization works](/framework/sync/) has the details.
+
+*Next server release; not in 1.5.0.* The four timers decide what happens when a player goes silent — a stalled VPN, a dropped Wi-Fi,
+a crashed game. They must keep `LagGraceSec < AuthTakeoverSec <= AuthReleaseSec <= DisconnectSec`
+(all in seconds, `LagGraceSec` at least 1); otherwise the server names the four values and refuses
+to start, leaving the file unchanged.
+
+- `LagGraceSec` — seconds without a single packet from a player before the player is reported as
+  lagging (`playerLagging` to plugins). Nothing is taken away yet: the seat, the cars and the
+  simulation stay with the player. A VPN that stalls for a few seconds should stay under this.
+- `AuthTakeoverSec` — seconds a driver's car may go without positions before **another** player who
+  claims the driver's seat gets it; the silent driver is put on foot.
+- `AuthReleaseSec` — seconds without positions before the server itself frees a silent driver's
+  seat and hands the car's simulation to another player.
+- `DisconnectSec` — seconds of silence before a player is disconnected. It is also how long a player
+  whose connection **broke** keeps the slot, the name and the cars: a launcher that reconnects
+  within this window resumes the session instead of joining again. Launchers give up after 600 s,
+  so a larger value only keeps a dead slot longer, and the server warns about it.
+
+### `[Chat]`
+
+*Next server release; not in 1.5.0, where chat is the `chat` example resource.* Chat is part of the
+server: the core relays every player's line, no resource needed.
+
+- `MaxLength` — the longest line in bytes (UTF-8, cut on a character boundary), from 16 to 2048.
+- `RatePerSec` — lines (and `/commands`) a player may send per second on average. A line over the
+  limit is not sent, and the player is told so; nobody is kicked for it.
+- `Burst` — how many lines a player may send at once before `RatePerSec` applies.
+- `Log` — write every chat line, and every line a resource or the limit refused, to the server log
+  under the `Chat` tag.
 
 ### `[Experimental]`
 
@@ -285,6 +325,16 @@ Encrypt = false
 TlsCert = "node_cert.pem"
 TlsKey = "node_key.pem"
 StateRelayRadius = 0
+LagGraceSec = 8
+AuthTakeoverSec = 10
+AuthReleaseSec = 30
+DisconnectSec = 30
+
+[Chat]
+MaxLength = 256
+RatePerSec = 2
+Burst = 5
+Log = true
 
 [Experimental]
 NodeGrab = false

@@ -68,7 +68,7 @@ channel (4444).
 
 ## Packets by category
 
-### Handshake (14)
+### Handshake (15)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -86,8 +86,9 @@ channel (4444).
 | `IntegrityManifestRequest` | L→S, T | `0x0C` (v18). `tail:str hash`: the launcher has no cached reference manifest with the id the `VerifyRequest` named and asks for its body. An id the server does not serve - or a string that is not an id - is answered with `Kick` (`Unknown integrity manifest requested`); more than four transfers in one session too (`Too many integrity manifest requests`). |
 | `IntegrityManifestChunk` | S→L, T | `0x0D` (v18). `u32 index, u32 total, tail:bytes part`: one slice of the zstd-compressed manifest, at most `IntegrityChunkBytes` (32 KiB), sent in order, `index` from `0` to `total - 1`. An empty manifest is one empty chunk. TCP only, never cached; the one handshake body that outgrows the 4 KB cap. |
 | `IntegrityManifestDone` | S→L, T | `0x0E` (v18). `tail:str hash`: every chunk was sent; the SHA-256 of the reassembled compressed bytes, which the launcher recomputes and compares before it caches the file under that id (`cache/integrity/<id>.manifest`) and runs the check. |
+| `Resume` | L→S, T | `0x0F`. `u32 client_id, u8[32] resume_token`: sent after `Hello` **instead of** `Identity` on a new connection, within `[Network] DisconnectSec` of the old one breaking; answered with a new `Welcome` (fresh token), `UdpToken` and `MapInfo`, or `Kick` (`Resume rejected`). Launchers send it since 1.1.13; servers answer it from the next release on - server 1.5.0 refuses the frame. |
 
-### Session (8)
+### Session (10)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -99,6 +100,8 @@ channel (4444).
 | `SessionEnd` | L→G, R | The helper tells the game the session ended - server closed it, connection lost or the player quit - with a detail line. |
 | `ClientId` | L→G, R | The helper tells the game its client id. |
 | `Policy` | G→S | The player's preferences for the cars it spawns: the lock mode the server puts on each (whitelist = the player) and whether others may press their triggers or grab their nodes; applied to existing spawns on change, enforced on `TriggerReq` and `Grab` (v21, replaces the `player:policy` event). |
+| `Reconnecting` | L→G, R | `0x09`. `u8 attempt, u16 next_ms`: the server link broke and the launcher is resuming the session; sent before every wait (added in launcher 1.1.13; the server never sends it). |
+| `Resumed` | L→G, R | `0x0A`, empty: the server took the session back (added in launcher 1.1.13; the server never sends it). |
 
 ### Content (8)
 

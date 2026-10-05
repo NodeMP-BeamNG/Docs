@@ -93,6 +93,14 @@ Docker-образ, и это правильное место для секрет
 | `[Network]` | `TlsCert` | string | `"node_cert.pem"` | `NODE_TLS_CERT` |
 | `[Network]` | `TlsKey` | string | `"node_key.pem"` | `NODE_TLS_KEY` |
 | `[Network]` | `StateRelayRadius` | int | `0` | `NODE_STATE_RELAY_RADIUS` |
+| `[Network]` | `LagGraceSec` | int | `8` | `NODE_NETWORK_LAG_GRACE_SEC` |
+| `[Network]` | `AuthTakeoverSec` | int | `10` | `NODE_NETWORK_AUTH_TAKEOVER_SEC` |
+| `[Network]` | `AuthReleaseSec` | int | `30` | `NODE_NETWORK_AUTH_RELEASE_SEC` |
+| `[Network]` | `DisconnectSec` | int | `30` | `NODE_NETWORK_DISCONNECT_SEC` |
+| `[Chat]` | `MaxLength` | int | `256` | `NODE_CHAT_MAX_LENGTH` |
+| `[Chat]` | `RatePerSec` | int | `2` | `NODE_CHAT_RATE_PER_SEC` |
+| `[Chat]` | `Burst` | int | `5` | `NODE_CHAT_BURST` |
+| `[Chat]` | `Log` | bool | `true` | `NODE_CHAT_LOG` |
 | `[Experimental]` | `NodeGrab` | bool | `false` | `NODE_EXPERIMENTAL_NODEGRAB` |
 | `[Directory]` | `Url` | string | `""` | `NODE_DIRECTORY_URL` |
 | `[Directory]` | `HostId` | string | `""` | `NODE_DIRECTORY_HOST_ID` |
@@ -109,6 +117,9 @@ Docker-образ, и это правильное место для секрет
 | `[Http]` | `CaFile` | string | `""` | `NODE_HTTP_CA_FILE` |
 | `[Http]` | `Insecure` | bool | `false` | `NODE_HTTP_INSECURE` |
 | `[Http]` | `AllowPrivateNetworks` | bool | `false` | `NODE_HTTP_ALLOW_PRIVATE_NETWORKS` |
+
+Четыре таймера `[Network]` и секция `[Chat]` появятся в следующем релизе сервера: сервер 1.5.0 их не
+знает и выбрасывает при перезаписи файла.
 
 ### `[General]`
 
@@ -178,6 +189,35 @@ Docker-образ, и это правильное место для секрет
   половине получают обновления с полной частотой, в дальней половине — с половинной, за пределами
   — не получают. Подробности — в разделе
   [Как работает синхронизация](/ru/framework/sync/).
+
+*Следующий релиз сервера; в 1.5.0 этого нет.* Четыре таймера решают, что происходит, когда игрок замолкает: завис VPN, отвалился Wi-Fi, упала
+игра. Они обязаны соблюдать `LagGraceSec < AuthTakeoverSec <= AuthReleaseSec <= DisconnectSec`
+(всё в секундах, `LagGraceSec` не меньше 1); иначе сервер называет все четыре значения и не
+запускается, не трогая файл.
+
+- `LagGraceSec` — сколько секунд без единого пакета от игрока проходит, прежде чем он считается
+  лагающим (`playerLagging` для плагинов). Пока ничего не отбирается: место, машины и симуляция
+  остаются за игроком. VPN, который подвисает на несколько секунд, должен укладываться в это время.
+- `AuthTakeoverSec` — сколько секунд машина может ехать без позиций водителя, прежде чем место
+  водителя отдадут **другому** игроку, который его занял; молчащий водитель оказывается пешком.
+- `AuthReleaseSec` — через сколько секунд без позиций сервер сам освобождает место молчащего
+  водителя и передаёт симуляцию машины другому игроку.
+- `DisconnectSec` — сколько секунд тишины до отключения игрока. Это же время игрок с **оборванным**
+  соединением сохраняет слот, имя и машины: лаунчер, который переподключился за это время,
+  продолжает сессию, а не заходит заново. Лаунчеры сдаются через 600 с, поэтому большее значение
+  только дольше держит мёртвый слот, и сервер об этом предупреждает.
+
+### `[Chat]`
+
+*Следующий релиз сервера; в 1.5.0 чат — это пример-ресурс `chat`.* Чат — часть сервера: ядро
+пересылает каждую строку игрока, ресурс для этого не нужен.
+
+- `MaxLength` — самая длинная строка в байтах (UTF-8, обрезается по границе символа), от 16 до 2048.
+- `RatePerSec` — сколько строк (и `/команд`) в секунду игрок может отправлять в среднем. Строка
+  сверх лимита не отправляется, и игроку об этом сообщают; за это никого не кикают.
+- `Burst` — сколько строк подряд игрок может отправить, прежде чем действует `RatePerSec`.
+- `Log` — писать в лог сервера с меткой `Chat` каждую строку чата и каждую строку, которую отклонил
+  ресурс или лимит.
 
 ### `[Experimental]`
 
@@ -291,6 +331,16 @@ Encrypt = false
 TlsCert = "node_cert.pem"
 TlsKey = "node_key.pem"
 StateRelayRadius = 0
+LagGraceSec = 8
+AuthTakeoverSec = 10
+AuthReleaseSec = 30
+DisconnectSec = 30
+
+[Chat]
+MaxLength = 256
+RatePerSec = 2
+Burst = 5
+Log = true
 
 [Experimental]
 NodeGrab = false
