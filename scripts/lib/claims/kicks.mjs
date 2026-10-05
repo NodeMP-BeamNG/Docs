@@ -1,5 +1,6 @@
-// Check 3: the texts a failed join shows, on players/troubleshooting.md and
-// reference/error-codes.md, against the code that prints them:
+// Check 3: the texts a failed join shows, on the support pages (support/*.md,
+// the refusals table on support/error-codes.md) and hosting/startup-messages.md,
+// against the code that prints them:
 //   kick.text         a quoted server refusal (the Reason column, `Disconnected · X`,
 //                     `Session ended · X`) is a literal of the server (or, for the
 //                     helper's own session errors, of the launcher);
@@ -101,7 +102,7 @@ const sampled = (s) => s.replace(/\b[NM]\b/g, '3').replace(/…/g, '...');
 // outside code blocks (tables and prose alike).
 export function collectServerTexts(page) {
   const out = [];
-  const refusals = /reference\/error-codes\.mdx?$/.test(page.slug) ? tableAfterHeading(page.text, REFUSAL_HEADING) : null;
+  const refusals = /support\/error-codes\.mdx?$/.test(page.slug) ? tableAfterHeading(page.text, REFUSAL_HEADING) : null;
   if (refusals) {
     for (const row of refusals.rows) for (const s of inlineCode(row.cells[0] || '')) out.push({ text: s.text, line: row.line, row: row.cells.join(' | '), inRefusalTable: true });
   }
@@ -168,7 +169,7 @@ export function checkUndocumented(page, serverTexts, kickTemplates) {
 
 export function checkExitCodes(page, corpora, exitCodes) {
   const out = [];
-  if (!/reference\/error-codes\.mdx?$/.test(page.slug)) return out;
+  if (!/support\/error-codes\.mdx?$/.test(page.slug)) return out;
   const table = tableAfterHeading(page.text, EXIT_HEADING);
   if (!table) return out;
   for (const row of table.rows) {
@@ -220,7 +221,7 @@ export function checkQuoted(page, corpora, already) {
 
 export function checkKicks(pages, sources) {
   const out = [];
-  const relevant = pages.filter((p) => /^(players\/troubleshooting|reference\/error-codes)\.mdx?$/.test(p.slug));
+  const relevant = pages.filter((p) => /^(support\/[a-z-]+|hosting\/startup-messages)\.mdx?$/.test(p.slug));
   const perPage = relevant.map((p) => ({ page: p, texts: collectServerTexts(p) }));
   if (sources.describe) sources.describe.prefetch(perPage.flatMap((x) => x.texts.map((t) => sampled(t.text))));
   for (const { page, texts } of perPage) {

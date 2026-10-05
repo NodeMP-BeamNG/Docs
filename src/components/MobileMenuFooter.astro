@@ -1,0 +1,85 @@
+---
+// The phone menu's foot: what the bar shows on a wide screen and hides on a
+// phone -- the site's sections, the forum and RU | EN.
+import config from 'virtual:starlight/user-config';
+import { inLocale } from '../lib/locale';
+
+const { locale } = Astro.locals.starlightRoute;
+const ru = locale === 'ru';
+const site = `https://nodemp.com/${ru ? 'ru' : 'en'}`;
+const links = [
+  { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
+  { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
+  { href: `${site}/news`, label: ru ? 'Новости' : 'News' },
+  { href: 'https://forum.nodemp.com', label: ru ? 'Форум' : 'Forum' },
+];
+const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
+  short: code === 'root' ? 'EN' : code.toUpperCase(),
+  name: l!.label,
+  lang: l!.lang,
+  href: inLocale(Astro.url.pathname, code === 'root' ? undefined : code),
+  current: (code === 'root' ? undefined : code) === locale,
+}));
+---
+
+<div class="nmp-mobile-foot">
+  <ul>
+    {links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+  </ul>
+  <nav aria-label={ru ? 'Язык' : 'Language'}>
+    {langs.map((l) => (
+      <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>{l.short}</a>
+    ))}
+  </nav>
+</div>
+
+<style>
+  .nmp-mobile-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0 1.5rem;
+    border-top: 1px solid var(--nmp-hairline);
+  }
+
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  ul a {
+    color: var(--nmp-fg-soft);
+    text-decoration: none;
+  }
+
+  nav {
+    display: inline-flex;
+    gap: 2px;
+    align-self: flex-start;
+    padding: 3px;
+    border-radius: 13px;
+    background: var(--nmp-hover);
+  }
+
+  nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 28px;
+    border-radius: 10px;
+    color: var(--nmp-fg-muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  nav a[aria-current] {
+    background: var(--nmp-hover-strong);
+    color: var(--nmp-fg);
+  }
+</style>

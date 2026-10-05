@@ -365,7 +365,7 @@ was redeemed for an account, that account too - then kicks; an IP string or an a
 bans for future connects and leaves a running session alone. `node.bans.remove` and
 `node.bans.has` take the same string or number; `node.bans.all()` lists every ban with `ip`,
 `account`, `reason`, `at` and `name`. Bans persist in `bans.json` next to `server.toml`, whose
-format and hand-editing rules are on [Running the server → Bans](/hosting/running/#bans). Two
+format and hand-editing rules are on [Running the server → Bans](/hosting/administration/#bans). Two
 `Player` objects compare equal when their ids match, which is what `who == player` relies on.
 
 `/kick Bob Spamming` and `/ban Bob Spamming` print, under the `Kick` tag:

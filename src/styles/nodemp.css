@@ -1,0 +1,437 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   The NodeMP theme for Starlight: the site's tokens (design/site/tokens.css in
+   the workspace, from website/src/app/globals.css) mapped onto Starlight's
+   variables, and the site's components -- the floating bar, the footer card,
+   the notices -- in Starlight's places. Dark only: the product has one theme.
+   ────────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Golos Text';
+  src: url('/fonts/GolosText-Variable.woff2') format('woff2');
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Unbounded';
+  src: url('/fonts/Unbounded-800.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root,
+:root[data-theme='dark'],
+:root[data-theme='light'] {
+  color-scheme: dark;
+
+  --nmp-surface: #141414;
+  --nmp-card: #1b1b1b;
+  --nmp-control: #222222;
+  --nmp-control-lift: #2a2a2a;
+  --nmp-hover: rgb(255 255 255 / 0.05);
+  --nmp-hover-strong: rgb(255 255 255 / 0.1);
+  --nmp-hairline: rgb(255 255 255 / 0.07);
+  --nmp-fg: #ffffff;
+  --nmp-fg-soft: rgb(255 255 255 / 0.75);
+  --nmp-fg-muted: rgb(255 255 255 / 0.5);
+  --nmp-fg-dim: rgb(255 255 255 / 0.35);
+  --nmp-accent: #b3ec3d;
+  --nmp-accent-hover: #c5f65d;
+  --nmp-accent-ink: #10140a;
+  --nmp-accent-wash: rgb(179 236 61 / 0.07);
+  --nmp-danger: #ff6366;
+  --nmp-danger-wash: rgb(255 99 102 / 0.2);
+  --nmp-warning: #f2b544;
+  --nmp-warning-wash: rgb(242 181 68 / 0.13);
+  --nmp-nav-surface: rgb(27 27 27 / 0.92);
+  --nmp-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --nmp-display: 'Unbounded', 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+
+  --sl-font: 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+  --sl-font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+
+  /* Solid greys equal to the site's white-on-#141414 steps. */
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #e6e6e6;
+  --sl-color-gray-2: #bfbfbf;
+  --sl-color-gray-3: #8a8a8a;
+  --sl-color-gray-4: #5c5c5c;
+  --sl-color-gray-5: #2a2a2a;
+  --sl-color-gray-6: #222222;
+  --sl-color-gray-7: #1b1b1b;
+  --sl-color-black: #141414;
+
+  --sl-color-accent-low: var(--nmp-accent-wash);
+  --sl-color-accent: var(--nmp-accent);
+  --sl-color-accent-high: var(--nmp-accent-hover);
+  /* Links are white with an underline, as on the site: lime is not for links. */
+  --sl-color-text-accent: var(--nmp-fg);
+  --sl-color-text-invert: var(--nmp-accent-ink);
+  --sl-color-text: var(--sl-color-gray-2);
+
+  --sl-color-bg: var(--nmp-surface);
+  --sl-color-bg-nav: transparent;
+  --sl-color-bg-sidebar: var(--nmp-surface);
+  --sl-color-bg-inline-code: var(--nmp-control);
+  --sl-color-bg-accent: var(--nmp-accent);
+  --sl-color-hairline-light: var(--nmp-hairline);
+  --sl-color-hairline: var(--nmp-hairline);
+  --sl-color-hairline-shade: rgb(255 255 255 / 0.04);
+  --sl-color-backdrop-overlay: rgb(20 20 20 / 0.72);
+
+  --sl-nav-height: 4.75rem;
+  --sl-nav-pad-x: 1rem;
+  --sl-nav-pad-y: 0.75rem;
+  --sl-menu-button-size: 2.25rem;
+  --sl-sidebar-width: 17.5rem;
+  --sl-content-width: 47rem;
+  --sl-line-height: 1.65;
+  --sl-text-h1: 2rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.15rem;
+  --sl-text-h4: 1rem;
+}
+
+body {
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+}
+
+::selection {
+  background: rgb(255 255 255 / 0.18);
+}
+
+:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 0.55);
+  outline-offset: 2px;
+}
+
+/* ── The bar: transparent frame, the floating card inside (components/Header.astro) ── */
+
+header.header {
+  border-bottom: 0;
+  background: transparent;
+  padding: 0.75rem 0.75rem 0;
+}
+
+:root[data-has-sidebar] header.header {
+  padding-inline-end: 0.75rem;
+}
+
+.sl-menu-button {
+  border-radius: 13px;
+  background: var(--nmp-hover);
+  color: var(--nmp-fg);
+  box-shadow: none;
+  transition: background-color 200ms var(--nmp-ease);
+}
+
+.sl-menu-button:hover {
+  background: var(--nmp-hover-strong);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+
+.sidebar-pane {
+  border-inline-end: 0 !important;
+}
+
+.sidebar-content {
+  padding-top: 1.25rem;
+}
+
+.sidebar-content ul.top-level > li > details > summary .group-label .large {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--nmp-fg-muted);
+}
+
+.sidebar-content ul ul details > summary .group-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nmp-fg-soft);
+}
+
+.sidebar-content ul.top-level > li + li {
+  margin-top: 0.75rem;
+}
+
+.sidebar-content a {
+  border-radius: 13px;
+  padding: 0.38rem 0.75rem;
+  font-size: 14px;
+  color: var(--nmp-fg-soft);
+  transition:
+    background-color 150ms var(--nmp-ease),
+    color 150ms var(--nmp-ease);
+}
+
+.sidebar-content a:hover {
+  background: var(--nmp-hover);
+  color: var(--nmp-fg);
+}
+
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+  background: var(--nmp-control);
+  color: var(--nmp-fg);
+  font-weight: 500;
+}
+
+.sidebar-content .caret {
+  color: var(--nmp-fg-dim);
+}
+
+/* ── On this page ────────────────────────────────────────────────────────── */
+
+#starlight__on-this-page {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--nmp-fg-muted);
+}
+
+starlight-toc a,
+mobile-starlight-toc a {
+  color: var(--nmp-fg-muted);
+  font-size: 13px;
+  transition: color 150ms var(--nmp-ease);
+}
+
+starlight-toc a:hover,
+mobile-starlight-toc a:hover {
+  color: var(--nmp-fg);
+}
+
+starlight-toc a[aria-current='true'],
+mobile-starlight-toc a[aria-current='true'] {
+  color: var(--nmp-fg);
+  font-weight: 500;
+}
+
+.right-sidebar {
+  border-inline-start: 0 !important;
+}
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
+
+.sl-markdown-content {
+  color: var(--nmp-fg-soft);
+}
+
+.sl-markdown-content :is(h2, h3, h4, h5) {
+  color: var(--nmp-fg);
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.6rem;
+  font-family: var(--nmp-display);
+  font-weight: 800;
+  font-size: var(--sl-text-h2);
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.sl-markdown-content h3 {
+  margin-top: 2rem;
+  font-weight: 600;
+  font-size: var(--sl-text-h3);
+}
+
+.sl-markdown-content h4 {
+  font-weight: 600;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--nmp-fg);
+  text-decoration: underline;
+  text-decoration-color: rgb(255 255 255 / 0.35);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 200ms var(--nmp-ease);
+}
+
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-color: var(--nmp-fg);
+}
+
+.sl-markdown-content strong {
+  color: var(--nmp-fg);
+  font-weight: 600;
+}
+
+.sl-markdown-content :not(pre) > code {
+  border-radius: 6px;
+  padding: 0.1em 0.4em;
+  background: var(--nmp-control);
+  color: var(--nmp-fg);
+  font-size: 0.9em;
+}
+
+.sl-markdown-content hr {
+  border-color: var(--nmp-hairline);
+}
+
+/* Tables: column names as the site's system labels, rows between hairlines. */
+.sl-markdown-content table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sl-markdown-content :is(th, td) {
+  border: 0;
+  border-bottom: 1px solid var(--nmp-hairline);
+  padding: 0.6rem 0.9rem 0.6rem 0;
+  background: transparent;
+  vertical-align: top;
+}
+
+.sl-markdown-content th {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--nmp-fg-muted);
+}
+
+.sl-markdown-content tr:nth-child(2n) {
+  background: transparent;
+}
+
+/* Asides as the site's notices: tone, not a coloured rail. */
+.starlight-aside {
+  border: 0;
+  border-radius: 13px;
+  padding: 0.85rem 1rem;
+  background: var(--nmp-card);
+  color: var(--nmp-fg-soft);
+}
+
+.starlight-aside__title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--nmp-fg-muted);
+}
+
+.starlight-aside__icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.starlight-aside--tip {
+  background: var(--nmp-card);
+}
+
+.starlight-aside--caution {
+  background: var(--nmp-warning-wash);
+}
+
+.starlight-aside--caution .starlight-aside__title {
+  color: var(--nmp-warning);
+}
+
+.starlight-aside--danger {
+  background: var(--nmp-danger-wash);
+}
+
+.starlight-aside--danger .starlight-aside__title {
+  color: var(--nmp-danger);
+}
+
+/* Tabs: a quiet segmented row. */
+starlight-tabs [role='tablist'] {
+  border-bottom: 1px solid var(--nmp-hairline);
+}
+
+starlight-tabs [role='tab'] {
+  border-radius: 10px 10px 0 0;
+  color: var(--nmp-fg-muted);
+}
+
+starlight-tabs [role='tab'][aria-selected='true'] {
+  color: var(--nmp-fg);
+  border-color: var(--nmp-fg);
+}
+
+/* Cards and link cards: the site's #1b1b1b panels. */
+.card,
+.sl-link-card {
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: var(--nmp-card) !important;
+  box-shadow: none !important;
+}
+
+.sl-link-card:hover {
+  background: var(--nmp-control) !important;
+}
+
+/* Previous / next at the foot of a page. */
+.pagination-links a {
+  border: 0;
+  border-radius: 18px;
+  background: var(--nmp-card);
+  box-shadow: none;
+  transition: background-color 200ms var(--nmp-ease);
+}
+
+.pagination-links a:hover {
+  background: var(--nmp-control);
+}
+
+.pagination-links a .link-title {
+  color: var(--nmp-fg);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Search dialog. */
+site-search dialog {
+  border: 0;
+  border-radius: 18px;
+  background: var(--nmp-card);
+  box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+}
+
+/* The splash page's hero actions as the site's buttons. */
+.hero .sl-link-button,
+.sl-link-button {
+  border-radius: 13px;
+  font-weight: 600;
+}
+
+.sl-link-button.primary {
+  background: var(--nmp-accent);
+  border-color: var(--nmp-accent);
+  color: var(--nmp-accent-ink);
+}
+
+.sl-link-button.primary:hover {
+  background: var(--nmp-accent-hover);
+  border-color: var(--nmp-accent-hover);
+}
+
+.sl-link-button.secondary,
+.sl-link-button.minimal {
+  border: 0;
+  background: var(--nmp-control);
+  color: var(--nmp-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

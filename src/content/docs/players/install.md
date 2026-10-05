@@ -43,12 +43,12 @@ client mod, content, Test Drive, strict - are defined in the
    the Download page always offers the current version. Launchers before 1.0.0 wrote a
    `directory.url` file beside the executable that pointed at a test address; 1.0.0 removes it
    on first start. A `directory.url` you wrote yourself is kept (a developer setting, see
-   [Troubleshooting](/players/troubleshooting/#advanced-another-directory)).
+   [Troubleshooting](/support/logs/#advanced-another-directory)).
 
 ## First start
 
 The launcher opens as a small **Sign in** window: **Sign in** with your nodemp.com account,
-**Create an account**, or **Continue as Test Drive** (see [Accounts](#accounts)). A sign-in is
+**Create an account**, or **Continue as Test Drive** (see [Accounts](/players/sign-in/#accounts)). A sign-in is
 remembered in the Windows credential store, so the window is skipped next time; Test Drive is
 not remembered - the window opens at every start and you press **Continue as Test Drive** again.
 
@@ -104,31 +104,6 @@ even if you disabled it in the game's mod manager.
 Do not copy `NodeMP.zip` into the folder yourself. (For developers only - players can skip this:
 a copy of the mod's source kept unpacked at `mods/unpacked/nodemp` is left alone; the launcher
 installs nothing and reports `Unpacked developer copy at mods/unpacked/nodemp is in use`.)
-
-## Accounts
-
-You can play with or without an account. A NodeMP account gives you a fixed name that servers
-verify with the directory, and it is the same account a host uses to create server keys - the
-website's registration page speaks to hosts, but the account is one and the same. Without one you
-play as **Test Drive** (below), which some servers refuse. Create an account:
-
-- in the launcher: **Create an account** in the sign-in window (username, e-mail, password).
-  The launcher registers you and signs you in. If the directory is configured to require
-  e-mail verification, the form shows `please verify your e-mail first` instead — open the
-  link in the e-mail, then press **Sign in**;
-- on the website: [nodemp.com/register](https://nodemp.com/register). **Username**: 3 to 24
-  characters, letters, digits, hyphens and underscores. **E-mail**. **Password**: 8 to 200
-  characters. The page then says *Check your e-mail*: open the verification link (it expires
-  after a short while), then sign in. Until then the directory answers
-  `please verify your e-mail first`.
-
-**Test Drive** is playing without an account: the launcher joins as a guest, and the directory
-mints a fresh guest name (`Guest` plus random characters) for every join - you cannot choose it,
-and it changes when you rejoin, so friends recognise you by your account name only. A server can
-refuse guests: its detail panel says *Account required* (the filter chip *No account needed* hides
-such servers), and the join ends with
-`Disconnected · This server requires a NodeMP account: sign in to the launcher and join again`.
-To sign in later, open **Settings → Account → Sign in**.
 
 ## Next step
 

@@ -1,0 +1,87 @@
+---
+// Starlight's page foot (previous / next) and then the site's footer card
+// (website/src/ui/Footer.tsx): the mark, who we are not, one row of links.
+import Pagination from 'virtual:starlight/components/Pagination';
+import Mark from './Mark.astro';
+
+const ru = Astro.locals.starlightRoute.locale === 'ru';
+const site = `https://nodemp.com/${ru ? 'ru' : 'en'}`;
+const links = [
+  { href: site, label: 'nodemp.com' },
+  { href: `${site}/download`, label: ru ? 'Скачать лаунчер' : 'Download the launcher' },
+  { href: 'https://forum.nodemp.com', label: ru ? 'Форум' : 'Forum' },
+  { href: 'https://github.com/NodeMP-BeamNG', label: 'GitHub' },
+];
+---
+
+<footer class="nmp-foot">
+  <Pagination />
+  <div class="nmp-foot-card">
+    <a href={site} class="nmp-foot-mark" aria-label="nodemp.com"><Mark size={24} /></a>
+    <p>
+      <span>{ru ? 'Не связан с BeamNG GmbH' : 'Not affiliated with BeamNG GmbH'}</span> ·{' '}
+      <span>© {new Date().getFullYear()} NodeMP</span>
+    </p>
+    <ul>
+      {links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+    </ul>
+  </div>
+</footer>
+
+<style>
+  .nmp-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .nmp-foot-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 18px;
+    background: var(--nmp-nav-surface);
+    box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+    font-size: 13px;
+  }
+
+  .nmp-foot-mark {
+    display: inline-flex;
+    color: var(--nmp-fg);
+  }
+
+  .nmp-foot-card p {
+    margin: 0;
+    color: var(--nmp-fg-muted);
+  }
+
+  .nmp-foot-card p span {
+    white-space: nowrap;
+  }
+
+  .nmp-foot-card ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin: 0 0 0 auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nmp-foot-card li {
+    margin: 0;
+  }
+
+  .nmp-foot-card a {
+    color: var(--nmp-fg-muted);
+    text-decoration: none;
+    transition: color 200ms var(--nmp-ease);
+  }
+
+  .nmp-foot-card a:hover {
+    color: var(--nmp-fg);
+  }
+</style>

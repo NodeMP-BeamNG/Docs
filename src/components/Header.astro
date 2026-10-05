@@ -1,0 +1,218 @@
+---
+// The site's floating bar (website/src/ui/Nav.tsx) in place of Starlight's header:
+// the mark, the site's sections, Documentation as the current one, the forum,
+// Starlight's own search, and RU | EN. On a phone the links step aside and
+// Starlight's menu button sits inside the bar's right end.
+import config from 'virtual:starlight/user-config';
+import Search from 'virtual:starlight/components/Search';
+import Mark from './Mark.astro';
+import { inLocale } from '../lib/locale';
+
+const { locale, siteTitleHref } = Astro.locals.starlightRoute;
+const ru = locale === 'ru';
+const site = `https://nodemp.com/${ru ? 'ru' : 'en'}`;
+const links = [
+  { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
+  { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
+  { href: `${site}/news`, label: ru ? 'Новости' : 'News' },
+];
+const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
+  short: code === 'root' ? 'EN' : code.toUpperCase(),
+  name: l!.label,
+  lang: l!.lang,
+  href: inLocale(Astro.url.pathname, code === 'root' ? undefined : code),
+  current: (code === 'root' ? undefined : code) === locale,
+}));
+const shouldRenderSearch = config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+---
+
+<div class="nmp-bar">
+  <a class="nmp-home" href={siteTitleHref} aria-label={ru ? 'Документация NodeMP — на главную' : 'NodeMP docs — home'}>
+    <Mark size={22} />
+  </a>
+  <span class="nmp-divider nmp-wide" aria-hidden="true"></span>
+  <nav class="nmp-links nmp-wide" aria-label={ru ? 'Сайт NodeMP' : 'NodeMP site'}>
+    {links.map((l) => <a class="nmp-link" href={l.href}>{l.label}</a>)}
+    <a class="nmp-link" href={siteTitleHref} aria-current="page">{ru ? 'Документация' : 'Docs'}</a>
+    <a class="nmp-link" href="https://forum.nodemp.com" target="_blank" rel="noreferrer">
+      {ru ? 'Форум' : 'Forum'}
+      <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
+    </a>
+  </nav>
+  <span class="nmp-divider nmp-wide" aria-hidden="true"></span>
+  <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
+  <nav class="nmp-lang nmp-wide" aria-label={ru ? 'Язык' : 'Language'}>
+    {langs.map((l) => (
+      <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+        {l.short}
+      </a>
+    ))}
+  </nav>
+</div>
+
+<style>
+  .nmp-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 52px;
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 8px 52px;
+    border-radius: 18px;
+    background: var(--nmp-nav-surface);
+    box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+  }
+
+  .nmp-home {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding-inline: 8px;
+    border-radius: 13px;
+    color: var(--nmp-fg);
+    transition: background-color 200ms var(--nmp-ease);
+  }
+
+  .nmp-home:hover {
+    background: var(--nmp-hover);
+  }
+
+  .nmp-divider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 20px;
+    margin-inline: 6px;
+    background: var(--nmp-hover-strong);
+  }
+
+  .nmp-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .nmp-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding-inline: 12px;
+    border-radius: 13px;
+    color: var(--nmp-fg-soft);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 200ms var(--nmp-ease),
+      color 200ms var(--nmp-ease);
+  }
+
+  .nmp-link:hover {
+    background: var(--nmp-hover);
+    color: var(--nmp-fg);
+  }
+
+  .nmp-link[aria-current] {
+    background: var(--nmp-accent-wash);
+    color: var(--nmp-accent);
+  }
+
+  .nmp-link svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.6;
+  }
+
+  .nmp-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .nmp-search :global(button[data-open-modal]) {
+    width: 100%;
+    max-width: 15rem;
+    height: 36px;
+    border: 0;
+    border-radius: 13px;
+    background: var(--nmp-hover);
+    color: var(--nmp-fg-muted);
+    font-size: 14px;
+    transition: background-color 200ms var(--nmp-ease);
+  }
+
+  .nmp-search :global(button[data-open-modal]:hover) {
+    background: var(--nmp-hover-strong);
+    color: var(--nmp-fg);
+  }
+
+  .nmp-search :global(kbd) {
+    border-color: transparent;
+    background: var(--nmp-hover);
+    color: var(--nmp-fg-muted);
+  }
+
+  .nmp-lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-inline-start: 4px;
+    padding: 3px;
+    border-radius: 13px;
+    background: var(--nmp-hover);
+  }
+
+  .nmp-lang a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 28px;
+    border-radius: 10px;
+    color: var(--nmp-fg-muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 200ms var(--nmp-ease),
+      color 200ms var(--nmp-ease);
+  }
+
+  .nmp-lang a:hover {
+    color: var(--nmp-fg);
+  }
+
+  .nmp-lang a[aria-current] {
+    background: var(--nmp-hover-strong);
+    color: var(--nmp-fg);
+  }
+
+  .nmp-wide {
+    display: none;
+  }
+
+  @media (min-width: 50rem) {
+    .nmp-bar {
+      width: fit-content;
+      min-width: min(100%, 56rem);
+      padding-inline-end: 8px;
+    }
+
+    .nmp-search {
+      flex: 1 1 15rem;
+    }
+
+    .nmp-wide {
+      display: flex;
+    }
+
+    .nmp-divider.nmp-wide {
+      display: block;
+    }
+  }
+</style>

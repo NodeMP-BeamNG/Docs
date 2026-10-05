@@ -15,14 +15,14 @@ second. There is no separate *Play*. → [Join a server](/players/join/#joining)
 see. The helper is the part of it that starts BeamNG.drive and holds the connection while you
 play - the same `nodemp-launcher.exe`, run a second time without a window. The toasts call the
 helper "the launcher": `The launcher stopped · …` means that background process stopped, and
-its log is `launcher.log`. → [Troubleshooting](/players/troubleshooting/)
+its log is `launcher.log`. → [Troubleshooting](/support/troubleshooting/)
 
 **Do I need an account to play? What is Test Drive?** No. Test Drive is playing without an
 account: you get a fresh `Guest…` name at every join and cannot choose it, and some servers
 refuse guests (*Account required* in the panel; the *No account needed* filter hides them). An
 account gives you a fixed, verified name and works on every server. The website's registration
 page talks to hosts, but it is the same account. Test Drive is not remembered between launcher
-starts; a sign-in is. → [Install the launcher → Accounts](/players/install/#accounts)
+starts; a sign-in is. → [Install the launcher → Accounts](/players/sign-in/#accounts)
 
 **Which BeamNG version do I need?** 0.39.4.0, the current release: client mod 1.6.15 is built
 for it, and a strict server's reference describes one game version. A copy that is not from
@@ -46,7 +46,7 @@ game folder. Remove those; a zip in `mods\` needs no moving.
 **How do I see the whole list of what a strict server rejected?** The refusal shows three
 examples; the diagnostic built into the launcher prints every one, with a reason per line
 (`overlay`, `unlisted`, `hash`, …) and what to do about each. The panel under the server's card
-offers the command with a **Copy** button. → [Troubleshooting → Strict servers](/players/troubleshooting/#strict-servers)
+offers the command with a **Copy** button. → [Troubleshooting → Strict servers](/support/strict-servers/#strict-servers)
 
 **What do "Stock content" and "Required mods" mean?** Both are about the **content** a server
 sends you before the game starts - its own mod zips, downloaded by the launcher for that session.
@@ -63,11 +63,11 @@ the launcher is not. When a server needs a newer one, the join stops with
 **Direct Connect "still works" while the server list is down - how?** You join by address
 without a join ticket, so nobody verifies your name. A server without a server key takes names as
 they come anyway; a listed server that allows Test Drive admits you as an unverified guest; one
-with *Account required* refuses the join. → [Troubleshooting → The server list is empty](/players/troubleshooting/#the-server-list-is-empty)
+with *Account required* refuses the join. → [Troubleshooting → The server list is empty](/support/launcher/#the-server-list-is-empty)
 
 **My message says "Report this if the issue persists". Is my message documented?** Every text
-the launcher, the helper or a server can show is quoted on [Troubleshooting](/players/troubleshooting/)
-and indexed on [Error codes](/reference/error-codes/); search either page for the exact words.
+the launcher, the helper or a server can show is quoted on [Troubleshooting](/support/troubleshooting/)
+and indexed on [Error codes](/support/error-codes/); search either page for the exact words.
 When you report a problem, attach `launcher.log`, the exact toast text and the server's name.
 
 ## Hosts
@@ -105,13 +105,13 @@ connection to your public address on port 30814 from outside your network succee
 **The server says `Cannot listen on port 30814 … the port is already in use` and quits. Why?** Almost
 always a previous instance of the server is still running; stop it, or give this one another port.
 The server exits with code 1 so a supervisor notices. (A 1.2.0 server printed `bind() failed` and
-even `server is ready` before it quit.) → [Running → Logs](/hosting/running/#logs)
+even `server is ready` before it quit.) → [Running → Logs](/hosting/administration/#logs)
 
 **How do I lift a ban?** Stop the server, then `Node-Server --bans list` shows the entries and
 `Node-Server --bans remove <ip | account id>` removes one (both entries, address and account, for
 a player banned in a session); start again. Editing `bans.json` by hand with the server stopped
 does the same. A running server can also lift one through a resource (`node.bans.remove`).
-→ [Running → Bans](/hosting/running/#bans)
+→ [Running → Bans](/hosting/administration/#bans)
 
 **Where are the example resources (`chat`, `demo-numbers`, …)?** In the release archive under
 `examples/`, next to `Node-Server`; `examples/README.txt` says what each one does. Copy one into

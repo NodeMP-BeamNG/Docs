@@ -93,7 +93,7 @@ The check is a check on an honest client, not a security boundary. Where it stop
 - **The reference is as good as the install it came from.** A manifest generated over a
   modified install ships that modification as clean. Generate on a clean install.
 - The user-folder allowlist is a list: a file the engine writes somewhere not on it would be
-  reported as an `overlay`. The diagnostic on [Troubleshooting](/players/troubleshooting/#strict-servers)
+  reported as an `overlay`. The diagnostic on [Troubleshooting](/support/strict-servers/#strict-servers)
   is how such a case is found.
 
 ## Generating the manifest
@@ -205,8 +205,8 @@ During the session the launcher checks again: on Windows when files change under
 `Launcher.cfg` (default 10; see [Settings](/players/settings/#helper-configuration-launchercfg)).
 A re-check that finds nothing is not reported; one that finds a change is, and the server ends
 the session with the text above. The refusal texts and the diagnostic a refused player can run
-are on [Troubleshooting](/players/troubleshooting/#strict-servers) and in
-[Error codes](/reference/error-codes/#server-refusals-and-kick-reasons).
+are on [Troubleshooting](/support/strict-servers/#strict-servers) and in
+[Error codes](/support/error-codes/#server-refusals-and-kick-reasons).
 
 ## For plugin authors
 
@@ -243,6 +243,6 @@ Native modules have the same three as `player_verify`, `player_set_strict` and t
 ## Next
 
 - [Configuration](/hosting/configuration/) — `VerifyGame`, `IntegrityDir`, the `--help` text.
-- [Troubleshooting](/players/troubleshooting/#strict-servers) — what a refused player does.
+- [Troubleshooting](/support/strict-servers/#strict-servers) — what a refused player does.
 - [Wire protocol](/plugins/protocol/) — the v18 frames that carry the manifest and the report.
 - [Client scripting](/plugins/client-scripting/#strict-sessions-sessionconfigstrict) — the client half of a strict session.

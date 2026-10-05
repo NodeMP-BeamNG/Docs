@@ -94,4 +94,4 @@ NodeMP — не замена BeamMP: он не запускает серверн
 - Игрокам: [Установить лаунчер](/ru/players/install/), затем [Подключиться к серверу](/ru/players/join/).
 - Хостам: [Быстрый старт по хостингу](/ru/hosting/quick-start/).
 - Разработчикам: [Обзор плагинов](/ru/plugins/overview/) и [Справочник API](/ru/plugins/api/).
-- Термины: [глоссарий](/ru/reference/glossary/); вопросы, которые читатели задают чаще всего: [FAQ](/ru/reference/faq/).
+- Термины: [глоссарий](/ru/reference/glossary/); вопросы, которые читатели задают чаще всего: [FAQ](/ru/support/faq/).

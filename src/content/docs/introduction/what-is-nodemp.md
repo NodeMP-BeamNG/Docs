@@ -90,4 +90,4 @@ All releases are published at
 - Players: [Install the launcher](/players/install/), then [Join a server](/players/join/).
 - Hosts: [Hosting quick start](/hosting/quick-start/).
 - Developers: [Plugin overview](/plugins/overview/) and the [API reference](/plugins/api/).
-- Terms: the [glossary](/reference/glossary/); the questions readers ask most: the [FAQ](/reference/faq/).
+- Terms: the [glossary](/reference/glossary/); the questions readers ask most: the [FAQ](/support/faq/).

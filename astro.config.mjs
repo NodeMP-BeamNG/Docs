@@ -20,12 +20,49 @@ export default defineConfig({
     // The section root has no page of its own; readers type it.
     '/plugins/': '/plugins/overview/',
     '/ru/plugins/': '/ru/plugins/overview/',
+    // The 2026-10 restructure: support pages moved out of players/ and reference/.
+    '/players/troubleshooting/': '/support/troubleshooting/',
+    '/ru/players/troubleshooting/': '/ru/support/troubleshooting/',
+    '/reference/error-codes/': '/support/error-codes/',
+    '/ru/reference/error-codes/': '/ru/support/error-codes/',
+    '/reference/faq/': '/support/faq/',
+    '/ru/reference/faq/': '/ru/support/faq/',
+    '/support/': '/support/troubleshooting/',
+    '/ru/support/': '/ru/support/troubleshooting/',
   },
   integrations: [
     starlight({
       title: 'NodeMP',
-      logo: { src: './src/assets/nmp-logo.png', alt: 'NodeMP' },
-      customCss: ['./src/styles/custom.css'],
+      favicon: '/favicon.svg',
+      // The NodeMP theme: the site's tokens and components in Starlight's places (src/styles/nodemp.css).
+      customCss: ['./src/styles/nodemp.css'],
+      components: {
+        Header: './src/components/Header.astro',
+        Footer: './src/components/Footer.astro',
+        PageTitle: './src/components/PageTitle.astro',
+        MobileMenuFooter: './src/components/MobileMenuFooter.astro',
+        ThemeProvider: './src/components/ThemeProvider.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
+      },
+      expressiveCode: {
+        themes: ['github-dark-default'],
+        styleOverrides: {
+          borderRadius: '13px',
+          borderColor: 'rgb(255 255 255 / 0.07)',
+          codeBackground: '#1b1b1b',
+          codeFontFamily: "ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace",
+          uiFontFamily: "'Golos Text', 'Segoe UI', system-ui, sans-serif",
+          frames: {
+            frameBoxShadowCssValue: 'none',
+            editorTabBarBackground: '#1b1b1b',
+            editorActiveTabBackground: '#222222',
+            editorActiveTabIndicatorTopColor: 'transparent',
+            editorActiveTabIndicatorBottomColor: 'rgb(255 255 255 / 0.35)',
+            terminalTitlebarBackground: '#1b1b1b',
+            terminalBackground: '#1b1b1b',
+          },
+        },
+      },
       plugins: [starlightLinksValidator({
         errorOnRelativeLinks: true,
         errorOnFallbackPages: false,
@@ -43,49 +80,73 @@ export default defineConfig({
       // Item labels come from the page titles (slug entries), so the RU sidebar
       // shows the RU titles without a second list of labels here.
       sidebar: [
-        { label: 'Introduction', translations: { ru: 'Введение' }, items: [
+        { label: 'Getting started', translations: { ru: 'Начало' }, items: [
           { slug: 'introduction/what-is-nodemp' },
           { slug: 'introduction/differences-from-beammp' },
+          { label: 'How it works', translations: { ru: 'Как это устроено' }, collapsed: true, items: [
+            { slug: 'framework/overview' },
+            { slug: 'framework/sync' },
+          ]},
         ]},
-        { label: 'Framework', translations: { ru: 'Фреймворк' }, items: [
-          { slug: 'framework/overview' },
-          { slug: 'framework/sync' },
-        ]},
-        { label: 'For players', translations: { ru: 'Игрокам' }, items: [
+        { label: 'Players', translations: { ru: 'Игрокам' }, items: [
           { slug: 'players/install' },
+          { slug: 'players/sign-in' },
           { slug: 'players/join' },
           { slug: 'players/settings' },
-          { slug: 'players/troubleshooting' },
+        ]},
+        { label: 'Support', translations: { ru: 'Поддержка' }, items: [
+          { slug: 'support/troubleshooting' },
+          { slug: 'support/joining' },
+          { slug: 'support/strict-servers' },
+          { slug: 'support/launcher' },
+          { slug: 'support/logs' },
+          { slug: 'support/error-codes' },
+          { slug: 'support/faq' },
         ]},
         { label: 'Server hosting', translations: { ru: 'Хостинг сервера' }, items: [
           { slug: 'hosting/quick-start' },
-          { slug: 'hosting/configuration' },
-          { slug: 'hosting/strict-verification' },
-          { slug: 'hosting/running' },
-          { slug: 'hosting/registering' },
-          { slug: 'hosting/updating' },
+          { label: 'Running', translations: { ru: 'Запуск и работа' }, items: [
+            { slug: 'hosting/running' },
+            { slug: 'hosting/administration' },
+            { slug: 'hosting/updating' },
+            { slug: 'hosting/startup-messages' },
+          ]},
+          { label: 'Configuration', translations: { ru: 'Настройка' }, items: [
+            { slug: 'hosting/configuration' },
+            { slug: 'hosting/command-line' },
+            { slug: 'hosting/registering' },
+            { slug: 'hosting/strict-verification' },
+          ]},
           { slug: 'hosting/resources' },
         ]},
         { label: 'Plugin development', translations: { ru: 'Разработка плагинов' }, items: [
-          { slug: 'plugins/overview' },
-          { slug: 'plugins/getting-started' },
-          { slug: 'plugins/resources' },
-          { slug: 'plugins/events' },
-          { slug: 'plugins/concurrency' },
-          { slug: 'plugins/database' },
-          { slug: 'plugins/client-scripting' },
-          { slug: 'plugins/native-modules' },
-          { slug: 'plugins/recipes' },
-          { slug: 'plugins/conventions' },
-          { slug: 'plugins/protocol' },
-          // Label override: the page title names BeamMP; the global navigation does not.
-          { slug: 'plugins/migrating', label: 'Migrating plugins', translations: { ru: 'Перенос плагинов' } },
+          { label: 'Start here', translations: { ru: 'С чего начать' }, items: [
+            { slug: 'plugins/overview' },
+            { slug: 'plugins/getting-started' },
+            { slug: 'plugins/conventions' },
+          ]},
+          { label: 'Resources and events', translations: { ru: 'Ресурсы и события' }, items: [
+            { slug: 'plugins/resources' },
+            { slug: 'plugins/events' },
+            { slug: 'plugins/concurrency' },
+          ]},
+          { label: 'Data and network', translations: { ru: 'Данные и сеть' }, items: [
+            { slug: 'plugins/database' },
+            { slug: 'plugins/protocol' },
+          ]},
+          { label: 'Client and native code', translations: { ru: 'Клиент и нативный код' }, items: [
+            { slug: 'plugins/client-scripting' },
+            { slug: 'plugins/native-modules' },
+          ]},
+          { label: 'Practice', translations: { ru: 'Практика' }, items: [
+            { slug: 'plugins/recipes' },
+            // Label override: the page title names BeamMP; the global navigation does not.
+            { slug: 'plugins/migrating', label: 'Migrating plugins', translations: { ru: 'Перенос плагинов' } },
+          ]},
           // Generated by scripts/import-api.mjs from sdk/api.toml; never edited by hand.
-          { label: 'API reference', translations: { ru: 'Справочник API' }, items: [{ autogenerate: { directory: 'plugins/api' } }] },
+          { label: 'API reference', translations: { ru: 'Справочник API' }, collapsed: true, items: [{ autogenerate: { directory: 'plugins/api' } }] },
         ]},
         { label: 'Reference', translations: { ru: 'Справочник' }, items: [
-          { slug: 'reference/faq' },
-          { slug: 'reference/error-codes' },
           { slug: 'reference/glossary' },
         ]},
       ],

@@ -271,7 +271,7 @@ is reported at load as
 `hello · client file 'main.lua' has a syntax error: main.lua:1: unexpected symbol near '=' (the file ships anyway; the game's Lua will very likely refuse it too)`,
 whatever the obfuscation setting (before 1.2.1 the only sign was Prometheus's warning, and none
 with obfuscation off). Where the log is and how to open the in-game diagnostics console is on
-[Troubleshooting](/players/troubleshooting/).
+[Troubleshooting](/support/troubleshooting/).
 
 ## Next
 

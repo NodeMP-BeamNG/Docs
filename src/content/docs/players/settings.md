@@ -80,13 +80,13 @@ the full check at the door again; a server can also ask for a full one at any ti
 (`player:verify`), and that request always hashes everything. A re-check that finds nothing is
 not reported to the server. One that finds a change is, and the server then ends the session
 with `Game files changed while you were playing and no longer match this server's reference (N problems). …`
-([Troubleshooting](/players/troubleshooting/#strict-servers)). Besides the schedule, the
+([Troubleshooting](/support/strict-servers/#strict-servers)). Besides the schedule, the
 helper re-checks when it sees files change under the install's `content\`, `scripts\`, `lua\`
 and `ui\` or the user folder's `vehicles\`, `levels\`, `lua\`, `ui\` and `art\`, at most once a
 minute; the schedule exists for what the watcher does not cover.
 
 A `Launcher.cfg` that is not valid JSON stops the helper with
-`Config failed to parse make sure it's valid JSON!` ([Error codes](/reference/error-codes/#helper-exit-codes)).
+`Config failed to parse make sure it's valid JSON!` ([Error codes](/support/error-codes/#helper-exit-codes)).
 
 ## In-game: Options → NodeMP
 

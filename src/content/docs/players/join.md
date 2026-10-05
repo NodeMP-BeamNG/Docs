@@ -47,7 +47,7 @@ joined anyway (`Not on the public list · connecting anyway…`): it appears in 
 address, and the launcher remembers that server's certificate from this first visit, so that a
 later join to the same address refuses a server whose certificate changed
 (`Could not connect · server certificate fingerprint mismatch` - the host confirms the change and
-you clear the entry, see [Troubleshooting](/players/troubleshooting/#joining-fails)). This is how
+you clear the entry, see [Troubleshooting](/support/joining/#joining-fails)). This is how
 you join a private server, or one that has no server key. On a server without a key nobody's
 name is verified: it takes the name the launcher sends, and another player there could use yours.
 
@@ -72,7 +72,7 @@ strict server does refuse is what a mod left *outside* `mods\`: an unpacked mod'
 `vehicles\`, `levels\` or `lua\` of the user folder, or a mod installed into the game folder
 itself. Move those out (or delete them) before you join a strict server; a packed zip in `mods\`
 needs no moving. The diagnostic that lists every such file, and the reasons it prints, are on
-[Troubleshooting → Strict servers](/players/troubleshooting/#strict-servers); what the host set
+[Troubleshooting → Strict servers](/support/strict-servers/#strict-servers); what the host set
 up is on [Strict verification](/hosting/strict-verification/).
 
 ## Joining
@@ -104,7 +104,7 @@ the server's content files) until you spawn.
 
 A join that fails brings the launcher back with the reason as a toast: `Could not join · …`,
 `Could not connect · …`, `Disconnected · …` or `The launcher stopped · …`. Every message is
-explained in [Troubleshooting](/players/troubleshooting/). One word in them needs a translation:
+explained in [Troubleshooting](/support/troubleshooting/). One word in them needs a translation:
 the **helper** is the part of the launcher that starts the game and holds the connection while
 you play - the same `nodemp-launcher.exe`, run a second time without a window. The toasts call it
 "the launcher": `The launcher stopped · …` and `Could not start the launcher · …` mean that this

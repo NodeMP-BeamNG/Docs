@@ -366,7 +366,7 @@ end, { role = "admin" })
 подключения и не трогают текущую сессию. `node.bans.remove` и `node.bans.has` принимают ту же
 строку или число; `node.bans.all()` перечисляет каждый бан с `ip`, `account`, `reason`, `at` и
 `name`. Баны хранятся в `bans.json` рядом с `server.toml`; его формат и правила ручной правки - на
-странице [Запуск сервера → Баны](/ru/hosting/running/#баны). Два объекта `Player` равны, когда
+странице [Запуск сервера → Баны](/ru/hosting/administration/#баны). Два объекта `Player` равны, когда
 совпадают их идентификаторы, - на это и опирается `who == player`.
 
 `/kick Bob Spamming` и `/ban Bob Spamming` печатают под тегом `Kick`:

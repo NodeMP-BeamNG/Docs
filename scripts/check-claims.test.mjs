@@ -205,7 +205,7 @@ test('kicks: messages of a cell borrow the prefix, server texts are collected fr
     '## Server refusals and kick reasons', '', '| Reason | When | What to do |', '|---|---|---|',
     '| `Server full!` | full | wait |', '| `Expected HELLO`, `Malformed HELLO` | bad launcher | reinstall |', '',
     'A line with `Disconnected · Server full!` and `Session ended · Server shutdown`.', '```', '`Disconnected · not collected`', '```',
-  ].join('\n'), 'reference/error-codes.md');
+  ].join('\n'), 'support/error-codes.md');
   const texts = collectServerTexts(p);
   assert.deepEqual(texts.map((t) => [t.text, t.inRefusalTable, t.prefix ?? null]), [
     ['Server full!', true, null], ['Expected HELLO', true, null], ['Malformed HELLO', true, null],
@@ -249,7 +249,7 @@ test('kicks: helper exit codes -- literal exists, code agrees with the exit that
     '| `2` | `cannot read the manifest file …` | manifest |',
     '| `0` | `game closed - launcher closing soon` | closed |',
     '| `1` | `Cannot get Local Appdata directory` | gone |',
-  ].join('\n'), 'reference/error-codes.md');
+  ].join('\n'), 'support/error-codes.md');
   const f = checkExitCodes(p, corpora, codes);
   assert.deepEqual(f.map((x) => [x.claim, x.expected, x.actual]), [
     ['Failed to find the game please launch it. Report this if the issue persists code 8', 'exit code 2', '1'],
@@ -273,7 +273,7 @@ test('kicks: quoted messages are looked up as fragments across every corpus', ()
     '| `Could not reach NodeMP at https://api.nodemp.com` | ok |',
     '| `invalid username or password` | directory |',
     '| `Disconnected · already judged` | skipped |',
-  ].join('\n'), 'players/troubleshooting.md');
+  ].join('\n'), 'support/joining.md');
   const f = checkQuoted(p, corpora, new Set(['8:Disconnected · already judged']));
   assert.deepEqual(f.map((x) => x.claim), ['invalid username or password']);
 });
@@ -303,11 +303,11 @@ test('kicks: a rewritten refusal must be documented with the launcher\'s words',
     '| `Protocol version mismatch: launcher speaks v17, server speaks v18 - update the outdated side` | shown as `Could not join · This server needs a newer launcher — update from the Download page` | update |',
     "| `Game files do not match this server's reference (3 problems). …` | strict | fix |",
     '| `Server full!` | full | wait |',
-  ].join('\n'), 'reference/error-codes.md');
+  ].join('\n'), 'support/error-codes.md');
   const texts = collectServerTexts(ec);
   const f = checkShown(ec, texts, d.describe);
   assert.deepEqual(f.map((x) => x.line), [6]);
-  const ts = page("| Message | Cause |\n|---|---|\n| `Disconnected · Game files do not match this server's reference (N problems). …` | strict |\n| `Disconnected · Server full!` | full |\n", 'players/troubleshooting.md');
+  const ts = page("| Message | Cause |\n|---|---|\n| `Disconnected · Game files do not match this server's reference (N problems). …` | strict |\n| `Disconnected · Server full!` | full |\n", 'support/joining.md');
   const g = checkShown(ts, collectServerTexts(ts), d.describe);
   assert.equal(g.length, 1);
   assert.match(g[0].expected, /^Could not join · Your game files do not match this server's reference \(3 problems\)/);
@@ -501,8 +501,8 @@ test('literal extractors: ts template interpolation, rust char literals and raw 
 
 test('runner: allowlist matching (optional page), page loading, skipped checks without a repository', () => {
   const findings = [
-    { check: 'kick.quoted', page: 'ru/reference/error-codes.md', locale: 'ru', line: 1, claim: 'already exists', expected: 'x', actual: 'y' },
-    { check: 'kick.quoted', page: 'players/troubleshooting.md', locale: 'en', line: 1, claim: 'already exists', expected: 'x', actual: 'y' },
+    { check: 'kick.quoted', page: 'ru/support/error-codes.md', locale: 'ru', line: 1, claim: 'already exists', expected: 'x', actual: 'y' },
+    { check: 'kick.quoted', page: 'support/joining.md', locale: 'en', line: 1, claim: 'already exists', expected: 'x', actual: 'y' },
     { check: 'versions.docs', page: 'hosting/updating.md', locale: 'en', line: 1, claim: 'this server speaks 2.0', expected: 'x', actual: 'y' },
     { check: 'versions.docs', page: 'hosting/running.md', locale: 'en', line: 1, claim: 'this server speaks 2.0', expected: 'x', actual: 'y' },
   ];

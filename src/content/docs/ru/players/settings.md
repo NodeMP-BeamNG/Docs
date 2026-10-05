@@ -83,13 +83,13 @@ description: Settings лаунчера, Launcher.cfg хелпера, стран�
 ничего не нашла, серверу не отправляется. Та, которая нашла изменение, отправляется, и сервер
 тогда завершает сессию с
 `Game files changed while you were playing and no longer match this server's reference (N problems). …`
-([Устранение неполадок](/ru/players/troubleshooting/#строгие-серверы)). Помимо расписания
+([Устранение неполадок](/ru/support/strict-servers/#строгие-серверы)). Помимо расписания
 хелпер перепроверяет, когда видит изменения файлов под `content\`, `scripts\`, `lua\` и `ui\`
 установки или под `vehicles\`, `levels\`, `lua\`, `ui\` и `art\` пользовательской папки, не чаще
 раза в минуту; расписание существует для того, чего наблюдатель не покрывает.
 
 `Launcher.cfg`, который не является корректным JSON, останавливает хелпер с
-`Config failed to parse make sure it's valid JSON!` ([Коды ошибок](/ru/reference/error-codes/#коды-выхода-хелпера)).
+`Config failed to parse make sure it's valid JSON!` ([Коды ошибок](/ru/support/error-codes/#коды-выхода-хелпера)).
 
 ## В игре: Options → NodeMP
 
