@@ -1,31 +1,86 @@
 ---
-title: NodeMP
-description: Мультиплеер для BeamNG.drive с аккаунтами, директорией серверов и платформой плагинов.
+title: Документация NodeMP
+description: Мультиплеер для BeamNG.drive — как играть, как поднять свой сервер и как писать плагины.
 template: splash
 hero:
-  tagline: Мультиплеер для BeamNG.drive с аккаунтами, директорией серверов и платформой плагинов.
+  title: Документация NodeMP
+  tagline: Мультиплеер для BeamNG.drive. Установите лаунчер и играйте, поднимите свой сервер или расширьте его плагинами.
   actions:
     - text: Установить лаунчер
       link: /ru/players/install/
       icon: right-arrow
-    - text: Запустить сервер
+    - text: Поднять сервер
       link: /ru/hosting/quick-start/
-      variant: minimal
+      variant: secondary
     - text: Написать плагин
-      link: /ru/plugins/overview/
-      variant: minimal
+      link: /ru/plugins/getting-started/
+      variant: secondary
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import SectionGrid from '../../../components/SectionGrid.astro';
 
-<CardGrid>
-  <Card title="Игрокам" icon="rocket">
-    Установите лаунчер, войдите в аккаунт или продолжите как Test Drive и подключитесь к серверу из списка. [Установить лаунчер](/ru/players/install/)
-  </Card>
-  <Card title="Хостам серверов" icon="setting">
-    Запустите `Node-Server`, создайте ключ сервера в аккаунте NodeMP и попадите в список директории. [Быстрый старт](/ru/hosting/quick-start/)
-  </Card>
-  <Card title="Разработчикам плагинов" icon="puzzle">
-    Пишите ресурсы на Lua или JavaScript с API `node` либо нативные модули на C и C++. [Обзор плагинов](/ru/plugins/overview/)
-  </Card>
-</CardGrid>
+<SectionGrid
+  sections={[
+    {
+      title: 'Игрокам',
+      lede: 'От скачивания до первого сервера.',
+      groups: [
+        { label: 'Начать', links: [
+          { href: '/ru/players/install/', text: 'Установка лаунчера' },
+          { href: '/ru/players/sign-in/', text: 'Аккаунт и вход' },
+          { href: '/ru/players/join/', text: 'Подключение к серверу' },
+        ]},
+        { label: 'Настроить', links: [
+          { href: '/ru/players/settings/', text: 'Настройки и управление' },
+        ]},
+      ],
+    },
+    {
+      title: 'Поддержка',
+      lede: 'Что-то пошло не так? Начните с того, что видите.',
+      groups: [
+        { label: 'Исправить', links: [
+          { href: '/ru/support/troubleshooting/', text: 'Устранение неполадок' },
+          { href: '/ru/support/joining/', text: 'Не получается зайти на сервер' },
+          { href: '/ru/support/strict-servers/', text: 'Серверы со строгой проверкой' },
+        ]},
+        { label: 'Найти', links: [
+          { href: '/ru/support/error-codes/', text: 'Коды ошибок' },
+          { href: '/ru/support/faq/', text: 'Частые вопросы' },
+        ]},
+      ],
+    },
+    {
+      title: 'Хостинг сервера',
+      lede: 'Запустить Node-Server, настроить и попасть в список лаунчера.',
+      groups: [
+        { label: 'Начать', links: [
+          { href: '/ru/hosting/quick-start/', text: 'Быстрый старт' },
+          { href: '/ru/hosting/running/', text: 'Запуск сервера' },
+          { href: '/ru/hosting/registering/', text: 'Попасть в список' },
+        ]},
+        { label: 'Настроить и обслуживать', links: [
+          { href: '/ru/hosting/configuration/', text: 'server.toml' },
+          { href: '/ru/hosting/administration/', text: 'Администрирование' },
+          { href: '/ru/hosting/updating/', text: 'Обновление' },
+        ]},
+      ],
+    },
+    {
+      title: 'Разработка плагинов',
+      lede: 'Ресурсы на Lua или JavaScript, нативные модули на C.',
+      groups: [
+        { label: 'Начать', links: [
+          { href: '/ru/plugins/getting-started/', text: 'Первый ресурс' },
+          { href: '/ru/plugins/events/', text: 'События' },
+          { href: '/ru/plugins/recipes/', text: 'Рецепты' },
+        ]},
+        { label: 'Справочник', links: [
+          { href: '/ru/plugins/api/lua/', text: 'Lua API' },
+          { href: '/ru/plugins/database/', text: 'База данных' },
+          { href: '/ru/plugins/protocol/', text: 'Сетевой протокол' },
+        ]},
+      ],
+    },
+  ]}
+/>

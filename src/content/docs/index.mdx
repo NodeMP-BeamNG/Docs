@@ -1,31 +1,86 @@
 ---
-title: NodeMP
-description: Multiplayer for BeamNG.drive with accounts, a server directory and a plugin platform.
+title: NodeMP documentation
+description: Multiplayer for BeamNG.drive — how to play, how to host a server and how to write plugins.
 template: splash
 hero:
-  tagline: Multiplayer for BeamNG.drive with accounts, a server directory and a plugin platform.
+  title: NodeMP documentation
+  tagline: Multiplayer for BeamNG.drive. Install the launcher and play, host your own server, or extend it with plugins.
   actions:
     - text: Install the launcher
       link: /players/install/
       icon: right-arrow
     - text: Host a server
       link: /hosting/quick-start/
-      variant: minimal
+      variant: secondary
     - text: Write a plugin
-      link: /plugins/overview/
-      variant: minimal
+      link: /plugins/getting-started/
+      variant: secondary
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import SectionGrid from '../../components/SectionGrid.astro';
 
-<CardGrid>
-  <Card title="Players" icon="rocket">
-    Install the launcher, sign in or continue as Test Drive, and join a server from the list. [Install the launcher](/players/install/)
-  </Card>
-  <Card title="Server hosts" icon="setting">
-    Run `Node-Server`, create a server key in your NodeMP account and get listed in the directory. [Quick start](/hosting/quick-start/)
-  </Card>
-  <Card title="Plugin developers" icon="puzzle">
-    Write resources in Lua or JavaScript with the `node` API, or native modules in C and C++. [Plugin overview](/plugins/overview/)
-  </Card>
-</CardGrid>
+<SectionGrid
+  sections={[
+    {
+      title: 'Players',
+      lede: 'From the download to your first server.',
+      groups: [
+        { label: 'Start', links: [
+          { href: '/players/install/', text: 'Install the launcher' },
+          { href: '/players/sign-in/', text: 'Account and sign-in' },
+          { href: '/players/join/', text: 'Join a server' },
+        ]},
+        { label: 'Set up', links: [
+          { href: '/players/settings/', text: 'Settings and controls' },
+        ]},
+      ],
+    },
+    {
+      title: 'Support',
+      lede: 'Something went wrong? Start from what you see.',
+      groups: [
+        { label: 'Fix it', links: [
+          { href: '/support/troubleshooting/', text: 'Troubleshooting' },
+          { href: '/support/joining/', text: "Can't join a server" },
+          { href: '/support/strict-servers/', text: 'Strict servers' },
+        ]},
+        { label: 'Look it up', links: [
+          { href: '/support/error-codes/', text: 'Error codes' },
+          { href: '/support/faq/', text: 'FAQ' },
+        ]},
+      ],
+    },
+    {
+      title: 'Server hosting',
+      lede: 'Run Node-Server, configure it and get into the launcher’s list.',
+      groups: [
+        { label: 'Start', links: [
+          { href: '/hosting/quick-start/', text: 'Quick start' },
+          { href: '/hosting/running/', text: 'Running the server' },
+          { href: '/hosting/registering/', text: 'Getting listed' },
+        ]},
+        { label: 'Configure and maintain', links: [
+          { href: '/hosting/configuration/', text: 'server.toml' },
+          { href: '/hosting/administration/', text: 'Administration' },
+          { href: '/hosting/updating/', text: 'Updating' },
+        ]},
+      ],
+    },
+    {
+      title: 'Plugin development',
+      lede: 'Resources in Lua or JavaScript, native modules in C.',
+      groups: [
+        { label: 'Start', links: [
+          { href: '/plugins/getting-started/', text: 'Your first resource' },
+          { href: '/plugins/events/', text: 'Events' },
+          { href: '/plugins/recipes/', text: 'Recipes' },
+        ]},
+        { label: 'Reference', links: [
+          { href: '/plugins/api/lua/', text: 'Lua API' },
+          { href: '/plugins/database/', text: 'Database' },
+          { href: '/plugins/protocol/', text: 'Wire protocol' },
+        ]},
+      ],
+    },
+  ]}
+/>

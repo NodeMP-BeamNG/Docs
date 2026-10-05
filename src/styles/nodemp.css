@@ -224,11 +224,11 @@ mobile-starlight-toc a[aria-current='true'] {
   color: var(--nmp-fg-soft);
 }
 
-.sl-markdown-content :is(h2, h3, h4, h5) {
+.sl-markdown-content :is(h2, h3, h4, h5):not(:where(.not-content *)) {
   color: var(--nmp-fg);
 }
 
-.sl-markdown-content h2 {
+.sl-markdown-content h2:not(:where(.not-content *)) {
   margin-top: 2.6rem;
   font-family: var(--nmp-display);
   font-weight: 800;
@@ -237,7 +237,7 @@ mobile-starlight-toc a[aria-current='true'] {
   letter-spacing: 0;
 }
 
-.sl-markdown-content h3 {
+.sl-markdown-content h3:not(:where(.not-content *)) {
   margin-top: 2rem;
   font-weight: 600;
   font-size: var(--sl-text-h3);
@@ -400,6 +400,40 @@ site-search dialog {
   border-radius: 18px;
   background: var(--nmp-card);
   box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+}
+
+/* The landing: the hero title in the display face, left-aligned like the site's pages. */
+.hero {
+  padding-block: 2.5rem 0.5rem;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.hero > * {
+  max-width: 48rem;
+}
+
+.hero h1 {
+  font-family: var(--nmp-display);
+  font-size: clamp(2.2rem, 4.5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--nmp-fg);
+}
+
+.hero .sl-link-button {
+  padding: 0.65rem 1.15rem;
+  font-size: 15px;
+}
+
+.hero .actions {
+  gap: 0.6rem;
+}
+
+.hero .tagline {
+  color: var(--nmp-fg-soft);
+  font-size: 1.15rem;
+  max-width: 40rem;
 }
 
 /* The splash page's hero actions as the site's buttons. */
