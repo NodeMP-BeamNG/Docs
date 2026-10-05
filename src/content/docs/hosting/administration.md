@@ -93,7 +93,7 @@ with its meaning. On your side:
 - `You are banned from this server` or a ban reason: the entry is in `bans.json`,
   [above](#bans).
 - Anything about game files or the reference manifest: the `VerifyGame` level you set; the
-  player's side is on [Troubleshooting → Strict servers](/support/strict-servers/#strict-servers),
+  player's side is on [Troubleshooting → Strict servers](/support/strict-servers/),
   yours on [Strict verification](/hosting/strict-verification/).
 
 ## What to back up

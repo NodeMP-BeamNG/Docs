@@ -1,37 +1,59 @@
 ---
-title: "Sign-in and the server list"
-description: "When signing in fails or the server list stays empty."
+title: "Launcher problems"
+description: "When signing in fails, the server list stays empty, the launcher will not update, or one of its buttons reports an error."
 ---
 
 ## Signing in
 
-| Message | Cause | Fix |
+The sign-in window's own messages and what to do about them are on
+[Account and sign-in](/players/sign-in/#if-something-goes-wrong). When it says
+*Browser sign-in did not work:*, the text after the colon tells why:
+
+| Text after the colon | Cause | What to do |
 |---|---|---|
-| `Enter a username and a password of at least four characters.` | The form's own check. | Fill both fields. |
-| `invalid username or password` | Wrong credentials. | Reset the password at [nodemp.com/forgot](https://nodemp.com/forgot). |
-| `please verify your e-mail first` | The verification link was not opened. | Open it; it expires after a short while, so register again under another name if it is gone. |
-| `username must be 3-24 chars [A-Za-z0-9_-]`, `password must be 8-200 chars`, `already exists` | The directory's rules for a new account. | Pick another name or a longer password. |
-| `two-factor code required or invalid` | The account has two-factor authentication on; the launcher has no field for the code. | Play as Test Drive, or use an account without two-factor. |
-| `could not reach the directory: …` | No connection to `https://api.nodemp.com`. | Check your connection and any VPN. |
+| `could not reach the directory: …` | No connection to `api.nodemp.com`. | Check the connection and any VPN. |
+| `the directory returned …` | An error on NodeMP's side. | Try again in a few minutes. |
+| `unexpected reply from the directory: …` | Something else answered — a proxy, a hotel or café login page. | Open any website in the browser first, then try again. |
+| `could not save the sign-in: …`, `could not reach the credential store: …` | Windows Credential Manager refused to store the sign-in. | Sign in again. Until it works, the sign-in is not remembered across restarts. |
+
+An **Account banned** window means the account itself is banned; it shows the reason, the end date
+and an **Appeal** button. See [Banned accounts](/players/sign-in/#banned-accounts).
 
 ## The server list is empty
 
-- **No connection** screen (`NodeMP cannot reach its server list. Check that you are online —
-  and if you use a VPN for a test server, that it is connected.`): the directory did not answer
-  at start-up. *Try again*, or *Continue without the list*; Direct Connect still works. While
-  it is down, Refresh reports `Could not reach NodeMP at https://api.nodemp.com`. A join made
-  while the directory is unreachable carries no join ticket, so nobody verifies who you are:
-  signed in, you arrive under your account name, unverified. A server without a server key
-  takes names as they come anyway. A listed server that allows Test Drive admits a ticket-less
-  join as an unverified guest; one that says *Account required* refuses it with
-  `Disconnected · This server requires a NodeMP account: sign in to the launcher and join again`.
-- `No servers online` / `Nobody is hosting right now.`: the directory answered with an empty
-  list. Nothing is wrong on your side.
-- `Nothing matches these filters`: open **Filters** and press *Reset*. Favorites and Recent only
-  show servers that are online now.
-- A server you know is running but cannot see is private, unlisted (no server key) or has
-  stopped sending beacons. Join it through Direct Connect.
+- **Connection lost** at start — *NodeMP could not load the server list. Check your internet
+  connection.* Press **Try again**, or **Continue without the list**: Direct Connect still works.
+- **Could not reach NodeMP** after **Refresh**, with the address the launcher tried — the same
+  thing, later.
+- *No servers online* / *Nobody is hosting right now.* — NodeMP answered, and the list really is
+  empty. Nothing is wrong on your side.
+- *Nothing matches these filters* — press **Reset all filters**. Favorites and Recent show only
+  servers that are online now.
+- A server you know is running is missing — it is private, has no server key, or stopped reporting
+  to NodeMP. Join it with **Direct Connect**.
 
-`could not remove …: …` in the Content view means BeamNG.drive is holding the archive; close
-the game and remove again.
+A join made while NodeMP is unreachable goes without a join ticket, so nobody can confirm who you
+are: a server with *Account required* refuses it, one that allows Test Drive lets you in as an
+unverified guest, and a server without a key takes your name as it comes.
 
+## Launcher updates
+
+| Message | Cause | What to do |
+|---|---|---|
+| **Could not check for launcher updates** | No connection to NodeMP. | Nothing urgent: joining works, and the check runs again before the next join. |
+| **The update installs after you leave the server** | An update never installs during a session. | Leave the server; the update installs then. |
+| **No newer launcher has been published yet** | A server asked for a launcher newer than any release. | Wait for the release. |
+| **Could not install the launcher update** · `the downloaded installer does not match the published checksum` | The download was corrupted. | Try again. |
+| **Could not install the launcher update** · `the download stopped (…); it resumes on the next try`, `the download stopped at N of M bytes; it resumes on the next try` | The download broke off. | Try again; it continues where it stopped. |
+| `This copy does not update itself: …` with `this copy was not installed by the NodeMP installer; update it from the download page` (under **Settings → Launcher → Updates**) | A copy that was not installed with the installer. | Install the launcher from [nodemp.com/download](https://nodemp.com/download). |
+| **The update to v… did not install** / *Still on v…. It will be offered again.* | The installer did not finish. | Nothing — the update is offered again. If it keeps failing, install from the download page. |
+| **Could not go back to the previous version** | The previous version could not be reinstalled; the line under the title says why. | Install the current launcher from the download page. |
+
+## Other messages
+
+| Message | What to do |
+|---|---|
+| **Could not remove the file** · `could not remove …: …` | The game holds the archive: close BeamNG.drive and remove it again. |
+| **Could not open the browser** | Copy the link instead (**Copy link** in the sign-in window). |
+| **Could not open the folder** | Open it in Explorer by hand — the paths are on [Logs and reports](/support/logs/). |
+| **Could not change Start with Windows** | Windows refused the change. Use *Startup apps* in Windows settings instead. |

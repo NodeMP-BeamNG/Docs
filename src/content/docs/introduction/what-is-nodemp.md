@@ -78,8 +78,8 @@ cannot be moved over as it is. See [Differences from BeamMP](/introduction/diffe
 | Component | Version | Release |
 |---|---|---|
 | Game server (`Node-Server`) | 1.5.0 | tag `server-v1.5.0`: `Node-Server-1.5.0-linux-x64.tar.gz`, `Node-Server-1.5.0-windows-x64.zip`, image `ghcr.io/nodemp-beamng/server:v1.5.0` |
-| Launcher | 1.1.16 | tag `launcher-v1.1.16`: `NodeMP-Setup-1.1.16.exe` |
-| Client mod (`NodeMP.zip`) | 1.6.15 | tag `mod-v1.6.15`: `NodeMP-1.6.15.zip`, installed by the launcher |
+| Launcher | 1.1.18 | tag `launcher-v1.1.18`: `NodeMP-Setup-1.1.18.exe`; `Node-Launcher-1.1.18.exe` is the helper alone, for people who start it by hand |
+| Client mod (`NodeMP.zip`) | 1.6.19 | tag `mod-v1.6.19`: `NodeMP-1.6.19.zip`, installed by the launcher |
 | Wire protocol | v23 | launcher and server must match exactly; a mismatch is refused with a reason |
 
 All releases are published at

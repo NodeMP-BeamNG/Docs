@@ -4,7 +4,7 @@ description: VerifyGame = strict - what the reference manifest covers and what i
 ---
 
 `[General] VerifyGame = "strict"` is the fourth level of the game install check, added with
-server 1.1.9, launcher 1.1.16 and wire protocol v23. The three lower levels compare a player's
+server 1.1.9, launcher 1.1.18 and wire protocol v23. The three lower levels compare a player's
 BeamNG install with the game's own file list, `integrity.json` — a list the player can edit
 along with the files it names. `strict` compares against a **reference manifest**: a
 description of a clean install that you generate once per game version and put on the server.
@@ -93,7 +93,7 @@ The check is a check on an honest client, not a security boundary. Where it stop
 - **The reference is as good as the install it came from.** A manifest generated over a
   modified install ships that modification as clean. Generate on a clean install.
 - The user-folder allowlist is a list: a file the engine writes somewhere not on it would be
-  reported as an `overlay`. The diagnostic on [Troubleshooting](/support/strict-servers/#strict-servers)
+  reported as an `overlay`. The diagnostic on [Troubleshooting](/support/strict-servers/)
   is how such a case is found.
 
 ## Generating the manifest
@@ -190,7 +190,7 @@ integrity manifest` — once per manifest, about 1.2 MB in 32 KiB chunks, then c
 `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. The server refuses a
 mismatch with
 `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
-launcher 1.1.16 shows that in its own words, as
+launcher 1.1.18 shows that in its own words, as
 `Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
 with the first problem explained in the panel under the server's card. If the check fails later
 in the session the server ends it with
@@ -205,7 +205,7 @@ During the session the launcher checks again: on Windows when files change under
 `Launcher.cfg` (default 10; see [Settings](/players/settings/#advanced-launchercfg)).
 A re-check that finds nothing is not reported; one that finds a change is, and the server ends
 the session with the text above. The refusal texts and the diagnostic a refused player can run
-are on [Troubleshooting](/support/strict-servers/#strict-servers) and in
+are on [Troubleshooting](/support/strict-servers/) and in
 [Error codes](/support/error-codes/#server-refusals-and-kick-reasons).
 
 ## For plugin authors
@@ -243,6 +243,6 @@ Native modules have the same three as `player_verify`, `player_set_strict` and t
 ## Next
 
 - [Configuration](/hosting/configuration/) — `VerifyGame`, `IntegrityDir`, the `--help` text.
-- [Troubleshooting](/support/strict-servers/#strict-servers) — what a refused player does.
+- [Troubleshooting](/support/strict-servers/) — what a refused player does.
 - [Wire protocol](/plugins/protocol/) — the v18 frames that carry the manifest and the report.
 - [Client scripting](/plugins/client-scripting/#strict-sessions-sessionconfigstrict) — the client half of a strict session.
