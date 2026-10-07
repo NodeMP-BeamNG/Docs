@@ -12,16 +12,19 @@
   font-display: swap;
 }
 
+/* The display face blocks: a heading waits the moment the preloaded file takes rather than
+   showing in Arial first. A regular Arial (synthesis is off) at Unbounded's size fits a
+   title on one line that Unbounded wraps, so a swap rewrapped it and moved the page. */
 @font-face {
   font-family: 'Unbounded';
   src: url('/fonts/Unbounded-800.woff2') format('woff2');
   font-weight: 800;
-  font-display: swap;
+  font-display: block;
 }
 
 /* Arial reshaped to each face's metrics -- the values next/font computes for the site --
-   so the text set before the webfonts arrive takes the room they will take: the swap
-   changes the letters, not the lines (a heading used to rewrap and push the page down). */
+   so text set before the webfonts arrive takes the room they will take: the swap changes
+   the letters, not the lines. */
 @font-face {
   font-family: 'Golos Text Fallback';
   src: local('Arial');

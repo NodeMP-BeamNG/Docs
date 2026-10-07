@@ -3,18 +3,23 @@
 // corner Starlight keeps for its site title -- the mark (to nodemp.com), search and
 // RU | EN, over the sidebar. The site's sections live in the phone menu's foot.
 //
-// Arriving from nodemp.com (or on the first docs page of a tab) this bar starts where
-// the site's bar is, centred and wide, and folds to the left: it slides and narrows to
-// its corner with the mark in place, search and RU | EN coming in on the way. Only on a
-// wide screen, and never under reduced motion.
+// The fold: this bar starts where the site's bar is, centred and wide, and slides and
+// narrows into its corner with the mark in place, search and RU | EN coming in on the
+// way. Only on a wide screen, and never under reduced motion.
 //
-// The hand-off, both ways. The page being left dims to half and fades its bar down to
-// the plate and the mark -- the one thing both bars have in the same spot -- and leaves
-// the plate's box in window.name ("nmp-bar:{x,y,w,h}"; the name survives a navigation
-// between nodemp.com and its own subdomains). The page arriving starts its bar at that
-// box, moves it home and brings its own items in, while the page comes up from half.
-// Here: a click on the mark hands this bar to the site (website/src/ui/Nav.tsx), whose
-// bar then opens out of this corner -- this fold, run backwards.
+// The site keeps its bar's box in window.name ("nmp-from-site:{x,y,w,h}"; the name
+// survives a navigation between nodemp.com and its own subdomains), and this bar folds
+// out of it however the docs are reached from the site. From the site's Docs link the
+// fold has already begun there, on the click: the site's bar moves at once and trades
+// its links for a pixel copy of this bar's items (website/src/ui/DocsLink.tsx,
+// globals.css), and the box carries the moment it began (t); this bar picks the fold up
+// from that moment, so it runs on unbroken however long the page took. A first docs page
+// in a tab folds from the start; so does a page brought back from the cache.
+//
+// Leaving by any way -- the mark, Back, a link to the site -- this bar's resting box goes
+// with the page ("nmp-from-docs:", in window.name from the start of the visit), and the
+// site's bar opens out of this corner on arrival, its first frame a copy of this bar:
+// the fold, run backwards (website/src/ui/Nav.tsx).
 import config from 'virtual:starlight/user-config';
 import Search from 'virtual:starlight/components/Search';
 import Mark from './Mark.astro';
@@ -39,38 +44,69 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
       const root = document.documentElement;
       const wide = matchMedia('(min-width: 50rem)').matches;
       const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      let bar = null;
-      if (window.name.startsWith('nmp-bar:')) {
-        try { bar = JSON.parse(window.name.slice(8)); } catch {}
-        window.name = '';
+      const FOLD = 620;
+      let hand = null;
+      if (window.name.startsWith('nmp-from-site:')) {
+        try { hand = JSON.parse(window.name.slice(14)); } catch {}
       }
+      // Ours from another docs page, or the site's: either way read, so dropped.
+      if (window.name.startsWith('nmp-from-site:') || window.name.startsWith('nmp-from-docs:')) window.name = '';
+      if (hand) sessionStorage.setItem('nmp-site-bar', JSON.stringify(hand));
       const from = document.referrer ? new URL(document.referrer).host : '';
       const fromSite = from !== location.host && /(^|\.)nodemp\.com$/.test(from);
       const first = !sessionStorage.getItem('nmp-docs-entered');
       sessionStorage.setItem('nmp-docs-entered', '1');
-      if (calm) return;
-      if (bar) root.classList.add('nmp-arriving');
-      if (wide && (bar || fromSite || first)) {
-        // This bar rests 0.75rem (12 px) in from the top and the left (header.header's padding).
-        if (bar) {
-          root.style.setProperty('--nmp-from-l', bar.x - 12 + 'px');
-          root.style.setProperty('--nmp-from-w', bar.w + 'px');
-          root.style.setProperty('--nmp-from-dy', bar.y - 12 + 'px');
+      const stored = () => {
+        try { return JSON.parse(sessionStorage.getItem('nmp-site-bar') || 'null'); } catch { return null; }
+      };
+      // This bar rests 0.75rem (12 px) in from the top and the left (header.header's padding).
+      const fold = (b, at) => {
+        if (b) {
+          root.style.setProperty('--nmp-from-l', b.x - 12 + 'px');
+          root.style.setProperty('--nmp-from-w', b.w + 'px');
+          root.style.setProperty('--nmp-from-dy', b.y - 12 + 'px');
         }
+        if (at === null) root.style.removeProperty('--nmp-fold-delay');
+        else root.style.setProperty('--nmp-fold-delay', -at + 'ms');
         root.classList.add('nmp-entering');
+      };
+      const settle = () => setTimeout(() => root.classList.remove('nmp-entering', 'nmp-arriving'), FOLD + 480);
+      if (!calm) {
+        if (hand) {
+          // With t the fold began on the site's click and is picked up from there; without
+          // (Forward, a typed address) it starts here.
+          root.classList.add('nmp-arriving');
+          const at = hand.t ? Math.max(0, Date.now() - hand.t) : null;
+          if (wide && (at === null || at < FOLD)) fold(hand, at);
+        } else if (wide && first && !fromSite) {
+          fold(stored(), null);
+        }
+        settle();
       }
-      setTimeout(() => root.classList.remove('nmp-entering', 'nmp-arriving'), 1100);
-      // The way back: hand the plate to the site, which opens its bar out of this corner.
+      // This bar's resting box, left in window.name for the whole visit, so any way out
+      // carries it. Written now, not on pagehide: for a page that can go into the
+      // back-forward cache Chrome swaps the browsing context before pagehide, and a name
+      // written then never reaches the next page.
+      const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
+      window.name = 'nmp-from-docs:' + JSON.stringify({ x: 12, y: 12, w: Math.round(wide ? 17.75 * rem : innerWidth - 24), h: 52 });
+      addEventListener('pageshow', (e) => {
+        root.classList.remove('nmp-leaving');
+        if (!e.persisted) return;
+        window.name = 'nmp-from-docs:' + JSON.stringify({ x: 12, y: 12, w: Math.round(wide ? 17.75 * rem : innerWidth - 24), h: 52 });
+        if (calm || !wide) return;
+        root.classList.remove('nmp-entering', 'nmp-arriving');
+        void root.offsetWidth;
+        root.classList.add('nmp-arriving');
+        fold(stored(), null);
+        settle();
+      });
+      // The mark: the page dims while the site loads; the bar stays whole until the site's takes over.
       addEventListener('click', (e) => {
         const a = e.target instanceof Element ? e.target.closest('.nmp-home') : null;
         if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        const r = document.querySelector('.nmp-bar')?.getBoundingClientRect();
-        if (r) window.name = 'nmp-bar:' + JSON.stringify({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) });
         root.classList.remove('nmp-entering', 'nmp-arriving');
         root.classList.add('nmp-leaving');
-        const undo = () => root.classList.remove('nmp-leaving');
-        addEventListener('pageshow', undo, { once: true });
-        setTimeout(undo, 5000);
+        setTimeout(() => root.classList.remove('nmp-leaving'), 5000);
       });
     } catch {}
   })();
@@ -206,26 +242,21 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     }
 
     /* The fold, the one long move on the site: 620 ms, eased at both ends so the slide
-       reads as a slide, a beat late so the first frame is the site's bar. The bar starts
-       in the box the site handed over (--nmp-from-l / -w / -dy, set by the script above),
-       or centred at the site's width when there was none, and narrows home with the mark
-       where it was; search and RU | EN come in on the first half of the way. */
+       reads as a slide. The bar starts in the box the site handed over (--nmp-from-l /
+       -w / -dy, set by the script above), or centred at the site's width when there was
+       none, and narrows home with the mark where it was; search and RU | EN come in on
+       the way. Picked up from the site, --nmp-fold-delay is negative: the time the fold
+       has already run there. Otherwise it starts a beat late, so the first frame is the
+       site's bar. Timing and steps match the site's bar-fold and ghost-in (globals.css),
+       so the two meet on the same frame. */
     :global(.nmp-entering) .nmp-bar {
-      animation: nmp-fold 620ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+      animation: nmp-fold 620ms cubic-bezier(0.65, 0, 0.35, 1) var(--nmp-fold-delay, 80ms) both;
     }
 
     :global(.nmp-entering) .nmp-search,
     :global(.nmp-entering) .nmp-lang {
-      animation: nmp-items-in 620ms var(--nmp-ease) 80ms both;
+      animation: nmp-items-in 620ms linear var(--nmp-fold-delay, 80ms) both;
     }
-  }
-
-  /* Leaving for the site: the bar fades to the plate and the mark, which the site's bar
-     opens out of. */
-  :global(.nmp-leaving) .nmp-search,
-  :global(.nmp-leaving) .nmp-lang {
-    opacity: 0;
-    transition: opacity 160ms var(--nmp-ease);
   }
 
   @keyframes nmp-fold {
@@ -240,7 +271,8 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     10% {
       opacity: 0;
     }
-    55% {
+    45%,
+    100% {
       opacity: 1;
     }
   }
