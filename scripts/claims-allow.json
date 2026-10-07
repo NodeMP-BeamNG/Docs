@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "check": "config.env",
+    "claim": "NODE_DB_URL",
+    "reason": "Read by the database module (server deps, see the server's RELEASE_NOTES and Dockerfile.linuxbuild), not by the server core the check scans."
+  },
+  {
+    "check": "config.env",
+    "claim": "NODE_DATABASE_URL",
+    "reason": "Read by the database module as the fallback for NODE_DB_URL, not by the server core the check scans."
+  },
+  {
+    "check": "config.env",
+    "claim": "NODE_DB_DEFAULT_URL",
+    "reason": "An instance of the documented NODE_DB_<NAME>_URL pattern (the connection called default); the database module builds the name, so it is in no source as a literal."
+  },
+  {
+    "check": "versions.code",
+    "page": "src/content/versions.json",
+    "claim": "server",
+    "reason": "Server main is 1.5.3, which is not released yet; the latest release is 1.5.0, and the pages tell readers what to download. Remove this entry when server 1.5.3 is published."
+  }
+]

@@ -68,16 +68,16 @@ channel (4444).
 
 ## Packets by category
 
-### Handshake (15)
+### Handshake (16)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
 | `Hello` | L→S, T | Opens the session: the protocol version and the requested player name. A version mismatch is refused with a reason that names both versions. |
-| `Welcome` | S→L, T | The assigned client id - sent once the player has passed the identity, ban and connect checks. |
+| `Welcome` | S→L, T | The assigned client id - sent once the player has passed the identity, ban and connect checks. From the next server release it ends with `u32 caps`: bit 0, `UdpHelloAck` is sent (and a `Pong` means the UDP channel is bound); bit 1, counter Hellos are accepted; absent means 0. |
 | `Ping` | L→S, T and U | Liveness and round-trip probe, with an optional stamp the `Pong` echoes. A `Ping` as the first frame of a fresh connection is answered and closed. |
 | `Pong` | S→L, T and U | The answer to `Ping`, echoing its body. |
 | `UdpToken` | S→L, T | The 64-byte per-session key for the UDP channel, delivered once over TLS. |
-| `UdpHello` | L→S, U | Binds the client's UDP endpoint: a nonce and an HMAC-SHA256 over the token, the client id and the nonce. Accepted only from the address the TLS session came from, and only once. |
+| `UdpHello` | L→S, U | Binds the client's UDP endpoint: a nonce and an HMAC-SHA256 over the token, the client id and the nonce. Server 1.5.0 accepts it only from the address the TLS session came from; from the next release a valid MAC binds from any address (a VPN split tunnel, a dual-stack host), and a counter Hello (MAC label `NODE-UDP-HELLO-CTR`) must count past every one accepted, so a replayed Hello moves nothing. |
 | `MapInfo` | S→L, T | The level the game must load. |
 | `JoinWorld` | L→S, T | The map is loaded; stream the world. |
 | `VerifyRequest` | S→L, T | How strictly the game install must be checked (`[General] VerifyGame`): `u8 level` - off, size, scripts, full or, since v18, strict (`VerifyLevel::Strict = 4`) - followed by `tail:str manifest_hash`, the id of the reference manifest to judge against (SHA-256 of the manifest file, 64 lowercase hex digits), empty for every level but strict. Sent on every join, and since v18 also mid-session when a resource calls `player:verify`. |
@@ -87,6 +87,7 @@ channel (4444).
 | `IntegrityManifestChunk` | S→L, T | `0x0D` (v18). `u32 index, u32 total, tail:bytes part`: one slice of the zstd-compressed manifest, at most `IntegrityChunkBytes` (32 KiB), sent in order, `index` from `0` to `total - 1`. An empty manifest is one empty chunk. TCP only, never cached; the one handshake body that outgrows the 4 KB cap. |
 | `IntegrityManifestDone` | S→L, T | `0x0E` (v18). `tail:str hash`: every chunk was sent; the SHA-256 of the reassembled compressed bytes, which the launcher recomputes and compares before it caches the file under that id (`cache/integrity/<id>.manifest`) and runs the check. |
 | `Resume` | L→S, T | `0x0F`. `u32 client_id, u8[32] resume_token`: sent after `Hello` **instead of** `Identity` on a new connection, within `[Network] DisconnectSec` of the old one breaking; answered with a new `Welcome` (fresh token), `UdpToken` and `MapInfo`, or `Kick` (`Resume rejected`). Launchers send it since 1.1.13; servers answer it from the next release on - server 1.5.0 refuses the frame. |
+| `UdpHelloAck` | S→L, U | `0x10`, from the next server release. `u8[16] nonce, u8[16] mac`: the accepted `UdpHello`'s nonce and HMAC-SHA256(key, `NODE-UDP-HELLO-ACK` ‖ `u32` client id LE ‖ nonce) truncated to 16 bytes, sent to the bound endpoint for each Hello that binds, moves or re-confirms it. A server that sends it says so in `Welcome`'s capability bits; older launchers ignore both. |
 
 ### Session (10)
 
