@@ -3,7 +3,7 @@ title: Wire protocol
 description: Wire protocol v23 by name - transport, the (Category, SubType) frame, every packet per category with its purpose, the join and content sequences.
 ---
 
-This is the protocol between the launcher's helper and a NodeMP server, **v21**
+This is the protocol between the launcher's helper and a NodeMP server, **v23**
 (`Wire::ProtoVersion = 23`). Resources never see it: they send and receive events. Native module
 authors meet it in the relay filter, which is asked about packets by category and subtype, and
 anyone reading a packet capture or the server's debug log meets it by name. This page names the

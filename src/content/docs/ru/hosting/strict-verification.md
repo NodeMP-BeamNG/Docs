@@ -192,14 +192,13 @@ manifest` — один раз на манифест, около 1,2 МБ кус�
 говорит `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. Несовпадение
 сервер отклоняет с
 `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
-лаунчер 1.1.18 показывает это своими словами, как
-`Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
-с объяснением первой проблемы в панели под карточкой сервера. Если проверка провалилась позже по
+лаунчер 1.1.18 показывает это своими словами под *Сервер не пустил в игру*, как
+`Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
+с объяснением первой проблемы, советом и командой диагностики. Если проверка провалилась позже по
 ходу сессии, сервер завершает её с
 `Game files changed while you were playing and no longer match this server's reference (1 problem). …`,
-что показывается как
-`Session ended · Your game files changed while you were playing and no longer match this server's reference (1 problem)`
-в игре.
+что показывается под *Сессия завершена* как
+`Your game files changed while you were playing and no longer match this server's reference (1 problem)`.
 
 Во время сессии лаунчер проверяет снова: в Windows — когда меняются файлы под `content/`,
 `scripts/`, `lua/`, `ui/` установки или под `vehicles/`, `levels/`, `lua/`, `ui/`, `art/`

@@ -3,9 +3,7 @@ title: Запуск сервера
 description: Node-Server как служба systemd или сервис Docker Compose — где лежат файлы, как читать логи, корректно останавливать и что резервировать.
 ---
 
-Эта страница предполагает, что сервер уже запускается вручную, как в
-[быстром старте](/ru/hosting/quick-start/). Она превращает это в нечто, переживающее
-перезагрузку, и перечисляет файлы, за которые отвечаете вы.
+После ручной проверки работы сервера настройте его как постоянную службу через systemd или Docker Compose. Здесь описана структура файлов, шаблоны сервисов и корректная остановка.
 
 ## Файлы и папки
 
@@ -135,11 +133,7 @@ docker compose logs -f gameserver
 
 Ctrl+C, `systemctl stop` или `docker compose stop` посылают SIGINT или SIGTERM. Сервер пишет в лог
 `gracefully shutting down via SIGTERM`, отключает всех игроков с причиной `Server shutdown`,
-останавливает подсистемы и завершает работу строкой `Shutdown.`. Повторное нажатие Ctrl+C
-принудительно завершает процесс. Две вещи, которые чистая остановка печатает, — шум,
-а не поломка: на Windows после `Shutdown.` строки
-`Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall`
-и `Error › Failed to accept() new client: …` — это сетевые потоки сообщают о собственной отмене; с
-настроенной базой данных `Warn › pg: no live database connection (reconnecting)` — пул объявляет
-переподключение, которого не сделает.
+останавливает подсистемы и завершает работу строкой `Shutdown.`. Повторное нажатие Ctrl+C принудительно завершает процесс. Некоторые строки при остановке нормальны и не указывают на сбой:
+- В Windows после `Shutdown.`: строки `Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall` и `Error › Failed to accept() new client: …` — это сетевые потоки завершают работу при отмене сокетов.
+- При подключённом модуле базы данных: `Warn › pg: no live database connection (reconnecting)` — пул закрывает неактивные соединения.
 

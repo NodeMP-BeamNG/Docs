@@ -78,7 +78,7 @@ Lines worth knowing at a glance:
 
 ## When a player is refused
 
-A player who cannot join quotes a toast; [Error codes](/support/error-codes/) lists every text
+A player who cannot join quotes the launcher's notification; [Error codes](/support/error-codes/) lists every text
 with its meaning. On your side:
 
 - The server logs every refusal and kick under the `Kick` tag as `<name> kicked — <reason>`

@@ -1,47 +1,46 @@
 ---
 title: "Logs and reports"
-description: "Where the launcher, its helper and the game write their logs, and what to attach when you report a problem."
+description: "Where the launcher, background helper, and BeamNG.drive write their logs, and what files to attach when asking for support."
 ---
 
 ## What to attach to a report
 
-When you report a problem on the [forum](https://forum.nodemp.com), attach:
+If you run into an issue and need help on the [forum](https://forum.nodemp.com) or in the Discord community, gather the following details:
 
-1. **`launcher.log`** — copy it right away: it is rewritten at every join.
-2. **The notification's text** — the title, the line under it and, under **Details**, the original
-   text. The notification centre (the bell) keeps it.
-3. **The server's name**, and what you were doing.
+1. **The `launcher.log` file** — copy it immediately after encountering the problem, as it is overwritten with each new join attempt.
+2. **The exact notification message** — the title, the line underneath, and the raw text from **Details**. Past notifications can always be found in the notification centre (the bell icon on the left).
+3. **The server name** and a brief description of what you were doing when the issue occurred.
 
-For a problem inside the game, add `beamng.log`.
+If the bug happens while driving inside BeamNG.drive (such as a missing vehicle or an in-game UI glitch), also include the game log `beamng.log`.
 
 ## Where the logs are
 
-| Log | Where | What is in it |
+| Log | Location | What it records |
 |---|---|---|
-| `launcher.log` | `%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\` — **Settings → Launcher → Logs → Open** | One session of the launcher's helper: finding the game, the connection, the server's mods downloading, why the session ended. |
-| `beamng.log` | `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\` | The game's log, with the client mod's lines (tag `node.`). |
+| `launcher.log` | `%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\` (quick access: **Settings → Launcher → Logs → Open**) | The full log of a single helper session: game path resolution, connection negotiation, server mod downloads, and the reason the session ended. |
+| `beamng.log` | `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\` | BeamNG.drive's main log, including NodeMP client mod output (marked with the `node.` prefix). |
 
-The launcher window itself writes no log: what it knows is in its notifications. The in-game
-diagnostics console (**Options → NodeMP → Tools**) shows the session live.
+The launcher window itself does not write a separate log file: all essential troubleshooting info is provided directly in notifications. While driving, you can also view real-time diagnostics in the game under **Options → NodeMP → Tools**.
 
 ## The launcher's folders
 
-| Folder | What is in it |
+The launcher stores its files across a few standard Windows directories:
+
+| Directory | What it contains |
 |---|---|
-| `%LOCALAPPDATA%\NodeMP\` | The program, as the installer wrote it. Nothing here is worth attaching. |
-| `%LOCALAPPDATA%\com.nodemp.launcher\helper\` | The helper's data: `Launcher.cfg`, `logs\` and `cache\`. |
-| `…\helper\cache\` | The servers' mods (**Settings → Launcher → Downloaded content → Open**), the strict servers' references in `integrity\`, and `known_servers.json` — the certificates of servers you joined by address. |
+| `%LOCALAPPDATA%\NodeMP\` | Installed application binaries created by the installer. You do not need to attach or modify files from here. |
+| `%LOCALAPPDATA%\com.nodemp.launcher\helper\` | Runtime data for the background helper: `Launcher.cfg`, `logs\`, and `cache\`. |
+| `…\helper\cache\` | Downloaded server mods (quick access: **Settings → Launcher → Downloaded content → Open**), strict verification manifests in `integrity\`, and `known_servers.json` storing fingerprints for direct-connect servers. |
 
 ## Advanced: another directory
 
-For developers and testers running their own directory; players do not need this. The launcher
-talks to `https://api.nodemp.com`, unless, in order of precedence:
+This section is for developers and testers running custom directories or private backends; regular players do not need this.
 
-1. the environment variable `NODEMP_API_BASE` is set, for example `http://localhost:8080`;
-2. a file `directory.url` lies beside the launcher's program in `%LOCALAPPDATA%\NodeMP`: one line
-   with the base URL, lines starting with `#` are comments. The launcher never writes this file
-   itself.
+By default, the launcher communicates with `https://api.nodemp.com`. You can override this URL (in order of priority):
 
-The address in use is shown in **Could not reach NodeMP** when the list cannot be loaded.
-`NODEMP_LAUNCHER=<path to Node-Launcher.exe>` makes the launcher start a separately built helper
-instead of its own — for people building the helper themselves.
+1. By setting the `NODEMP_API_BASE` environment variable (for example, `http://localhost:8080`).
+2. By placing a `directory.url` file next to the launcher binary in `%LOCALAPPDATA%\NodeMP`. The file should contain a single line with the base URL (lines starting with `#` are treated as comments). The launcher never creates this file automatically.
+
+The URL currently in use is displayed in the **Could not reach NodeMP** notification if the server list cannot be fetched.
+
+For developers compiling components from source: the `NODEMP_LAUNCHER=<path to Node-Launcher.exe>` environment variable instructs the launcher to run a custom-built helper executable instead of the packaged one.

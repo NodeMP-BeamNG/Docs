@@ -1,297 +1,164 @@
 ---
 title: FAQ
-description: Short answers for players, hosts and plugin authors, each with a link to the page that has the details.
+description: Direct, concise answers to frequently asked questions from players, hosts, and plugin authors, with links to detailed guides.
 ---
 
-Short answers to the questions readers actually asked, each with the page that has the details.
-The words used here are defined in the [glossary](/reference/glossary/).
+Short answers to frequently asked questions about playing, server hosting, and plugin development. Defined terms are explained in the [glossary](/reference/glossary/).
 
 ## Players
 
 ### Is it a Play button or a hold button?
 
-A hold button: **Hold to play** — press it for about half a second, then let go. It guards against
-joining by accident; **Settings → Launcher → Hold to play** turns it off, and then one click joins.
-→ [Join a server](/players/join/#join)
+A hold button: **Hold to play** — press and hold it for about half a second, then let go. This guards against accidental clicks. If you prefer one-click joining, turn it off under **Settings → Launcher → Hold to play**. → [Join a server](/players/join/#join)
 
 ### Do I need an account? What is Test Drive?
 
-No. Test Drive is playing without an account: you get a new `Guest-…` name at every join and cannot
-choose it, and some servers refuse guests (*Account required* on the server's card; the *No account
-needed* filter hides them). An account gives you a fixed, verified name and works on every server.
-Accounts are made on [nodemp.com](https://nodemp.com/register); the launcher signs in through your
-browser. → [Account and sign-in](/players/sign-in/)
+No, an account is optional. Test Drive lets you play without registration: you receive a temporary random `Guest-…` name on each launch (it cannot be chosen manually). Certain servers disallow guest connections (*Account required* appears on the server card; the *No account needed* filter hides them). Registering an account gives you a permanent, verified name that works on every server. Accounts can be registered at [nodemp.com](https://nodemp.com/register), and login is completed through your browser in the launcher. → [Account and sign-in](/players/sign-in/)
 
 ### Which BeamNG version do I need?
 
-0.39.4.0, the current release: client mod 1.6.19 is built for it, and a strict server's reference
-describes one game version. A copy that is not from Steam works when **Settings → Game** points at
-its folder. → [Install the launcher → What you need](/players/install/#what-you-need)
+0.39.4.0 — the current release of BeamNG.drive. Client mod 1.6.19 is built specifically for it, and strict server integrity manifests are generated for a clean installation of this version. Non-Steam copies are also supported: just select your game path under **Settings → Game**. → [Install the launcher → What you need](/players/install/#what-you-need)
 
 ### Windows warns about an unknown publisher. Is the installer genuine?
 
-The installer is not code-signed yet, so SmartScreen warns. Compare the file's SHA-256
-(`Get-FileHash` in PowerShell) with the one published next to it.
-→ [Install the launcher → Download and install](/players/install/#download-and-install)
+Yes. The installer executable is not yet code-signed with a commercial certificate, which causes Windows SmartScreen to show a warning. You can always verify the SHA-256 hash of the installer (`Get-FileHash` in PowerShell) against the published checksum on the download page. → [Install the launcher → Download and install](/players/install/#download-and-install)
 
 ### Does the launcher update itself?
 
-Yes. It checks at start-up and before every join, downloads a new version and offers **Restart and
-update**; it never installs during a session. When a server needs a newer launcher, the join stops
-with an **Update now** button that updates and joins that server again. The client mod is updated
-before every join as well. → [Install the launcher → Launcher updates](/players/install/#launcher-updates)
+Yes. It automatically checks for updates at launch and before every server connection. If a newer build is available, the launcher downloads it and prompts you to **Restart and update**. Updates are never applied while actively playing. If a server requires a newer launcher version, the join pauses with an **Update now** button — the launcher updates and immediately rejoins the server. The client mod is also verified before each connection. → [Install the launcher → Launcher updates](/players/install/#launcher-updates)
 
 ### Does the server check my game files? What about my mods?
 
-Every server checks your install, at the level its host chose; only a **strict** server also looks
-at your BeamNG user folder. Your packed mods in `mods\` never refuse you — no level looks there —
-and they are switched off during a session unless you enable *Use my local mods in multiplayer* and
-the server allows it. What a strict server refuses is what a mod left outside `mods\`: unpacked
-files under the user folder's `vehicles\`, `levels\`, `lua\`, `ui\`, `art\`, `scripts\`, or anything
-added to the game folder. → [Join a server → What the server checks on your PC](/players/join/#what-the-server-checks-on-your-pc)
+Every server checks game integrity according to the mode chosen by its host. Only a **strict** server checks the BeamNG user folder as well. Normal zipped mods inside your `mods\` folder never block your join: integrity scans ignore them, and the launcher disables them during multiplayer sessions anyway (unless you enabled *Use my local mods in multiplayer* and the server allows it). A strict server only rejects files left outside `mods\`: unpacked files under `vehicles\`, `levels\`, `lua\`, `ui\`, `art\`, or `scripts\` in your user folder, or unauthorized files in the main game folder. → [Join a server → What the server checks on your PC](/players/join/#what-the-server-checks-on-your-pc)
 
 ### How do I see everything a strict server rejected?
 
-The refusal shows up to three examples. The diagnostic built into the launcher prints every one,
-with a reason per line (`overlay`, `unlisted`, `hash`, …); the **Copy** button under the refusal
-gives you the command. → [Strict servers → See every problem](/support/strict-servers/#see-every-problem)
+The server refusal message shows up to three examples. The built-in launcher diagnostic tool lists every discrepancy, showing the exact reason code on each line (`overlay`, `unlisted`, `hash`, etc.). You can easily copy the diagnostic command by clicking **Copy** right beneath the refusal notification. → [Strict servers → See every problem](/support/strict-servers/#see-every-problem)
 
 ### What does "Stock content" mean?
 
-It is about the **content** a server sends before the game starts — its own mods, downloaded by
-the launcher for that server. *Stock content* means the server sends nothing extra; *It will send
-you* on the server's card lists the files. Neither says anything about your own install.
-→ [Join a server → Look at a server](/players/join/#look-at-a-server)
+This refers to **server content** downloaded by the launcher prior to joining. "Stock content" means the server uses only default BeamNG.drive vehicles and maps without extra mods. Any required downloads are listed under *It will send you* on the server card. This label does not refer to your local game installation. → [Join a server → Look at a server](/players/join/#look-at-a-server)
 
 ### How can Direct Connect work while the server list is down?
 
-You join by address without a join ticket, so nobody verifies your name. A server without a server
-key takes names as they come anyway; a listed server that allows Test Drive admits you as an
-unverified guest; one with *Account required* refuses the join.
-→ [Launcher problems → The server list is empty](/support/launcher/#the-server-list-is-empty)
+You connect directly via `IP:port` without a directory join ticket. Local unkeyed servers accept nicknames directly; listed servers with Test Drive enabled admit you as an unverified guest; and servers marked *Account required* reject connections until directory connectivity is restored. → [Launcher problems → The server list is empty](/support/launcher/#the-server-list-is-empty)
 
 ### What is the launcher's helper?
 
-The part of the launcher that starts BeamNG.drive and carries your connection while you play — the
-same program, started again without a window. Its log is `launcher.log`; **The launcher's traffic
-helper stopped** means that background process ended. → [Troubleshooting](/support/troubleshooting/#the-launcher-and-its-helper)
+The background process of the launcher that launches BeamNG.drive and handles the multiplayer network session while you play. It is the same program running without a graphical window. Its activity is logged to `launcher.log`, and **The launcher's traffic helper stopped** indicates that this process exited unexpectedly. → [Troubleshooting](/support/troubleshooting/#the-launcher-and-its-helper)
 
 ### My message is not on these pages. What now?
 
-Every text the launcher, its helper or a server can show is indexed on
-[Error codes](/support/error-codes/); search it for the exact words. If it is not there, report it
-with `launcher.log`, the notification's text and the server's name. → [Logs and reports](/support/logs/)
+All possible error texts from the launcher, helper, and server are indexed on the [Error codes](/support/error-codes/) page. If your error is not listed there, grab your `launcher.log`, note the message from the notification centre, and reach out on the forum or Discord community. → [Logs and reports](/support/logs/)
 
 ## Hosts
 
 ### Which server version do these pages describe?
 
-The current release; the version table on [What is NodeMP](/introduction/what-is-nodemp/#versions) is the
-reference. Where an older server behaved differently, a short `before 1.2.1` sentence says how.
+The current release; the version table in [What is NodeMP](/introduction/what-is-nodemp/#versions) is the source of truth. Where older versions behaved differently, a brief version note highlights the difference.
 
 ### What do I need before my server can be listed?
 
-A NodeMP account with a verified e-mail and a
-linked Discord account (only such an account can create a server key), a machine reachable on
-port 30814 TCP and UDP, and the key set in the **existing** `[Directory]` table of `server.toml`.
-Without a key the server runs unlisted and is reachable through Direct Connect.
-→ [Quick start](/hosting/quick-start/#what-you-need), [Registering your server](/hosting/registering/)
+A NodeMP account with a verified email and linked Discord profile (only verified accounts can generate server keys), a machine accessible on port 30814 over TCP and UDP, and your authentication key configured in the `[Directory]` section of `server.toml`. Without a key, the server runs unlisted and remains accessible via Direct Connect. → [Quick start](/hosting/quick-start/#what-you-need), [Registering your server](/hosting/registering/)
 
 ### I pasted the `[Directory]` block from the website and the server exits. Why?
 
-`server.toml`
-already had a `[Directory]` table, so the file now defines it twice, which TOML rejects. Delete
-the pasted block and set `Url`, `HostId` and `HostSecret` in the existing table. The server
-says so itself: `the table [Directory] appears twice. Put the keys into the existing [Directory] table …`.
-→ [Registering → Put the key into the server](/hosting/registering/#put-the-key-into-the-server)
+The default `server.toml` already contains a `[Directory]` table. Pasting another one introduces duplicate table headers, which is invalid in TOML. Remove the duplicated block and paste your `Url`, `HostId`, and `HostSecret` into the existing `[Directory]` table. The server will output: `the table [Directory] appears twice. Put the keys into the existing [Directory] table …`. → [Registering → Put the key into the server](/hosting/registering/#put-the-key-into-the-server)
 
 ### On Windows the log says `TLS handshake failed: certificate verify failed` towards `api.nodemp.com`. Is the key wrong?
 
-No - the server found no trusted root certificates. On the
-current server that means the Windows certificate store is empty and `cacert.pem` is no longer
-next to `Node-Server.exe` (put it back); on 1.2.0 and 1.1.0 it happened on every Windows machine,
-and the way out until the update is `SSL_CERT_FILE` pointed at a PEM bundle of public roots. Do
-not pin `[Directory] Fingerprint`.
-→ [Registering → Windows](/hosting/registering/#windows-the-directorys-certificate)
+No, the key is fine — the server could not locate trusted Windows root certificates. Make sure `cacert.pem` is placed next to `Node-Server.exe`. If system certificates cannot be verified, set the `SSL_CERT_FILE` environment variable pointing to a PEM bundle of public roots. Do not manually pin `[Directory] Fingerprint`. → [Registering → Windows](/hosting/registering/#windows-the-directorys-certificate)
 
 ### How do I know the directory's probe reached my port?
 
-The server's log does not say. The
-server appears in the launcher's list and at nodemp.com/servers once it did, and a TCP
-connection to your public address on port 30814 from outside your network succeeds.
-→ [Registering → What the server does with it](/hosting/registering/#what-the-server-does-with-it)
+The server log does not state this explicitly. Once the probe succeeds, your server appears in the launcher catalog and on nodemp.com/servers, and external TCP connections to your public IP on port 30814 will connect without issues. → [Registering → What the server does with it](/hosting/registering/#what-the-server-does-with-it)
 
 ### The server says `Cannot listen on port 30814 … the port is already in use` and quits. Why?
 
-Almost
-always a previous instance of the server is still running; stop it, or give this one another port.
-The server exits with code 1 so a supervisor notices. (A 1.2.0 server printed `bind() failed` and
-even `server is ready` before it quit.) → [Running → Logs](/hosting/administration/#logs)
+Port 30814 is in use by another process — usually a previous instance of `Node-Server` that is still shutting down. Terminate the older process or configure a different port. The server exits with code 1 so process supervisors notice. → [Running → Logs](/hosting/administration/#logs)
 
 ### How do I lift a ban?
 
-Stop the server, then `Node-Server --bans list` shows the entries and
-`Node-Server --bans remove <ip | account id>` removes one (both entries, address and account, for
-a player banned in a session); start again. Editing `bans.json` by hand with the server stopped
-does the same. A running server can also lift one through a resource (`node.bans.remove`).
-→ [Running → Bans](/hosting/administration/#bans)
+Stop the server. Run `Node-Server --bans list` to display existing bans, and `Node-Server --bans remove <ip | account id>` to unban a player (for players banned during a session, both IP and account entries are cleared). You can also edit `bans.json` directly while the server is stopped, or call `node.bans.remove` from a running server plugin. → [Running → Bans](/hosting/administration/#bans)
 
 ### Where are the example resources (`chat`, `demo-numbers`, …)?
 
-In the release archive under
-`examples/`, next to `Node-Server`; `examples/README.txt` says what each one does. Copy one into
-`resources/` and restart. (The 1.2.0 and older archives did not contain them.)
-→ [Resources and content → Installing a resource](/hosting/resources/#installing-a-resource)
+They are located in the `examples/` directory of the release archive beside `Node-Server`; `examples/README.txt` describes each one. Copy the desired resource into `resources/` and restart the server. → [Resources and content → Installing a resource](/hosting/resources/#installing-a-resource)
 
 ### Do I need a Windows PC for `strict`?
 
-For generating the reference manifest, yes: the
-generator reads a clean BeamNG install, so it runs where the game is installed. The manifest file
-is then copied to the server, Linux or Docker included. → [Strict verification](/hosting/strict-verification/#generating-the-manifest)
+For generating reference manifests, yes: the generator tool reads a clean BeamNG installation, so it runs on a machine where the game is installed. The generated `.manifest` file can then be copied to any server running on Linux or inside Docker. → [Strict verification](/hosting/strict-verification/#generating-the-manifest)
 
 ### Where are the release notes?
 
-In the release body on GitHub, from 1.2.1 on (the server
-repository's `RELEASE_NOTES.md` section for the tag): what changed, whether a default changed,
-whether the wire protocol moved. Older releases have a one-sentence body; these pages describe the
-current release. A server release that keeps the wire protocol needs no launcher update from your
-players. → [Updating](/hosting/updating/)
+In the GitHub release descriptions (starting from 1.2.1 — in `RELEASE_NOTES.md` in the server repository): summary of changes, default value adjustments, and protocol bumps. When a new server release does not increment the wire protocol, players are not required to update their launcher. → [Updating](/hosting/updating/)
 
 ## Plugin authors
 
 ### What is the event naming rule, and what happens to the old names?
 
-A notification is
-`<subject><Verb-ed>` (`playerJoined`, `vehicleSpawned`, `serverShutdown`); a request a handler
-can deny is `<subject><Action>Request` (`vehicleSpawnRequest`, `relayRequest`); there is no `on`
-prefix. Wire events are `<domain>:<verb>` in lowercase (`chat:send`). The spellings servers
-before 1.2.0 used - `playerJoin`, `onVehicleSpawnRequest`, `canRelay` and the rest - are
-deprecated aliases: they still subscribe to the same event, log one `[deprecated]` warning per
-resource per name, and will be removed in 2.0. → [Events → Naming](/plugins/events/#naming)
+Notification events are named `<subject><Verb-ed>` (`playerJoined`, `vehicleSpawned`, `serverShutdown`). Cancellable request events are named `<subject><Action>Request` (`vehicleSpawnRequest`, `relayRequest`). The `on` prefix is not used. Network events use lowercase colon notation: `<domain>:<verb>` (`chat:send`). Legacy event names (`playerJoin`, `onVehicleSpawnRequest`, etc.) remain supported as deprecated aliases: they continue working, print a single `[deprecated]` warning per resource, and will be removed in version 2.0. → [Events → Naming](/plugins/events/#naming)
 
 ### Which HTTP methods exist?
 
-`node.http.request(method, url, opts?, cb)` takes any method;
-`node.http.get`, `post`, `put`, `patch`, `delete` and `head` are it with the method fixed, and
-`node.http.fetch(url, { method = … })` is the coroutine form inside `node.async` (the methods
-other than `get` and `post` were added in server 1.2.0; before it `fetch` sent anything but `POST`
-as `GET`). Response headers arrive with
-lowercased names (`headers["content-type"]`). TLS peer verification is off unless the host sets
-`[Http] CaFile`, and then every `https://` request is checked against that bundle.
-→ [Concurrency → HTTP](/plugins/concurrency/#http)
+`node.http.request(method, url, opts?, cb)` accepts any standard HTTP method. Shorthands `node.http.get`, `post`, `put`, `patch`, `delete`, and `head` invoke the same request with a preset method, while `node.http.fetch(url, { method = … })` provides a coroutine-based alternative inside `node.async`. Response headers arrive with lowercased keys (`headers["content-type"]`). TLS certificate verification is disabled by default; set `[Http] CaFile` in your server configuration to enforce verification. → [Concurrency → HTTP](/plugins/concurrency/#http)
 
 ### Are there sockets - a `node.net`?
 
-Not yet. The server has no socket API for resources:
-what exists is `node.http` towards the outside and wire events, the bus and the module channel
-inside. A socket API is on the platform's list, without a date; nothing on these pages describes
-one, and nothing should be built on it yet.
+Not currently. The server does not expose a raw socket API to resources. Use `node.http` for external web services, and network events, `node.bus`, and module channels for inter-resource communication.
 
 ### What survives a resource reload, and what is `resourceUnload`?
 
-A reload drops everything the
-server half registered - handlers, timers, coroutines, bus and module subscriptions, relay
-filters, log sinks - and the whole Lua state, then runs `main.lua` again. `node.storage`, the
-files in your folder and the other resources survive; a background job or HTTP request already
-in flight is not cancelled, and client files are not re-packaged until a restart.
-`node.on("resourceUnload", fn(reason))` runs in the old instance right before the drop, with
-`"reload"` or, at a server stop, `"shutdown"`: write what you must and return - nothing started
-there runs again. → [Resources → Reload](/plugins/resources/#reload)
+A resource reload resets all server-side handlers, timers, coroutines, bus subscriptions, relay filters, and the Lua state, re-executing `main.lua`. `node.storage`, files in the resource directory, and other resources survive intact; background worker jobs and active HTTP requests continue running, while client files are not repackaged until a full server restart. The `node.on("resourceUnload", fn(reason))` hook executes immediately before teardown (with `"reload"` or `"shutdown"`), giving you an opportunity to persist state. → [Resources → Reload](/plugins/resources/#reload)
 
 ### What does a strict server check, and what does it not?
 
-It compares the whole game folder,
-every archive's table of contents and the player's user folder with a reference of a clean
-install, before the join and again during the session. It does not hash archive contents (CRC-32
-tables only), does not check the launcher itself, and does not look into `mods\`. A **strict
-session** is a different thing: in-game rules your resource switches on per player with
-`session:config.strict`. → [Strict verification](/hosting/strict-verification/#what-strict-does-not-check),
-[Client scripting → Strict sessions](/plugins/client-scripting/#strict-sessions-sessionconfigstrict)
+Strict mode compares the game directory, archive CRC-32 tables, and player user folder against a clean reference manifest upon joining and during gameplay. It does not hash full archive payloads, does not inspect launcher binaries, and ignores the `mods\` directory. Do not confuse this with a **strict session** (`session:config.strict`) — in-game vehicle restrictions enabled per player by your plugin. → [Strict verification](/hosting/strict-verification/#what-strict-does-not-check), [Client scripting → Strict sessions](/plugins/client-scripting/#strict-sessions-sessionconfigstrict)
 
 ### How do I test a plugin without the game?
 
-Everything server-side runs without a player.
-A chat command is exercised through the bus contract `chat` speaks: publish
-`chat:command` with `{ pid, name, args, raw }` (lowercase `name`) and watch the reply on
-`chat:say`. A wire event handler needs a client, and client files run only inside the game.
-→ [Getting started → Testing without the game](/plugins/getting-started/#testing-without-the-game)
+Server-side plugin logic runs completely without connected players. Chat commands can be tested via the event bus: publish `chat:command` with `{ pid, name, args, raw }` (where `name` is lowercase) and inspect replies on `chat:say`. Network wire events and client scripts require an active game client. → [Getting started → Testing without the game](/plugins/getting-started/#testing-without-the-game)
 
 ### Why does `/HELLO` not reach my handler when I publish `chat:command` myself?
 
-`chat`
-lowercases the typed word before it publishes and `node.commands.add` lowercases the registered
-name; the lookup itself is exact. A `chat:command` you publish must carry the lowercase name.
-→ [Recipes → A chat command](/plugins/recipes/#a-chat-command)
+The `chat` resource and `node.commands.add` normalize command names to lowercase upon registration. Custom `chat:command` events published via the bus must also pass the `name` field in lowercase. → [Recipes → A chat command](/plugins/recipes/#a-chat-command)
 
 ### `node.on` with the same function twice - once or twice?
 
-Once: the second call replaces the
-first, and `node.off(name, fn)` removes it. Two different functions are two handlers.
-→ [Conventions → Return shapes](/plugins/conventions/#return-shapes)
+Once: registering the exact same function with `node.on` replaces the previous registration. Use `node.off(name, fn)` to unregister a handler. Registering two distinct functions creates two separate handlers. → [Conventions → Return shapes](/plugins/conventions/#return-shapes)
 
 ### Why did my 600 ms timer callback not trigger the stall warning?
 
-On the current server it does:
-every handler, timer callback, coroutine slice and completion callback is timed on its own, and the
-line names the resource and the kind (`(resource race, timer)`). Before 1.2.1 only whole worker
-jobs were timed, which left timer callbacks and `node.async` slices unreported.
-→ [Concurrency → One worker thread](/plugins/concurrency/#one-worker-thread)
+On the current server release, it does: every event handler, timer callback, and coroutine slice is timed individually, and the stall warning names the offending resource and type (`(resource race, timer)`). → [Concurrency → One worker thread](/plugins/concurrency/#one-worker-thread)
 
 ### Is a syntax error in my client file reported by the server?
 
-Yes, at load: every client file is
-parsed when it is packaged, and one that does not parse gets an `Error` line naming the resource,
-the file and the Lua message, whatever the obfuscation setting. The file still ships (the server
-runs no client code), and the game's own compile error is in the player's `beamng.log`. Before
-1.2.1 the only sign was Prometheus's warning, with obfuscation on. → [Resources → Obfuscation](/plugins/resources/#obfuscation)
+Yes. During server startup, client scripts are parsed during packaging. If a script contains syntax errors, the server logs an `Error` line with the resource name, file path, and Lua error message regardless of obfuscation settings. The file is still delivered to clients, and runtime errors will appear in the player's `beamng.log`. → [Resources → Obfuscation](/plugins/resources/#obfuscation)
 
 ### Where are the examples, and where is `chat`?
 
-Under `examples/` in the release archive, next
-to the server executable (`examples/README.txt` lists them). `chat`'s protocol - `chat:send` and
-`chat:msg` on the wire, `chat:command` and `chat:say` on the bus - is documented, so a stand-in
-is a few lines. → [Events → node.bus](/plugins/events/#between-resources-nodebus)
+Example resources are included in the `examples/` directory of the release archive (listed in `examples/README.txt`). The chat wire protocol (`chat:send`, `chat:msg`) and bus contract (`chat:command`, `chat:say`) are documented, making custom chat implementations straightforward. → [Events → node.bus](/plugins/events/#between-resources-nodebus)
 
 ### Can a resource overwrite a file of the game or of the client mod with a client file of its own?
 
-No. Streamed client files are compiled in memory under the resource's own name and never
-written to the player's disk, so they add modules and hooks beside the originals and shadow
-nothing. Change behaviour at run time instead: the same events, a `ge` extension of your own, the
-module manifest that switches a built-in client module off.
-→ [Client scripting → What a client file can and cannot do](/plugins/client-scripting/#what-a-client-file-can-and-cannot-do)
+No. Streamed client files compile in memory under the resource's private namespace and are never written to the player's disk. They introduce hooks and extensions alongside existing code without overriding core game assets or the official `NodeMP.zip` mod. → [Client scripting → What a client file can and cannot do](/plugins/client-scripting/#what-a-client-file-can-and-cannot-do)
 
 ### How do I check that a file exists, create a folder, rename or copy a file with `node.fs`?
 
-`node.fs` has `read`, `write`, `writeAsync` and `list`, nothing else. Exists: look the name up in
-`node.fs.list(folder)`. A folder: `node.fs.write` creates the parents of the path it writes. Copy:
-`node.fs.write(to, node.fs.read(from))`. Rename and delete: the standard `os.rename` and
-`os.remove`, with an absolute path built from the resource folder. Write paths with `/` on
-Windows and Linux alike. → [Resources → What node.fs does not have](/plugins/resources/#what-nodefs-does-not-have)
+`node.fs` provides only `read`, `write`, `writeAsync`, and `list`. Check existence by inspecting `node.fs.list(folder)`. Calling `node.fs.write` automatically creates missing parent directories. To copy, read and rewrite (`node.fs.write(to, node.fs.read(from))`). To rename or delete, use standard Lua `os.rename` and `os.remove` with absolute paths within the resource directory. Always format file paths with forward slashes `/`. → [Resources → What node.fs does not have](/plugins/resources/#what-nodefs-does-not-have)
 
 ### Is there a `fileChanged` event?
 
-No, and the server watches no files. Poll with `node.every`,
-comparing the sizes `node.fs.list` reports or a hash of the content.
-→ [Events → No file-watch event](/plugins/events/#no-file-watch-event)
+No, the server does not watch filesystem modifications automatically. Poll periodically using `node.every`, comparing file sizes from `node.fs.list` or file content hashes. → [Events → No file-watch event](/plugins/events/#no-file-watch-event)
 
 ### Random numbers, execution time, memory use, the operating system - where?
 
-Standard Lua for
-the first three: `math.random()` and `math.random(a, b)` (seeded for you), `node.server.uptime()`
-before and after a section, `collectgarbage("count")` for this resource's state. There is no total
-over all states, no per-handler statistics and no OS name or version in `node`.
-→ [Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)
+Use standard Lua utilities: `math.random()` (already seeded), `node.server.uptime()` to measure elapsed execution time, and `collectgarbage("count")` to inspect memory allocated by the resource's Lua state. Global system metrics and OS version info are deliberately omitted from the API. → [Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)
 
 ### Can `node.json` pretty-print, or diff and patch two documents?
 
-No. `node.json.encode` writes
-compact JSON and takes no options; there is no diff, patch or flatten.
-→ [Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)
+No. `node.json.encode` outputs compact JSON without formatting options. Diff, patch, and flatten utilities are not included in the standard API. → [Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)
 
 ### Can the server call my language host from several threads?
 
-No. Every delivery to a hosted
-resource arrives on the single framework worker, one at a time; `NodeLanguageHost` has no flag
-for anything else, and none is scheduled. A host with its own event loop hands callbacks over
-itself, as `js-host` does; `NodeApi` calls, the relay filter and `submit_job` work run off the
-worker already. → [Native modules → Language hosts](/plugins/native-modules/#language-hosts)
+No. Invocations to hosted resources are delivered strictly sequentially on the single framework worker thread. If your language host uses an external event loop (such as `js-host`), it dispatches callbacks independently. `NodeApi` calls, relay filters, and `submit_job` work execute off the main thread. → [Native modules → Language hosts](/plugins/native-modules/#language-hosts)

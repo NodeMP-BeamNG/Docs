@@ -1,119 +1,102 @@
 ---
 title: Settings and controls
-description: The launcher's settings, the NodeMP page in the game's options, the chat, the player list and the keys.
+description: Launcher options, the in-game NodeMP menu, chat commands, player roster, and keybindings.
 ---
 
-Settings live in two places: the launcher's **Settings** for everything around a session, and the
-**NodeMP** page in the game's options for everything inside one. Changes are saved at once.
+Settings are organized into two intuitive places: the launcher's **Settings** menu manages everything before you launch, while the **NodeMP** panel inside the game options lets you fine-tune gameplay and interface behaviors on the fly. All changes take effect immediately.
 
 ## Launcher settings
 
-The gear at the bottom of the rail opens three tabs.
+To open launcher settings, click the gear icon at the bottom of the left rail. Settings are split across three tabs:
 
 ### Game
 
 | Setting | What it does |
 |---|---|
-| **Where BeamNG.drive is installed** | Empty — found automatically. **Browse** picks a folder, **Find it** searches again. The line under the heading shows the result, for example `Version 0.39.4.0`. |
-| **Graphics mode** | *Direct3D 12* (the default on BeamNG 0.39), *Vulkan* or *Direct3D 11* (the fallback if D3D12 fails). The game starts straight into it and never asks. |
+| **Where BeamNG.drive is installed** | The path to your game folder. If left empty, the launcher detects it automatically. Click **Browse** to select the directory manually, or **Find it** to search again. The status line below indicates the detected build, such as `Version 0.39.4.0`. |
+| **Graphics mode** | Chooses your graphics API: *Direct3D 12* (standard default for BeamNG 0.39), *Vulkan*, or *Direct3D 11* (reliable fallback if D3D12 encounters issues). The game launches directly into your chosen mode without extra popups. |
 
 ### Launcher
 
 | Setting | What it does |
 |---|---|
-| **Language** | The launcher's language. What servers and the game write is shown as they wrote it. |
-| **Hold to play** | On: hold Play for 0.4 s and let go — no joining by accident. Off: one click joins. |
-| **Start with Windows** | Open NodeMP when you sign in to Windows. |
-| **Close the launcher once the game starts** | Off by default: the window hides during the session and comes back when you leave. On: the window closes, and the process that carries your traffic stays. |
-| **Folders → Downloaded content** | The servers' mods the launcher downloaded, and their size. **Open** opens the folder. |
-| **Folders → Logs** | Where `launcher.log` is. Attach it when you report a problem. |
-| **Client mod** | The installed version and the last result; **Check now** checks again. |
-| **Updates** | The channel (*Release* or *Beta*), automatic checks, going back a version — see [Launcher updates](/players/install/#launcher-updates). |
-| **Reset** | Back to defaults. Favorites, recent servers and downloads are kept. |
+| **Language** | The display language of the launcher interface. Server descriptions and in-game messages remain in their original languages. |
+| **Hold to play** | Guards against accidental clicks: requires holding the "Hold to play" button for 0.4 seconds to join. Turning this off enables instant one-click joins. |
+| **Start with Windows** | Automatically launches NodeMP when you log into Windows. |
+| **Close the launcher once the game starts** | Off by default: the launcher hides during your session and reopens when you quit. Turning it on closes the launcher window completely while keeping the lightweight background traffic helper running. |
+| **Folders → Downloaded content** | Displays the list and disk footprint of mods downloaded from servers. Click **Open** to reveal the folder in Windows Explorer. |
+| **Folders → Logs** | Location of `launcher.log` (useful when diagnosing problems or reporting bugs). |
+| **Client mod** | Displays the installed mod version with a **Check now** button to verify integrity manually. |
+| **Updates** | Update channel (*Release* or *Beta*), automatic check toggles, and version rollback options — see [Launcher updates](/players/install/#launcher-updates). |
+| **Reset** | Restores launcher settings to their defaults. Your favorites, recent history, and downloaded mods are preserved. |
 
 ### Account
 
-The name servers see you under, with **Manage on the website** and **Sign out** (in Test Drive:
-**Sign in**). More on [Account and sign-in](/players/sign-in/).
+Shows your verified username and provides **Manage on the website** and **Sign out** buttons (or **Sign in** while in Test Drive). Learn more on the [Account and sign-in](/players/sign-in/) page.
 
 ## Downloaded server mods
 
-**Content** in the rail lists everything servers sent: the file, its size and when it was
-downloaded. It has a search and **Open folder**. **Remove** frees the space; close the game first —
-while it runs, the archive is in use. A server that needs a removed file gets it downloaded again at
-your next join.
+The **Content** tab on the left rail lists every mod downloaded while joining servers: filename, size, and download date.
+
+You can use the search bar or click **Open folder**. The **Remove** button frees up disk space by deleting unwanted files (make sure BeamNG.drive is closed before deleting). If a server needs a deleted mod later, the launcher simply downloads it again on your next visit.
 
 ## In the game: Options → NodeMP
 
-BeamNG's **Options** sidebar gets a **NodeMP** entry (also in the pause menu under *Mods → NodeMP
-settings*).
+Inside BeamNG.drive, a new **NodeMP** section appears in the **Options** sidebar (also accessible from the pause menu under *Mods → NodeMP settings*):
 
 | Section | Settings |
 |---|---|
-| Gameplay & sync | *Correction strength* (0.25–2×) and *Teleport threshold* (0.25–4×) for other players' cars. *Hold other cars tightly* (off by default): other players' cars stay closer in corners and slides, but react harder when their driver touches throttle, brake or steering. *Steering look-ahead (experimental)* (off): other players' wheels turn slightly early, by half of the network delay. *Ghost cars on reset (this machine)*: 1.5 s without collisions on your screen; a server can override it. |
-| Name tags | *Hide my own nametag*, *Show 'Empty' on empty cars*, *Show distance on tags*, *Hide tags behind objects*, *Fade distance* (0–2000 m, default 100). |
-| Markers | *Markers for non-spawned cars*, *Markers for deleted cars*. |
-| Vehicle | *My cars: access (0/1/2)*: 0 open, 1 passengers only, 2 only you. *Others may use my triggers*, *Name on license plates*, *Protect my configs*, *Auto-apply others' configs* (off: a player who edited their car is highlighted — click to apply), *3D player heads in cars*, *Freecam player markers*. |
-| Mods | *Use my local mods in multiplayer* — off by default; the server must allow it too. |
-| Chat & UI | *In-game chat overlay* — an extra chat and player-list window, off by default. |
-| Experimental & debug | Behind *Enable experimental features*: the synced node grabber (Ctrl), letting others grab your cars, and sync debugging modes. Leave them off unless you are chasing a bug. |
+| Gameplay & sync | Fine-tune multiplayer vehicle synchronization. *Correction strength* and *Teleport threshold* adjust position smoothing during network lag. The *Hold other cars tightly* toggle (off by default) keeps other cars closer to their true trajectory during drifts at the cost of slightly snappier throttle and brake reactions. *Steering look-ahead* turns other players' wheels slightly early based on latency, while *Ghost cars on reset* grants 1.5 seconds of collision-free ghosting after resetting your car. |
+| Name tags | Customize nametags above vehicles: hide your own nametag (*Hide my own nametag*), hide tags on unoccupied cars (*Show 'Empty' on empty cars*), display distance, and set the tag visibility cutoff (*Fade distance*). |
+| Markers | Display indicators for vehicles that are still loading or have been removed. |
+| Vehicle | Access permissions for your vehicles (*My cars: access*: 0 open to all, 1 passengers only, 2 locked to you), allow others to use interior triggers, show username on license plates, protect custom configurations, and automatically apply others' tuning setups. |
+| Mods | *Use my local mods in multiplayer* allows your local mods to stay active during multiplayer (off by default and requires server permission). |
+| Chat & UI | Toggle the optional floating chat overlay window (*In-game chat overlay*). |
+| Experimental & debug | Experimental options such as synchronized node grabbing via Ctrl, letting others grab your car's nodes, and sync debug overlays. Leave these off unless troubleshooting bugs. |
 
-**Tools** opens the diagnostics console: live session, players, vehicles, chat, network, events and
-settings. *My cars: access*, *Others may use my triggers* and *Allow others to grab my cars* are sent
-to the server as the rules for your cars and apply to every car you spawn.
+The **Tools** button opens the live diagnostics console: monitor session stats, ping, network packets, event logs, and active vehicles in real time.
 
 ## Chat and player list
 
-By default the game has two NodeMP windows:
+By default, the game provides two key NodeMP interface components:
 
-- the **chat** — lines over the world that fade out; hover the corner to see the history;
-- the **session panel** — the server's name, your ping, the player count with the roster, and
-  **Leave** (hold it).
+- **Chat** — semi-transparent text messages floating over the game that gently fade out. Hover your mouse over the corner to browse message history.
+- **Session panel** — in the top corner: server name, current ping, online player count with an expandable roster, and a hold-to-leave **Leave** button.
 
-Messages may use colour codes: `^0`–`^9` and `^a`–`^f` for colours, `^#RRGGBB` for any colour,
-`^l` bold, `^o` italic, `^n` underline, `^m` strike-through, `^r` reset.
+Chat messages support color codes: `^0`–`^9` and `^a`–`^f` for primary colors, `^#RRGGBB` for custom HEX values, along with formatting styles: `^l` (bold), `^o` (italic), `^n` (underline), `^m` (strikethrough), and `^r` (reset format).
 
-*In-game chat overlay* adds a third window, `NodeMP Chat`, with a settings tab: a colour per part
-and how it fades. Its **Save** button writes them to:
+Enabling the chat overlay (*In-game chat overlay*) brings up a customizable `NodeMP Chat` window. Its preferences are saved to:
 
 ```
 %LOCALAPPDATA%\BeamNG\BeamNG.drive\current\settings\nodemp\chat.json
 ```
 
-Delete the file to return the overlay to its defaults.
+Deleting this file resets the chat overlay back to default styling.
 
 ## Keys
 
-NodeMP's bindings are in the *gameplay* category of **Options → Controls**, where you can change
-them:
+NodeMP keybindings can be customized in **Options → Controls** under the *gameplay* category:
 
 | Default | Action | What it does |
 |---|---|---|
-| `T` | NodeMP: Chat | Open the chat. Enter sends, Esc closes. |
-| `Tab` | NodeMP: Player list | Show or hide the roster. |
+| `T` | NodeMP: Chat | Open the chat input window (Enter sends, Esc closes). |
+| `Tab` | NodeMP: Player list | Show or hide the active player roster. |
 | unbound | NodeMP: Diagnostics window | Open the diagnostics console. |
-| unbound | NodeMP: Toggle debug chat | Show or hide the chat overlay window. |
-| unbound | NodeMP: Join grabbed node (alias) | Same as the game's *Node grabber: fix node*. |
+| unbound | NodeMP: Toggle debug chat | Toggle the debug chat overlay window. |
+| unbound | NodeMP: Join grabbed node (alias) | Fix a grabbed node in place (same as *Node grabber: fix node*). |
 
-While the chat is open, the car gets no key presses — until Esc or an empty line.
+While the chat input box is active, vehicle controls are paused to avoid accidental driving inputs.
 
 ## Advanced: Launcher.cfg
 
-The launcher's helper — the process that carries your connection during the game — reads a
-settings file:
+The launcher's background helper — the process handling network traffic during your game — reads its settings from:
 
 ```
 %LOCALAPPDATA%\com.nodemp.launcher\helper\Launcher.cfg
 ```
 
-The launcher passes the server, your name and the ticket at every join, so most keys in the file are
-for people running the helper by hand. One is worth changing:
+The launcher passes server addresses, session tokens, and player names automatically, so you rarely need to touch this file. One setting that can be useful:
 
-- **`StrictRecheckMin`** — on a strict server: how many minutes pass between the helper's re-checks
-  of your game files during the session. Default `10`; `0` turns the schedule off. No effect on
-  servers that are not strict.
+- **`StrictRecheckMin`** — on strict servers, specifies the interval (in minutes) between automated integrity rechecks during a session. Defaults to `10` minutes; setting it to `0` disables scheduled rechecks (has no effect on standard servers).
 
-A re-check is the same strict check the join ran. If it finds a change, the server ends the
-session. Besides the schedule, the helper re-checks when it sees files change in the game and user
-folders, at most once a minute. A `Launcher.cfg` that is not valid JSON stops the helper (see
-[Error codes](/support/error-codes/#helper-exit-codes)).
+If the helper detects modified game files mid-game, the server terminates the session. Make sure `Launcher.cfg` remains valid JSON, otherwise the helper will fail to start (see [Error codes](/support/error-codes/#helper-exit-codes)).

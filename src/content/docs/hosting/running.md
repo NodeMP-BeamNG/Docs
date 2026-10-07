@@ -3,8 +3,7 @@ title: Running the server
 description: Run Node-Server as a systemd or Docker Compose service, know where its files live, read the logs, stop it cleanly and back up the right folders.
 ---
 
-This page assumes the server already starts by hand as in the [quick start](/hosting/quick-start/).
-It turns that into something that survives a reboot, and lists the files you are responsible for.
+Once you have confirmed that the server runs manually, configure it as a persistent service using systemd or Docker Compose. This page covers directory structure, service definitions, and clean shutdown.
 
 ## Files and folders
 
@@ -133,10 +132,7 @@ described [below](/hosting/administration/#bans).
 
 Ctrl+C, `systemctl stop`, or `docker compose stop` send SIGINT or SIGTERM. The server logs
 `gracefully shutting down via SIGTERM`, kicks every player with the reason `Server shutdown`,
-stops its subsystems and ends with `Shutdown.`. Pressing Ctrl+C repeatedly forces the exit. Two
-things a clean stop prints are noise, not damage: on Windows, after `Shutdown.`,
-`Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall`
-and `Error › Failed to accept() new client: …` are the network threads reporting their own
-cancellation; with a database configured, `Warn › pg: no live database connection (reconnecting)`
-is the pool announcing a reconnect it will not make.
+stops its subsystems and ends with `Shutdown.`. Pressing Ctrl+C repeatedly forces an immediate exit. A few harmless log lines may appear during shutdown:
+- On Windows after `Shutdown.`: `Error › UDP recvfrom() failed: A blocking operation was interrupted by a call to WSACancelBlockingCall` and `Error › Failed to accept() new client: …` are listener threads reporting socket cancellation.
+- With a database configured: `Warn › pg: no live database connection (reconnecting)` is the pool terminating remaining connections.
 

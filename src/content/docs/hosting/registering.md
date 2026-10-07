@@ -14,24 +14,24 @@ ticket is checked against the player's account.
 You need a NodeMP account with a **verified e-mail address** and a **linked Discord account**.
 Registration at [nodemp.com/register](https://nodemp.com/register) asks for a username, an e-mail
 and a password and sends a verification link; signing in before the link is opened answers
-`please verify your e-mail first`. Discord is not asked for at registration - it is linked on the
-`/hosts` page, and only an account with a linked Discord account can create a key (the link is
-used for nothing else). A host without Discord cannot list a server; the server still runs and is
-reachable through Direct Connect.
+`please verify your e-mail first`. Discord is not asked for at registration — it is linked under
+**Connections** in your account, and only an account with a linked Discord account can create a key
+(the link is used for nothing else; the site reads only your Discord ID and username). A host
+without Discord cannot list a server; the server still runs and is reachable through Direct Connect.
 
-1. Sign in at [nodemp.com](https://nodemp.com) and open [nodemp.com/hosts](https://nodemp.com/hosts)
-   (**Server keys**).
-2. If the page shows **Link Discord to create server keys**, press **Link Discord account** and
-   authorise; the form to create a key appears once the link is made.
-3. Under **Create a server key**, enter a **Label** (up to 64 characters, `EU Freeroam #1`) and
-   press **Create key**.
+1. Sign in at [nodemp.com](https://nodemp.com) and open **My servers** in your account
+   ([nodemp.com/account/servers](https://nodemp.com/account/servers)).
+2. The checklist **Before you can create a key** shows what is missing. If Discord is, press
+   **Link Discord** and authorise; *Discord linked — you can create keys now* confirms it.
+3. Under **Create a key**, enter a **Label** (up to 64 characters, `EU Freeroam #1`) and press
+   **Create key**.
 4. The dialog **Server key created** shows the **Host ID** and the **Host secret**. The secret is
    shown once; copy it now. Two tabs offer it ready to paste, **server.toml** and **Environment**
    (next section).
 
 Each key registers one server. The directory allows a small number of keys per account (three
 by default). Your keys are listed under **Your servers** with their status (**Online**,
-**Offline**, **Banned**), region, address and *last seen* time.
+**Offline**, **Banned**) and the time of the last beacon.
 
 ## Put the key into the server
 
@@ -89,7 +89,7 @@ the beacon was accepted, not that the probe got through. Whether it did you see 
 the server appears in the launcher's list and at [nodemp.com/servers](https://nodemp.com/servers)
 within about 15 seconds of the port opening, and a TCP connection to `your public address:30814`
 from outside your network succeeds (`Test-NetConnection 203.0.113.10 -Port 30814` from a PC on
-another connection, or any online port checker). **Online** under **Your servers** on `/hosts`
+another connection, or any online port checker). **Online** under **Your servers** in **My servers**
 only says that a beacon arrived, and a connection from your own LAN proves nothing about the
 router.
 
@@ -167,12 +167,12 @@ key there is about the directory's certificate, not yours.
 
 ## Rotate or delete a key
 
-Under **Your servers** at [nodemp.com/hosts](https://nodemp.com/hosts):
+Under **Your servers** at [nodemp.com/account/servers](https://nodemp.com/account/servers):
 
 - **Rotate secret** issues a new secret and shows it once in the dialog **New host secret**. The
   old secret stops working; update `HostSecret` (or `NODE_DIRECTORY_HOST_SECRET`) and restart.
   Do this whenever the secret may have leaked.
-- **Delete**, then **Confirm**, removes the key. A server still using it logs
+- **Delete**, then **Yes, delete**, removes the key. A server still using it logs
   `The directory refused this server's credentials: check [Directory] HostId and HostSecret, and that the host still exists in your account`,
   keeps running and is no longer listed.
 

@@ -1,20 +1,15 @@
 ---
 title: Error codes
-description: Every text a failed join can show — the launcher's messages, the helper's exit codes and the reasons a server gives — with what it means and what to do.
+description: "Reference of all error messages: launcher notifications, traffic helper exit codes, and server refusal reasons."
 ---
 
-NodeMP has no numbered error codes. What you see is text from one of three places: a launcher
-notification, the last line of the helper's log, or the reason a server gave when it refused or
-ended a session. This page indexes those texts exactly as the code prints them; `…` stands for a
-part that varies. The step-by-step explanations are on [Can't join a server](/support/joining/).
+NodeMP has no numeric error codes. What you see is clear text from one of three places: a launcher notification, the last line of the background helper log, or the reason given by the server when refusing a join or ending a session. This page indexes those exact messages (`…` indicates dynamic values). For step-by-step troubleshooting, see [Can't join a server](/support/joining/).
 
-The one number a player may see, `code 8` at the end of `Failed to find the game please launch it …`,
-is the helper's label for its game search, not a code to look up.
+The only number you might see is `code 8` at the end of `Failed to find the game please launch it …`, which is an internal search status label, not an error code.
 
 ## Launcher messages
 
-A notification's **title** names what failed; the line under it, shown here after ` · `, is the
-reason word for word. Titles follow the launcher's language; the reasons are in English.
+The notification **title** summarizes what failed; the line underneath (shown below after ` · `) is the exact reason in English.
 
 ### Client mod
 
@@ -74,11 +69,7 @@ own errors:
 
 ## Helper exit codes
 
-The helper is the traffic process of the launcher — the same program started with `--helper`. When it
-exits during a join, the launcher shows **The launcher's traffic helper stopped** with the last line of
-its log; in the game, **Session ended** with that line. The number itself is never shown: it is the
-process exit code, seen only when you start the helper from a terminal. The full log is
-`%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\launcher.log`, rewritten at every start.
+The background helper is the network engine of the launcher — the same program running silently without a window. If it exits while joining, the launcher shows **The launcher's traffic helper stopped** with the last line of its log, or **Session ended** in the game. The exit code number itself is only visible when running the helper directly from a command prompt. The full session log is written to `%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\launcher.log` and is overwritten on every launch.
 
 | Code | Last log line | Meaning | What to do |
 |---|---|---|---|
@@ -95,14 +86,9 @@ process exit code, seen only when you start the helper from a terminal. The full
 
 ## Server refusals and kick reasons
 
-A server refuses or ends a session with one line of text. At the door the launcher shows it under
-**The server refused the join**; in the game the game shows *The session has ended* with it, and
-the launcher **Session ended**. The server logs the same text as `<name> kicked — <reason>`.
+The server refuses a join or disconnects a player with a clear text reason. When joining, the launcher displays it under **The server refused the join**. During a session, BeamNG.drive displays *The session has ended*, and the launcher returns to the foreground with **Session ended**. The server logs this as `<name> kicked — <reason>`.
 
-For the version checks and the strict check, the launcher shows its own explanation instead, with
-advice under it — the *Shown as* text in those rows; the server's original is under **Details**.
-Plugins may send any text of their own; the rows below are the texts built into `Node-Server` and
-the defaults of the plugin API.
+For version checks and strict verification, the launcher translates technical refusals into plain English with actionable buttons (noted as `shown as ...` in the table); the raw server message remains available under **Details**. Plugins may also define custom kick messages; the table below lists the built-in strings from `Node-Server` and plugin API defaults.
 
 | Reason | When | What to do |
 |---|---|---|

@@ -96,9 +96,6 @@ EXAMPLES:
         Lifts the ban on that address (server stopped).
 ```
 
-`--gen-integrity` and `--bans` are separate tools sharing the binary: they take their words as
-positional arguments, need no `server.toml`, and exit when done.
-[Strict verification](/hosting/strict-verification/) walks through the first;
-[Running the server](/hosting/administration/#bans) through the second. `--obf-selftest` checks that the
-client-script obfuscator runs ([Resources and content](/hosting/resources/#obfuscation)).
+`--gen-integrity` and `--bans` are separate utilities built into the server binary: they take positional arguments, do not require `server.toml`, and exit once finished.
+[Strict verification](/hosting/strict-verification/) details manifest generation, while [Administration](/hosting/administration/#bans) covers ban management. `--obf-selftest` checks the client-script obfuscator ([Resources and content](/hosting/resources/#obfuscation)).
 

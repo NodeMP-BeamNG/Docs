@@ -1,136 +1,98 @@
 ---
 title: Join a server
-description: Pick a server in the launcher's list, by address or on the website, hold Play — and the launcher takes you all the way to the game window.
+description: Browse servers in the launcher or on the website, connect by direct address, and get into the game.
 ---
 
-Servers are joined from the launcher, not from BeamNG.drive's menu. This page is about finding a
-server, what you can learn about it before joining, and what happens when you hold *Hold to play*. The
-launcher should be [installed](/players/install/), and you [signed in or in Test Drive](/players/sign-in/).
+In NodeMP, servers are selected directly inside the launcher rather than through BeamNG.drive's main menu. Here is how to find a server, inspect its details beforehand, and join the game. Before starting, make sure the launcher is [installed](/players/install/) and you have [signed in or chosen Test Drive](/players/sign-in/).
 
 ## Find a server
 
-The launcher opens on **Home**: if you have played before, it offers to rejoin your last server;
-otherwise **Browse servers**. The full list is under **Servers** (the ▶ icon in the rail). It holds
-only servers that are online and listed.
+When opened, the launcher displays the **Home** tab: if you have played previously, it lets you rejoin your last server or click **Browse servers**. The full directory is located under **Servers** (the ▶ icon on the left rail) — listing only servers that are currently online and reachable.
 
-**Tabs:** **Public**, **Favorites** (starred servers) and **Recent** (the last 30 servers you
-joined).
+The directory offers three convenient tabs:
+- **Public** — the full list of available public servers;
+- **Favorites** — your starred servers;
+- **Recent** — the last 30 servers you connected to.
 
-**A row:** the name with the map under it; the country with its flag, the players as
-`online / slots` and the mode. Click a column heading to sort, again to flip. The star on the left
-adds the server to Favorites.
+Each row displays the server name, map, host country with flag, player count (`online / slots`), and game mode. Clicking any column header sorts the list; clicking again reverses the order.
 
-**Search** (or the `/` key) matches name, tags, map, country and description.
+Quickly find what you want using:
+- **Search** (press `/`) — filters by name, tags, map, country, and host description;
+- **Quick filters** — hide full, empty, or account-restricted servers (*Free slots*, *Players online*, *No account needed*);
+- **Download size** — filters by mod download volume (from *Stock only* to *Any size*);
+- **Map & Country** — select one or more regions, or pick *My country*.
 
-**Filters:**
+Click **Refresh** to reload the live server list.
 
-| Filter | What it does |
-|---|---|
-| Show only: *Free slots*, *Players online*, *No account needed* | Hides full, empty and guest-refusing servers. |
-| Download size | How much the server may send: from *Stock only* to *Any size*. |
-| Mods | *Any*, *No mods*, *With mods*, or a server that sends a mod with a given name. |
-| Map, Country | One or several; *My country* is a quick pick. |
-
-**Refresh** reloads the list.
-
-:::note[Where a server's country comes from]
-The country and city come from the DB-IP database, by the server's address. Its link is in the
-tooltip of the ⓘ next to the *Country* column heading.
+:::note[Server country detection]
+The country and city are detected automatically from the server's IP address using the DB-IP database. See the tooltip beside the ⓘ icon on the *Country* column header for details.
 :::
 
 ## Look at a server
 
-Click a row and the server's card opens on the right:
+Click any row to open the server card on the right:
 
-- the map's picture with its name;
-- the host's links: *Discord*, *Rules*, *Website*, *Donate*, *Voice chat* (a voice chat address is
-  copied rather than opened — paste it into the voice chat's app);
-- the name, tags and the host's description;
-- **Players**, **Access** (*Test Drive allowed* or *Account required*), **Content**, **Mode**,
-  **Location**;
-- **On the server now** — who is playing;
-- **It will send you** — the mod files the server sends before you join.
+- map screenshot and name;
+- host links: Discord, server rules, website, donate link, and voice chat address (the voice chat address is automatically copied to your clipboard);
+- description, tags, and key details: active players, access (*Test Drive allowed* or *Account required*), game mode, and location;
+- list of players currently on the server;
+- **It will send you** — mod files the server will download before you join.
 
-**Content** and *It will send you* are about the server's own mods: the launcher downloads them
-before the game starts, and they are kept apart from your own mods. *Stock content* means the
-server sends nothing extra.
+Server content is downloaded automatically and stored separately from your personal mods. A *Stock content* badge means the server runs original BeamNG.drive vehicles and maps without extra mods.
 
-The same list is at [nodemp.com/servers](https://nodemp.com/servers). Its **Connect** button opens
-the launcher right on that server — it needs a recent launcher version.
+The server list is also accessible on the web at [nodemp.com/servers](https://nodemp.com/servers). Clicking **Connect** on any web card opens the launcher straight to that server (requires an up-to-date launcher).
 
 ## Join by address
 
-If a host gave you an address, press **Direct Connect** above the list and enter it: `host:port` or
-`[IPv6]:port`, for example `203.0.113.10:30814`.
+If a host gave you a direct address, click **Direct Connect** above the list and enter `host:port` (or `[IPv6]:port`), such as `203.0.113.10:30814`.
 
-- If the server is in the list, the join goes as usual: *Found · starting session…*.
-- If it is not (a private server, or one without a server key), the launcher joins anyway:
-  *Not on the public list · connecting anyway…*.
+- If the server is public, the launcher locates it in the directory and begins a normal join.
+- If the server is unlisted or runs without a directory key, the launcher connects directly.
 
-On the first visit the launcher remembers such a server's certificate. If it is different next
-time, the launcher refuses to connect — a protection against impersonation. Ask the host whether
-they changed the server.
+On your first connection, the launcher remembers the server's security certificate. If the certificate changes on a future visit, the launcher warns you to prevent impersonation. If this happens, verify with the host whether their server was updated.
 
-:::caution[A server without a key]
-A server without a server key does not verify names: it takes the name the launcher sends, and
-another player could join under yours.
+:::caution[Servers without a key]
+Servers running without an official directory key do not verify accounts with the directory — they accept player names directly from the launcher.
 :::
 
 ## Join
 
-Pick a server and **press and hold the *Hold to play* button** at the bottom of its card for about
-half a second, then let go. Holding guards against joining by accident; turn it off in
-**Settings → Launcher → Hold to play** to join with one click. From the keyboard, hold Enter or
-Space; on a gamepad, the A button.
+Select a server and **press and hold the *Hold to play* button** at the bottom of the card for about half a second, then release. This hold timer prevents accidental joins. If you prefer instant joins, disable the hold in **Settings → Launcher → Hold to play**. You can also hold Enter or Space on your keyboard, or the A button on a gamepad.
 
-While the join runs, the button is replaced by the current step and **Cancel**:
+While connecting, the button displays current progress with a **Cancel** option:
 
-1. **Launcher update** — if automatic checks are on. If a new version is ready, the launcher
-   restarts into it and carries on joining this server by itself.
-2. **Client mod** — a new release is downloaded if there is one.
-3. **Starting BeamNG.drive** — in the graphics mode from Settings. The launcher gets the one-time
-   join ticket from NodeMP by itself: for your account, or a guest name in Test Drive.
-4. **Checking game files** — on strict servers only: the launcher downloads the server's reference
-   and compares your install with it (see [below](#what-the-server-checks-on-your-pc)).
-5. As soon as the game window is on screen, the launcher steps aside and brings the game to the
-   front.
+1. **Launcher update** — if automatic checks are on and a new version is ready, the launcher updates quickly and resumes joining.
+2. **Client mod** — verifies and downloads the latest `NodeMP.zip` if needed.
+3. **Starting BeamNG.drive** — launches the game in your chosen graphics mode and fetches a one-time join ticket (using your account or a temporary Test Drive name).
+4. **Checking game files** — on strict servers, the launcher verifies your game files against the server's reference manifest.
+5. The launcher hides itself and brings BeamNG.drive to the foreground.
 
-The game's loading screen then shows the server's mods downloading — and you are in.
+During the BeamNG.drive loading screen, you will see a progress bar for server mod downloads — and moments later you spawn into the world.
 
-If the join fails, the launcher comes back with a notification saying why. What each message
-means and what to do is in [Can't join a server](/support/joining/). Every notification is kept in
-the notification centre — the bell in the rail.
+If a connection attempt fails, the launcher displays a clear explanation of what went wrong. For troubleshooting common join errors, see [Can't join a server](/support/joining/). All past alerts are saved in the notification centre (the bell icon on the left rail).
 
 ## What the server checks on your PC
 
-Before letting you in, every server checks your BeamNG install. The check runs in the launcher on
-your PC; only the result goes to the server. How strict it is, is the host's choice:
+Before admitting players, each server verifies game client integrity. This check runs locally on your PC inside the launcher; only the final verification status is sent to the server:
 
-| Level | What is compared | When it refuses you |
+| Level | What is checked | When the server refuses connection |
 |---|---|---|
-| Normal (the default) | The game's files against the game's own file list: sizes, and on stricter levels the contents of the scripts or of every file. Your user folder and your mods are not looked at. | A game file edited, replaced or deleted. Verifying the game files in Steam fixes it. |
-| Strict (`strict`) | The whole game folder, the contents of the game's archives **and your BeamNG user folder** — against the host's reference of a clean install. | Anything a clean install does not have: unpacked mods in the user folder's `vehicles\`, `levels\`, `lua\`, files added to the game folder, another game version. |
+| Normal (default) | Compares BeamNG system files against the game's manifest (file sizes and scripts). Your user folder and local mods are not checked. | If core game files were edited, replaced, or deleted. Verifying game files in Steam usually resolves this. |
+| Strict (`strict`) | Checks the entire game folder, game archive contents, **and your BeamNG user folder** against the host's clean reference manifest. | If unexpected files are detected: unpacked mods in `vehicles\`, `levels\`, or `lua\` inside your user folder, extra files in the game folder, or an outdated game build. |
 
-**What about my mods?** Packed mods (the zips in your user folder's `mods\`) do not break the
-check: they are switched off for the session unless you turn on *Use my local mods in multiplayer*
-and the server allows it. A strict server refuses files **outside** `mods\`: leftovers of unpacked
-mods, or mods installed straight into the game folder. How to find and move them is on
-[Strict servers](/support/strict-servers/).
+**What about my local mods?** Standard zip archives in your user folder's `mods\` directory do not break verification: they are automatically disabled for the multiplayer session (unless you enabled local mods in settings and the server explicitly permits them). Strict servers only reject loose files stored outside `mods\`. For tips on cleaning up your folder, check [Strict servers](/support/strict-servers/).
 
 ## In the game
 
-Top left is the **session panel**: the server's name, your ping and the player count. Click the
-count to unfold the roster; click a player to spectate them or move the camera to them.
+The top-left corner features the **session panel**: server name, ping, and active player count. Clicking the player count reveals the roster, allowing you to spectate any player.
 
-- `T` opens the chat, Enter sends, Esc closes.
-- `Tab` shows or hides the roster.
-- Everything else is in **Options → NodeMP**, see [Settings and controls](/players/settings/).
+Essential shortcuts:
+- `T` — open in-game chat (Enter sends message, Esc closes);
+- `Tab` — show or hide the player roster;
+- Additional multiplayer settings are in the pause menu under **Options → NodeMP** (see [Settings and controls](/players/settings/)).
 
 ## Leave
 
-Hold **Leave** in the session panel — the game returns to its main menu. The launcher window comes
-back when you close the game. If the server ended the session, the launcher comes back at once —
-with a *Session ended* notification and the reason.
+To disconnect from a server, hold **Leave** in the session panel — BeamNG.drive will return to the main menu. The launcher window reappears as soon as you close the game. If the server ends the session remotely, the launcher comes back immediately with a notification stating why.
 
-You cannot switch servers from inside the game: close BeamNG.drive, then pick the next server in
-the launcher.
+You cannot switch directly between servers while in-game: close BeamNG.drive and pick your next server in the launcher.

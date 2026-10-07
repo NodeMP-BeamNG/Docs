@@ -190,14 +190,13 @@ integrity manifest` — once per manifest, about 1.2 MB in 32 KiB chunks, then c
 `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. The server refuses a
 mismatch with
 `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
-launcher 1.1.18 shows that in its own words, as
-`Could not join · Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
-with the first problem explained in the panel under the server's card. If the check fails later
+launcher 1.1.18 shows that in its own words under *The server refused the join*, as
+`Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
+with the first problem explained, advice and the diagnostic command. If the check fails later
 in the session the server ends it with
 `Game files changed while you were playing and no longer match this server's reference (1 problem). …`,
-shown as
-`Session ended · Your game files changed while you were playing and no longer match this server's reference (1 problem)`
-in the game.
+shown under *Session ended* as
+`Your game files changed while you were playing and no longer match this server's reference (1 problem)`.
 
 During the session the launcher checks again: on Windows when files change under the install's
 `content/`, `scripts/`, `lua/`, `ui/` or the user folder's `vehicles/`, `levels/`, `lua/`, `ui/`,

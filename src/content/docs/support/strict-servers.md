@@ -1,66 +1,47 @@
 ---
 title: "Strict servers"
-description: "What a strict server checks on your PC, why it refuses a modified install, how to see every problem and how to get in."
+description: "What strict verification is, why a server rejects extra files, how to inspect the full list of differences, and how to get in."
 ---
 
-A **strict** server compares your whole BeamNG install — the game folder, the contents of the
-game's archives and your BeamNG user folder — with a reference of a clean install of the game
-version it runs. Anything a clean install does not have refuses the join. The check runs in the
-launcher on your PC; the server receives the verdict. What the host set up is on
-[Strict verification](/hosting/strict-verification/).
+A **strict** server ensures fair play by requiring every participant to run a clean, unmodified copy of BeamNG.drive. This guarantees equal conditions for tournaments and competitions, preventing unauthorized modifications to vehicle configurations.
+
+When you join, the launcher compares your game files, zip archives, and BeamNG user directory against a reference manifest of a clean game installation. The entire scan takes place locally on your PC, and only the final pass/fail verdict is sent to the server — your personal files never leave your computer. To learn how hosts configure this mode, see [Strict verification](/hosting/strict-verification/).
 
 ## What it looks like
 
-A strict join has two extra steps: `Fetching the server's reference manifest` (only the first time
-— the reference is kept for later) and `Checking your game files against the server's reference`.
-If something differs, the join stops with:
+Joining a strict server includes two quick extra steps: downloading the server's manifest (`Fetching the server's reference manifest`, only once — it is cached for future joins) and checking local files against it (`Checking your game files against the server's reference`).
+
+If any difference is found, the join stops:
 
 > **The server refused the join**\
 > `Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`
 
-Under it, the launcher names the first problem in plain words, says what to do about it and offers
-the command that lists every problem, with a **Copy** button. The server's message carries up to
-three examples; the full list is in [the diagnostic](#see-every-problem).
+The launcher displays a plain-language summary of the first issue, advice on resolving it, and a diagnostic command with a **Copy** button. The server notification lists at most three sample files, but you can inspect the complete list using the built-in diagnostic tool.
 
 ## The usual causes
 
-On a game you never modified, the usual culprits are files the check cannot tell from a modification:
+Even if you never deliberately changed game files, the check may flag seemingly harmless leftovers:
 
-- **Leftovers of unpacked mods in the user folder** — `info_*.json`, `*.materials.json`, `*.jbeam`
-  under `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\vehicles\`, left after a mod was removed from
-  `mods\`. Allowed there are only your saved configurations (`<name>.pc` with their `.png`/`.jpg`
-  previews) and the game's own `main.materials.json` placeholders.
-- **Your own levels or edits** — a level under `current\levels\`, an edited
-  `current\lua\common\particles.json`, anything of yours under `current\lua\`, `ui\`, `art\` or
-  `scripts\`. Move it out while you play on a strict server.
-- **Files added to the game folder** — a tool copied next to the game, a mod installed into the game
-  folder instead of the user folder. Logs, the shader cache and Windows' `desktop.ini` do not count.
-- **Another game version** — after a BeamNG update, until the host regenerates the reference (or
-  until you update). The examples then name game files such as `/Bin64/BeamNG.drive.x64.exe (hash)`.
-- **A changed game archive** — a `.zip` under `content\` repacked or edited. Verify the game files
-  in Steam.
+- **Unpacked mod leftovers in your user folder** — files like `info_*.json`, `*.materials.json`, or `*.jbeam` inside `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\vehicles\` left behind after deleting or disabling older mods. Only your custom saved vehicle configurations (`<name>.pc` with thumbnail previews) and default `main.materials.json` files are permitted there.
+- **Custom tracks or personal scripts** — local maps in `current\levels\`, an edited `current\lua\common\particles.json`, or any custom files under `current\lua\`, `ui\`, `art\`, or `scripts\`. Move them out to another folder while driving on strict servers.
+- **Extra files in the game directory** — third-party utilities, reshade injectors, or mods accidentally unpacked into the game directory rather than the user directory. Windows system files (`desktop.ini`), shader cache files, and game logs are ignored.
+- **Mismatched BeamNG.drive version** — if the game recently updated but the host hasn't regenerated the server manifest yet (or you haven't downloaded the game update yet). In that case, the differences will list core game files like `/Bin64/BeamNG.drive.x64.exe (hash)`.
+- **Modified default archives** — altered or repacked `.zip` files in the `content\` directory. Easily fixed by running a file verification in Steam.
 
-**Not a cause:** packed mods in `mods\`. The strict check does not look there, and they are switched
-off for the session anyway.
+Standard zipped mods in your `mods\` folder **do not** block your join: the strict check skips them, and the launcher disables them during the multiplayer session anyway.
 
 ## See every problem
 
-The launcher has the same check built in and prints the whole list. The simplest way is the
-**Copy** button under the refusal: it gives the full command with every path filled in. Paste it
-into a Command Prompt, with BeamNG closed.
+The launcher has a built-in diagnostic tool that outputs every single discrepancy. The quickest way is the **Copy** button directly under the refusal notification: it puts the complete command with all proper paths into your clipboard. Close BeamNG.drive and paste the command into Command Prompt or PowerShell.
 
-By hand, the command needs the reference the server sent. References are cached as
-`%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest` — one file per server
-reference you fetched; the newest is normally the one of the server that just refused you. The
-launcher's program is the only `.exe` in `%LOCALAPPDATA%\NodeMP` other than `uninstall.exe`:
+You can also run the command manually. It needs the cached server manifest from `%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest` (the newest manifest file usually corresponds to the server you just attempted to join). The launcher helper executable is located in `%LOCALAPPDATA%\NodeMP`:
 
 ```
 cd /d %LOCALAPPDATA%\com.nodemp.launcher\helper
 "%LOCALAPPDATA%\NodeMP\<program>.exe" --helper --data-dir %LOCALAPPDATA%\com.nodemp.launcher\helper --integrity-check cache\integrity\<id>.manifest
 ```
 
-Add `--game-dir <folder>` if **Settings → Game** names a folder; `--user-path <folder>` overrides
-the user folder. The output is also written to `launcher.log` and looks like this:
+If you configured custom directories in settings, add `--game-dir <folder>` for the game installation or `--user-path <folder>` for the user folder. The diagnostic writes to the console and to `launcher.log`:
 
 ```
 integrity check (strict) against C:\Users\you\AppData\Local\com.nodemp.launcher\helper\cache\integrity\e326499d….manifest
@@ -77,28 +58,25 @@ counts: missing 0, size 0, hash 0, unlisted 1, archive 0, userfolder 2, folders 
 
 ## Reading the result
 
-One line per problem: the reason, then the path.
+Each problem is displayed on its own line: first the reason category, followed by the affected file path.
 
 | Reason | Path | Meaning | What to do |
 |---|---|---|---|
-| `overlay` | `userfolder:<path>` | A file in your user folder that overrides game content. | Move it out of `current\`. A packed mod belongs in `mods\`. |
-| `unreadable` | `userfolder:<folder>` | A folder the launcher could not read, usually a path longer than Windows allows. | Shorten or remove it. |
-| `unlisted` | `/<path>` | A file in the game folder that a clean install does not have. | Delete it — Steam's file check does not remove extra files. |
-| `hash`, `size`, `missing` | `/<path>` | A game file was edited, resized or deleted. Many of them, `/Bin64/…` included, mean another game version. | Verify the game files in Steam; update the game, or wait for the host. |
-| `crc`, `size`, `extra`, `missing`, `duplicate` | `/<zip>!<entry>` | A file inside a game archive differs from the clean one. | Verify the game files in Steam. |
-| `unreadable` | `/<zip>` | The archive is not a readable zip. | Verify the game files in Steam. |
-| `not judged` | `<path> (the launcher's own)` | Not a problem: the launcher's own files inside the game folder are left out. | Nothing. |
+| `overlay` | `userfolder:<path>` | A file in your user folder overrides or injects game content. | Move or remove the file from `current\`. Packed mods belong in `mods\`. |
+| `unreadable` | `userfolder:<folder>` | The launcher could not access the folder (typically due to Windows path length limits). | Shorten or delete the nested folder. |
+| `unlisted` | `/<path>` | An unexpected file was found in the game folder. | Delete it manually: Steam integrity verification does not delete foreign files. |
+| `hash`, `size`, `missing` | `/<path>` | A game file is modified, has an unexpected size, or is missing. If many core files differ (including `/Bin64/…`), game versions differ. | Run Steam file integrity check; update BeamNG or wait for the host to update their manifest. |
+| `crc`, `size`, `extra`, `missing`, `duplicate` | `/<zip>!<entry>` | A file inside a default game archive differs from the official release. | Verify game files in Steam. |
+| `unreadable` | `/<zip>` | The game archive is corrupted and cannot be read as a valid zip file. | Verify game files in Steam. |
+| `not judged` | `<path> (the launcher's own)` | Launcher helper files inside the game folder. Not counted as a problem. | Nothing needed. |
 
-The exit code is `0` for a clean install, `1` when there are problems and `2` when the check could
-not run at all — for example `could not check: manifest format outdated (format 1)` (tell the host
-to regenerate the reference) or `could not check: the game's user folder … does not exist` (start
-the game once).
+Command exit codes: `0` means the installation is clean, `1` indicates discrepancies, and `2` means the scan could not run (e.g. outdated manifest format `manifest format outdated (format 1)` — ask the host to regenerate it, or user folder missing — launch BeamNG.drive once).
 
 ## While you play
 
-A strict server checks again during the session: every 10 minutes, and whenever files change in
-the game or user folder (at most once a minute). If something changed, the session ends with
-**Session ended** and
-`Your game files changed while you were playing and no longer match this server's reference (1 problem)`.
-Undo the change and join again. The interval is `StrictRecheckMin` in
-[Launcher.cfg](/players/settings/#advanced-launchercfg).
+A strict server continues to verify file integrity throughout the session: every 10 minutes and whenever files change in the game or user directory (at most once per minute). If changes are detected while playing, your session ends immediately:
+
+> **Session ended**\
+> `Your game files changed while you were playing and no longer match this server's reference (1 problem)`
+
+Restore the modified files to their original state and rejoin the server. The check interval is configured via `StrictRecheckMin` in [Launcher.cfg](/players/settings/#advanced-launchercfg).
