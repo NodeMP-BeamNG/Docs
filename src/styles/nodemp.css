@@ -19,6 +19,27 @@
   font-display: swap;
 }
 
+/* Arial reshaped to each face's metrics -- the values next/font computes for the site --
+   so the text set before the webfonts arrive takes the room they will take: the swap
+   changes the letters, not the lines (a heading used to rewrap and push the page down). */
+@font-face {
+  font-family: 'Golos Text Fallback';
+  src: local('Arial');
+  ascent-override: 90.27%;
+  descent-override: 20.26%;
+  line-gap-override: 0%;
+  size-adjust: 108.57%;
+}
+
+@font-face {
+  font-family: 'Unbounded Fallback';
+  src: local('Arial');
+  ascent-override: 73.93%;
+  descent-override: 18.2%;
+  line-gap-override: 0%;
+  size-adjust: 134.59%;
+}
+
 :root,
 :root[data-theme='dark'],
 :root[data-theme='light'] {
@@ -45,9 +66,9 @@
   --nmp-warning-wash: rgb(242 181 68 / 0.13);
   --nmp-nav-surface: rgb(27 27 27 / 0.92);
   --nmp-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --nmp-display: 'Unbounded', 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+  --nmp-display: 'Unbounded', 'Unbounded Fallback', 'Golos Text', 'Segoe UI', system-ui, sans-serif;
 
-  --sl-font: 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+  --sl-font: 'Golos Text', 'Golos Text Fallback', 'Segoe UI', system-ui, sans-serif;
   --sl-font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
 
   /* Solid greys equal to the site's white-on-#141414 steps. */
@@ -106,6 +127,27 @@ body {
 :focus-visible {
   outline: 2px solid rgb(255 255 255 / 0.55);
   outline-offset: 2px;
+}
+
+/* ── Between the site and the docs (components/Header.astro) ──
+   Arriving from the site's Docs link the page fades in under the folding bar; leaving
+   by the mark it fades out while the bar opens back into the site's. The bar itself is
+   handled in Header.astro. */
+:root.nmp-arriving .main-frame,
+:root.nmp-arriving .sidebar-pane {
+  animation: nmp-content-in 360ms var(--nmp-ease) 140ms both;
+}
+
+:root.nmp-leaving .main-frame,
+:root.nmp-leaving .sidebar-pane {
+  opacity: 0;
+  transition: opacity 180ms var(--nmp-ease);
+}
+
+@keyframes nmp-content-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* ── The bar: transparent frame, the floating card inside (components/Header.astro) ── */

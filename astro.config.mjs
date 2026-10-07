@@ -9,6 +9,9 @@ const apiGenerated = existsSync('./src/content/docs/plugins/api/lua.md');
 
 export default defineConfig({
   site: 'https://docs.nodemp.com',
+  // The styles ride in each page instead of a second request: the first paint then waits
+  // for the page alone, so arriving from nodemp.com shows no empty frame between the sites.
+  build: { inlineStylesheets: 'always' },
   // Slugs removed by the phase-4 rewrite. Astro emits a meta-refresh page for each.
   redirects: {
     '/introduction/beammp-compatibility/': '/introduction/differences-from-beammp/',
@@ -34,6 +37,12 @@ export default defineConfig({
     starlight({
       title: 'NodeMP',
       favicon: '/favicon.svg',
+      // Fetched with the page rather than when the CSS asks, so the text is usually set
+      // in them from the first paint.
+      head: [
+        { tag: 'link', attrs: { rel: 'preload', href: '/fonts/GolosText-Variable.woff2', as: 'font', type: 'font/woff2', crossorigin: '' } },
+        { tag: 'link', attrs: { rel: 'preload', href: '/fonts/Unbounded-800.woff2', as: 'font', type: 'font/woff2', crossorigin: '' } },
+      ],
       // The NodeMP theme: the site's tokens and components in Starlight's places (src/styles/nodemp.css).
       customCss: ['./src/styles/nodemp.css'],
       components: {
@@ -46,6 +55,8 @@ export default defineConfig({
       },
       expressiveCode: {
         themes: ['github-dark-default'],
+        // Inline as well, for the same reason as build.inlineStylesheets above.
+        emitExternalStylesheet: false,
         styleOverrides: {
           borderRadius: '13px',
           borderColor: 'rgb(255 255 255 / 0.07)',
