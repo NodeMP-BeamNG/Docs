@@ -160,8 +160,11 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     min-width: 0;
   }
 
+  /* No max-width: Starlight's 22rem would leave a gap before RU | EN while the bar is
+     still wide in the fold, where the site's copy of these items fills the row. */
   .nmp-search :global(button[data-open-modal]) {
     width: 100%;
+    max-width: none;
     height: 36px;
     border: 0;
     border-radius: 13px;
