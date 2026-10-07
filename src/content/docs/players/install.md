@@ -42,7 +42,7 @@ If an issue occurs before the main window opens, you might see one of these prom
 
 ## Launcher updates
 
-The launcher manages its own updates seamlessly. It checks for new releases on startup and before each join, downloads them in the background, and prompts you to apply them with **Restart and update**. Updates never interrupt an active game session — they only apply after you leave the server.
+The launcher updates itself. It checks for new releases on startup and before each join, downloads them in the background, and prompts you to apply them with **Restart and update**. Updates never interrupt an active game session — they only apply after you leave the server.
 
 You can manage update preferences under **Settings → Launcher → Updates**:
 

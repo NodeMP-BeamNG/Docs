@@ -3,7 +3,7 @@ title: Settings and controls
 description: Launcher options, the in-game NodeMP menu, chat commands, player roster, and keybindings.
 ---
 
-Settings are organized into two intuitive places: the launcher's **Settings** menu manages everything before you launch, while the **NodeMP** panel inside the game options lets you fine-tune gameplay and interface behaviors on the fly. All changes take effect immediately.
+Settings live in two places: the launcher's **Settings** cover everything before the game starts, and the **NodeMP** page in the game's options covers how other cars, name tags and chat behave in a session. Changes take effect immediately.
 
 ## Launcher settings
 
@@ -46,7 +46,7 @@ Inside BeamNG.drive, a new **NodeMP** section appears in the **Options** sidebar
 
 | Section | Settings |
 |---|---|
-| Gameplay & sync | Fine-tune multiplayer vehicle synchronization. *Correction strength* and *Teleport threshold* adjust position smoothing during network lag. The *Hold other cars tightly* toggle (off by default) keeps other cars closer to their true trajectory during drifts at the cost of slightly snappier throttle and brake reactions. *Steering look-ahead* turns other players' wheels slightly early based on latency, while *Ghost cars on reset* grants 1.5 seconds of collision-free ghosting after resetting your car. |
+| Gameplay & sync | How other players' cars are synchronised. *Correction strength* and *Teleport threshold* adjust position smoothing during network lag. The *Hold other cars tightly* toggle (off by default) keeps other cars closer to their true trajectory during drifts at the cost of slightly snappier throttle and brake reactions. *Steering look-ahead* turns other players' wheels slightly early based on latency, while *Ghost cars on reset* grants 1.5 seconds of collision-free ghosting after resetting your car. |
 | Name tags | Customize nametags above vehicles: hide your own nametag (*Hide my own nametag*), hide tags on unoccupied cars (*Show 'Empty' on empty cars*), display distance, and set the tag visibility cutoff (*Fade distance*). |
 | Markers | Display indicators for vehicles that are still loading or have been removed. |
 | Vehicle | Access permissions for your vehicles (*My cars: access*: 0 open to all, 1 passengers only, 2 locked to you), allow others to use interior triggers, show username on license plates, protect custom configurations, and automatically apply others' tuning setups. |

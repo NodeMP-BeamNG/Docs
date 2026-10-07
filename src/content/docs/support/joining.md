@@ -21,7 +21,7 @@ All recent connection attempts and kicks are saved in the notification centre (t
 
 ## Client mod
 
-Before every connection, the launcher checks your `NodeMP.zip` client mod and downloads any fresh release. If the mod is already installed on your PC but the directory is temporarily unreachable, the launcher won't block your join: you will see a warning and continue smoothly with your existing copy.
+Before every connection, the launcher checks your `NodeMP.zip` client mod and downloads any fresh release. If the mod is already installed on your PC but the directory is temporarily unreachable, the launcher won't block your join: it shows a warning and joins with the copy you have.
 
 The errors below only halt your join when no client mod is installed on your computer at all.
 
