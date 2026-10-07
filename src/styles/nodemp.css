@@ -83,7 +83,8 @@
   --sl-nav-pad-x: 1rem;
   --sl-nav-pad-y: 0.75rem;
   --sl-menu-button-size: 2.25rem;
-  --sl-sidebar-width: 17.5rem;
+  /* Wide enough for the folded bar above it: the mark, search and RU | EN. */
+  --sl-sidebar-width: 18.5rem;
   --sl-content-width: 47rem;
   --sl-line-height: 1.65;
   --sl-text-h1: 2rem;

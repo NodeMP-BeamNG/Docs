@@ -81,6 +81,8 @@ export default defineConfig({
       // shows the RU titles without a second list of labels here.
       sidebar: [
         { label: 'Getting started', translations: { ru: 'Начало' }, items: [
+          // The mark in the bar goes to nodemp.com, so the docs' own front page is here.
+          { slug: 'index', label: 'All sections', translations: { ru: 'Все разделы' } },
           { slug: 'introduction/what-is-nodemp' },
           { slug: 'introduction/differences-from-beammp' },
           { label: 'How it works', translations: { ru: 'Как это устроено' }, collapsed: true, items: [

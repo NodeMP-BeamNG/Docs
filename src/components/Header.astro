@@ -1,21 +1,20 @@
 ---
-// The site's floating bar (website/src/ui/Nav.tsx) in place of Starlight's header:
-// the mark, the site's sections, Documentation as the current one, the forum,
-// Starlight's own search, and RU | EN. On a phone the links step aside and
-// Starlight's menu button sits inside the bar's right end.
+// The docs' bar: the site's floating bar (website/src/ui/Nav.tsx), folded into the
+// corner Starlight keeps for its site title -- the mark (to nodemp.com), search and
+// RU | EN, over the sidebar. The site's sections live in the phone menu's foot.
+//
+// Arriving from nodemp.com (or on the first docs page of a tab) the bar starts where
+// the site's bar is, centred and wide, and folds to the left: a surface the size of
+// the site's bar is clipped down to this one, then this one appears in its place.
+// Only on a wide screen, and never under reduced motion.
 import config from 'virtual:starlight/user-config';
 import Search from 'virtual:starlight/components/Search';
 import Mark from './Mark.astro';
 import { inLocale } from '../lib/locale';
 
-const { locale, siteTitleHref } = Astro.locals.starlightRoute;
+const { locale } = Astro.locals.starlightRoute;
 const ru = locale === 'ru';
 const site = `https://nodemp.com/${ru ? 'ru' : 'en'}`;
-const links = [
-  { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
-  { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
-  { href: `${site}/news`, label: ru ? 'Новости' : 'News' },
-];
 const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
   short: code === 'root' ? 'EN' : code.toUpperCase(),
   name: l!.label,
@@ -26,22 +25,31 @@ const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
 const shouldRenderSearch = config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
 ---
 
+<script is:inline>
+  (() => {
+    try {
+      const wide = matchMedia('(min-width: 50rem)').matches;
+      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const from = document.referrer ? new URL(document.referrer).host : '';
+      const fromSite = from !== location.host && /(^|\.)nodemp\.com$/.test(from);
+      const first = !sessionStorage.getItem('nmp-docs-entered');
+      sessionStorage.setItem('nmp-docs-entered', '1');
+      if (wide && !calm && (fromSite || first)) {
+        const root = document.documentElement;
+        root.classList.add('nmp-entering');
+        setTimeout(() => root.classList.remove('nmp-entering'), 1000);
+      }
+    } catch {}
+  })();
+</script>
+
+<div class="nmp-fold" aria-hidden="true"></div>
 <div class="nmp-bar">
-  <a class="nmp-home" href={siteTitleHref} aria-label={ru ? 'Документация NodeMP — на главную' : 'NodeMP docs — home'}>
+  <a class="nmp-home" href={site} aria-label={ru ? 'NodeMP — на главную сайта' : 'NodeMP — the website'}>
     <Mark size={22} />
   </a>
-  <span class="nmp-divider nmp-wide" aria-hidden="true"></span>
-  <nav class="nmp-links nmp-wide" aria-label={ru ? 'Сайт NodeMP' : 'NodeMP site'}>
-    {links.map((l) => <a class="nmp-link" href={l.href}>{l.label}</a>)}
-    <a class="nmp-link" href={siteTitleHref} aria-current="page">{ru ? 'Документация' : 'Docs'}</a>
-    <a class="nmp-link" href="https://forum.nodemp.com" target="_blank" rel="noreferrer">
-      {ru ? 'Форум' : 'Forum'}
-      <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
-    </a>
-  </nav>
-  <span class="nmp-divider nmp-wide" aria-hidden="true"></span>
   <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
-  <nav class="nmp-lang nmp-wide" aria-label={ru ? 'Язык' : 'Language'}>
+  <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
     {langs.map((l) => (
       <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
         {l.short}
@@ -52,13 +60,12 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
 
 <style>
   .nmp-bar {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 4px;
     height: 52px;
     width: 100%;
-    max-width: 1200px;
-    margin-inline: auto;
     padding-inline: 8px 52px;
     border-radius: 18px;
     background: var(--nmp-nav-surface);
@@ -67,6 +74,7 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
 
   .nmp-home {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     height: 36px;
     padding-inline: 8px;
@@ -79,56 +87,6 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     background: var(--nmp-hover);
   }
 
-  .nmp-divider {
-    flex-shrink: 0;
-    width: 1px;
-    height: 20px;
-    margin-inline: 6px;
-    background: var(--nmp-hover-strong);
-  }
-
-  .nmp-links {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
-
-  .nmp-link {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 36px;
-    padding-inline: 12px;
-    border-radius: 13px;
-    color: var(--nmp-fg-soft);
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    transition:
-      background-color 200ms var(--nmp-ease),
-      color 200ms var(--nmp-ease);
-  }
-
-  .nmp-link:hover {
-    background: var(--nmp-hover);
-    color: var(--nmp-fg);
-  }
-
-  .nmp-link[aria-current] {
-    background: var(--nmp-accent-wash);
-    color: var(--nmp-accent);
-  }
-
-  .nmp-link svg {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    opacity: 0.6;
-  }
-
   .nmp-search {
     flex: 1;
     min-width: 0;
@@ -136,7 +94,6 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
 
   .nmp-search :global(button[data-open-modal]) {
     width: 100%;
-    max-width: 15rem;
     height: 36px;
     border: 0;
     border-radius: 13px;
@@ -151,17 +108,30 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     color: var(--nmp-fg);
   }
 
+  /* No room for the shortcut's chip in the folded bar; Ctrl+K and / still open search. */
   .nmp-search :global(kbd) {
-    border-color: transparent;
-    background: var(--nmp-hover);
-    color: var(--nmp-fg-muted);
+    display: none;
+  }
+
+  /* A phone: Starlight drops the label, so search is a square magnifier by the menu. */
+  @media (max-width: 49.99rem) {
+    .nmp-search {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .nmp-search :global(button[data-open-modal]) {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
   }
 
   .nmp-lang {
-    display: inline-flex;
+    display: none;
+    flex-shrink: 0;
     align-items: center;
     gap: 2px;
-    margin-inline-start: 4px;
     padding: 3px;
     border-radius: 13px;
     background: var(--nmp-hover);
@@ -171,7 +141,7 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
+    width: 38px;
     height: 28px;
     border-radius: 10px;
     color: var(--nmp-fg-muted);
@@ -192,27 +162,70 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     color: var(--nmp-fg);
   }
 
-  .nmp-wide {
+  .nmp-fold {
     display: none;
   }
 
+  /* A wide screen: the bar folds into the sidebar's corner. */
   @media (min-width: 50rem) {
     .nmp-bar {
-      width: fit-content;
-      min-width: min(100%, 56rem);
+      width: calc(var(--sl-sidebar-width) - 0.75rem);
       padding-inline-end: 8px;
     }
 
-    .nmp-search {
-      flex: 1 1 15rem;
+    .nmp-lang {
+      display: inline-flex;
     }
 
-    .nmp-wide {
-      display: flex;
-    }
-
-    .nmp-divider.nmp-wide {
+    /* The fold: a surface as wide as the site's bar, centred where that bar sits on
+       nodemp.com, clipped down to this bar's place; this bar then fades in over it. */
+    .nmp-fold {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      right: 0.75rem;
       display: block;
+      height: 52px;
+      border-radius: 18px;
+      background: var(--nmp-nav-surface);
+      opacity: 0;
+      pointer-events: none;
+      --nmp-site-bar: min(780px, 100%);
+    }
+
+    /* The one long move on the site: 620 ms, eased at both ends so the slide reads as
+       a slide, starting a beat late so the first frame shows the wide bar. */
+    :global(.nmp-entering) .nmp-fold {
+      animation: nmp-fold 620ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+    }
+
+    :global(.nmp-entering) .nmp-bar {
+      animation: nmp-bar-in 620ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+    }
+  }
+
+  @keyframes nmp-fold {
+    0% {
+      opacity: 1;
+      clip-path: inset(0 calc((100% - var(--nmp-site-bar)) / 2) round 18px);
+    }
+    78% {
+      opacity: 1;
+      clip-path: inset(0 calc(100% - var(--sl-sidebar-width) + 0.75rem) 0 0 round 18px);
+    }
+    100% {
+      opacity: 0;
+      clip-path: inset(0 calc(100% - var(--sl-sidebar-width) + 0.75rem) 0 0 round 18px);
+    }
+  }
+
+  @keyframes nmp-bar-in {
+    0%,
+    62% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
     }
   }
 </style>
