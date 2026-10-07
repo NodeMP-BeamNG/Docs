@@ -279,7 +279,7 @@ node.on("playerLeft", function(player)
     post(string.format("%s left", player.name))
 end)
 
--- expect: webhook failed \(-1\): connect failed
+-- expect: webhook failed \(-1\): refusing to connect to a non-public address \(127\.0\.0\.1
 ```
 
 `node.http.request(method, url, { headers?, body? }, cb)` выполняет запрос в фоновом потоке пула и
@@ -301,6 +301,17 @@ end)
 ```
 webhook · webhook failed (-1): connect failed: Connection refused
 ```
+
+Получатель на той же машине или в локальной сети - тестовый адрес на `127.0.0.1`, бот в соседнем
+контейнере - получает отказ ещё до попытки соединения: по умолчанию сервер не пускает ресурсы на
+loopback, link-local и частные адреса:
+
+```
+webhook · webhook failed (-1): refusing to connect to a non-public address (127.0.0.1 -> 127.0.0.1): loopback, link-local, private and IPv4-mapped ranges are blocked for resources; set [Http] AllowPrivateNetworks = true to allow it
+```
+
+Снять запрет может хост - `[Http] AllowPrivateNetworks = true`
+([Конфигурация](/ru/hosting/configuration/#http)); ресурс - нет.
 
 Внутри `node.async` тот же запрос - `node.http.fetch(url, { method = "POST", body = t, headers = h })`,
 корутина, возвращающая `status, body, headers` ([Конкурентность](/ru/plugins/concurrency/#http)).

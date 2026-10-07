@@ -276,7 +276,7 @@ node.on("playerLeft", function(player)
     post(string.format("%s left", player.name))
 end)
 
--- expect: webhook failed \(-1\): connect failed
+-- expect: webhook failed \(-1\): refusing to connect to a non-public address \(127\.0\.0\.1
 ```
 
 `node.http.request(method, url, { headers?, body? }, cb)` runs the request on a background pool
@@ -299,6 +299,17 @@ system's own message:
 ```
 webhook · webhook failed (-1): connect failed: Connection refused
 ```
+
+A receiver on the same machine or the local network - a test endpoint on `127.0.0.1`, a bot in the
+next container - is refused before any connection is tried, because by default the server keeps
+resources away from loopback, link-local and private addresses:
+
+```
+webhook · webhook failed (-1): refusing to connect to a non-public address (127.0.0.1 -> 127.0.0.1): loopback, link-local, private and IPv4-mapped ranges are blocked for resources; set [Http] AllowPrivateNetworks = true to allow it
+```
+
+The host lifts that with `[Http] AllowPrivateNetworks = true`
+([Configuration](/hosting/configuration/#http)); a resource cannot.
 
 Inside `node.async`, `node.http.fetch(url, { method = "POST", body = t, headers = h })` is the same
 request as a coroutine that returns `status, body, headers` ([Concurrency](/plugins/concurrency/#http)).
