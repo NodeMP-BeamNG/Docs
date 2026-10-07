@@ -130,23 +130,22 @@ body {
 }
 
 /* ── Between the site and the docs (components/Header.astro) ──
-   Arriving from the site's Docs link the page fades in under the folding bar; leaving
-   by the mark it fades out while the bar opens back into the site's. The bar itself is
-   handled in Header.astro. */
+   The page being left dims to half and the page arriving comes up from half, so the
+   swap never passes through an empty screen; the bar is handled in Header.astro. */
 :root.nmp-arriving .main-frame,
 :root.nmp-arriving .sidebar-pane {
-  animation: nmp-content-in 360ms var(--nmp-ease) 140ms both;
+  animation: nmp-content-in 260ms var(--nmp-ease) both;
 }
 
 :root.nmp-leaving .main-frame,
 :root.nmp-leaving .sidebar-pane {
-  opacity: 0;
+  opacity: 0.5;
   transition: opacity 180ms var(--nmp-ease);
 }
 
 @keyframes nmp-content-in {
   from {
-    opacity: 0;
+    opacity: 0.5;
   }
 }
 

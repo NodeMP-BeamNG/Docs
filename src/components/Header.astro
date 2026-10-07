@@ -3,17 +3,18 @@
 // corner Starlight keeps for its site title -- the mark (to nodemp.com), search and
 // RU | EN, over the sidebar. The site's sections live in the phone menu's foot.
 //
-// Arriving from nodemp.com (or on the first docs page of a tab) the bar starts where
-// the site's bar is, centred and wide, and folds to the left: a surface the size of
-// the site's bar is clipped down to this one, then this one appears in its place.
-// Only on a wide screen, and never under reduced motion.
+// Arriving from nodemp.com (or on the first docs page of a tab) this bar starts where
+// the site's bar is, centred and wide, and folds to the left: it slides and narrows to
+// its corner with the mark in place, search and RU | EN coming in on the way. Only on a
+// wide screen, and never under reduced motion.
 //
-// The hand-off: a click on the site's Docs link fades the site down to its bar's empty
-// surface and leaves that surface's box in window.name ("nmp-bar:{x,y,w,h}"; the name
-// survives a navigation between nodemp.com and its own subdomains). The fold starts at
-// exactly that box and the page fades in under it, so nothing jumps between the two
-// sites. The box is kept in sessionStorage for the way back: the mark unfolds this bar
-// into the site's while the site loads.
+// The hand-off, both ways. The page being left dims to half and fades its bar down to
+// the plate and the mark -- the one thing both bars have in the same spot -- and leaves
+// the plate's box in window.name ("nmp-bar:{x,y,w,h}"; the name survives a navigation
+// between nodemp.com and its own subdomains). The page arriving starts its bar at that
+// box, moves it home and brings its own items in, while the page comes up from half.
+// Here: a click on the mark hands this bar to the site (website/src/ui/Nav.tsx), whose
+// bar then opens out of this corner -- this fold, run backwards.
 import config from 'virtual:starlight/user-config';
 import Search from 'virtual:starlight/components/Search';
 import Mark from './Mark.astro';
@@ -43,33 +44,29 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
         try { bar = JSON.parse(window.name.slice(8)); } catch {}
         window.name = '';
       }
-      if (bar) sessionStorage.setItem('nmp-site-bar', JSON.stringify(bar));
       const from = document.referrer ? new URL(document.referrer).host : '';
       const fromSite = from !== location.host && /(^|\.)nodemp\.com$/.test(from);
       const first = !sessionStorage.getItem('nmp-docs-entered');
       sessionStorage.setItem('nmp-docs-entered', '1');
       if (calm) return;
-      // The fold's box sits 0.75rem (12 px) in from the top and the left (see .nmp-fold).
-      const place = (b) => {
-        root.style.setProperty('--nmp-from-l', b.x - 12 + 'px');
-        root.style.setProperty('--nmp-from-w', b.w + 'px');
-        root.style.setProperty('--nmp-from-dy', b.y - 12 + 'px');
-      };
       if (bar) root.classList.add('nmp-arriving');
       if (wide && (bar || fromSite || first)) {
-        if (bar) place(bar);
+        // This bar rests 0.75rem (12 px) in from the top and the left (header.header's padding).
+        if (bar) {
+          root.style.setProperty('--nmp-from-l', bar.x - 12 + 'px');
+          root.style.setProperty('--nmp-from-w', bar.w + 'px');
+          root.style.setProperty('--nmp-from-dy', bar.y - 12 + 'px');
+        }
         root.classList.add('nmp-entering');
       }
       setTimeout(() => root.classList.remove('nmp-entering', 'nmp-arriving'), 1100);
-      // The way back: the mark unfolds this bar into the site's while nodemp.com loads.
+      // The way back: hand the plate to the site, which opens its bar out of this corner.
       addEventListener('click', (e) => {
         const a = e.target instanceof Element ? e.target.closest('.nmp-home') : null;
         if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        let back = null;
-        try { back = JSON.parse(sessionStorage.getItem('nmp-site-bar') || 'null'); } catch {}
+        const r = document.querySelector('.nmp-bar')?.getBoundingClientRect();
+        if (r) window.name = 'nmp-bar:' + JSON.stringify({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) });
         root.classList.remove('nmp-entering', 'nmp-arriving');
-        if (back) place(back);
-        else ['--nmp-from-l', '--nmp-from-w', '--nmp-from-dy'].forEach((p) => root.style.removeProperty(p));
         root.classList.add('nmp-leaving');
         const undo = () => root.classList.remove('nmp-leaving');
         addEventListener('pageshow', undo, { once: true });
@@ -79,7 +76,6 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
   })();
 </script>
 
-<div class="nmp-fold" aria-hidden="true"></div>
 <div class="nmp-bar">
   <a class="nmp-home" href={site} aria-label={ru ? 'NodeMP — на главную сайта' : 'NodeMP — the website'}>
     <Mark size={22} />
@@ -198,10 +194,6 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     color: var(--nmp-fg);
   }
 
-  .nmp-fold {
-    display: none;
-  }
-
   /* A wide screen: the bar folds into the sidebar's corner. */
   @media (min-width: 50rem) {
     .nmp-bar {
@@ -213,86 +205,42 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
       display: inline-flex;
     }
 
-    /* The fold: a surface in the site's bar's box -- the exact box the site handed over
-       (--nmp-from-l / -w / -dy, set by the script above), or centred at the site's width
-       when it did not -- clipped down to this bar's place; this bar then fades in over it.
-       The box spans the header so the clip can reach both. */
-    .nmp-fold {
-      position: absolute;
-      top: 0.75rem;
-      left: 0.75rem;
-      right: 0.75rem;
-      display: block;
-      height: 52px;
-      border-radius: 18px;
-      background: var(--nmp-nav-surface);
-      opacity: 0;
-      pointer-events: none;
-      --nmp-site-w: var(--nmp-from-w, min(780px, 100%));
-      --nmp-site-l: var(--nmp-from-l, calc((100% - var(--nmp-site-w)) / 2));
-      --nmp-site-clip: inset(0 calc(100% - var(--nmp-site-l) - var(--nmp-site-w)) 0 var(--nmp-site-l) round 18px);
-      --nmp-docs-clip: inset(0 calc(100% - var(--sl-sidebar-width) + 0.75rem) 0 0 round 18px);
-    }
-
-    /* The one long move on the site: 620 ms, eased at both ends so the slide reads as
-       a slide, starting a beat late so the first frame shows the wide bar. */
-    :global(.nmp-entering) .nmp-fold {
+    /* The fold, the one long move on the site: 620 ms, eased at both ends so the slide
+       reads as a slide, a beat late so the first frame is the site's bar. The bar starts
+       in the box the site handed over (--nmp-from-l / -w / -dy, set by the script above),
+       or centred at the site's width when there was none, and narrows home with the mark
+       where it was; search and RU | EN come in on the first half of the way. */
+    :global(.nmp-entering) .nmp-bar {
       animation: nmp-fold 620ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
     }
 
-    :global(.nmp-entering) .nmp-bar {
-      animation: nmp-bar-in 620ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+    :global(.nmp-entering) .nmp-search,
+    :global(.nmp-entering) .nmp-lang {
+      animation: nmp-items-in 620ms var(--nmp-ease) 80ms both;
     }
+  }
 
-    /* Back to the site: this bar gives way to the surface under it, which opens out to
-       the site's bar while nodemp.com loads. */
-    :global(.nmp-leaving) .nmp-fold {
-      animation: nmp-unfold 420ms cubic-bezier(0.65, 0, 0.35, 1) both;
-    }
-
-    :global(.nmp-leaving) .nmp-bar {
-      opacity: 0;
-      transition: opacity 140ms var(--nmp-ease);
-    }
+  /* Leaving for the site: the bar fades to the plate and the mark, which the site's bar
+     opens out of. */
+  :global(.nmp-leaving) .nmp-search,
+  :global(.nmp-leaving) .nmp-lang {
+    opacity: 0;
+    transition: opacity 160ms var(--nmp-ease);
   }
 
   @keyframes nmp-fold {
-    0% {
-      opacity: 1;
-      translate: 0 var(--nmp-from-dy, 0px);
-      clip-path: var(--nmp-site-clip);
-    }
-    78% {
-      opacity: 1;
-      translate: 0 0;
-      clip-path: var(--nmp-docs-clip);
-    }
-    100% {
-      opacity: 0;
-      translate: 0 0;
-      clip-path: var(--nmp-docs-clip);
-    }
-  }
-
-  @keyframes nmp-unfold {
     from {
-      opacity: 1;
-      translate: 0 0;
-      clip-path: var(--nmp-docs-clip);
-    }
-    to {
-      opacity: 1;
-      translate: 0 var(--nmp-from-dy, 4px);
-      clip-path: var(--nmp-site-clip);
+      translate: var(--nmp-from-l, calc((100vw - min(780px, 100vw - 1.5rem)) / 2 - 0.75rem)) var(--nmp-from-dy, 0px);
+      width: var(--nmp-from-w, min(780px, 100vw - 1.5rem));
     }
   }
 
-  @keyframes nmp-bar-in {
+  @keyframes nmp-items-in {
     0%,
-    62% {
+    10% {
       opacity: 0;
     }
-    100% {
+    55% {
       opacity: 1;
     }
   }
