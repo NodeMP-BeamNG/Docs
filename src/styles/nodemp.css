@@ -132,23 +132,34 @@ body {
   outline-offset: 2px;
 }
 
-/* ── Between the site and the docs (components/Header.astro) ──
-   The page being left dims to half and the page arriving comes up from half, so the
-   swap never passes through an empty screen; the bar is handled in Header.astro. */
-:root.nmp-arriving .main-frame,
-:root.nmp-arriving .sidebar-pane {
-  animation: nmp-content-in 260ms var(--nmp-ease) both;
+/* ── Overview bar ↔ page bar (components/Header.astro) ──
+   Same origin, so the browser keeps the old page until the new one paints and
+   morphs the named bar: the site's pill on the splash becomes the compact bar
+   over the sidebar, and back. Reduced motion turns the morph off. */
+@view-transition {
+  navigation: auto;
 }
 
-:root.nmp-leaving .main-frame,
-:root.nmp-leaving .sidebar-pane {
-  opacity: 0.5;
-  transition: opacity 180ms var(--nmp-ease);
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
 }
 
-@keyframes nmp-content-in {
-  from {
-    opacity: 0.5;
+::view-transition-group(nmp-bar) {
+  animation-duration: 620ms;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+::view-transition-old(nmp-mark),
+::view-transition-new(nmp-mark),
+::view-transition-old(nmp-lang),
+::view-transition-new(nmp-lang) {
+  animation-duration: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
   }
 }
 
@@ -158,6 +169,12 @@ header.header {
   border-bottom: 0;
   background: transparent;
   padding: 0.75rem 0.75rem 0;
+}
+
+/* Overview: the same 16 px inset as the site's `lg:px-4 lg:pt-4`, so the pill
+   sits where nodemp.com's bar sat. */
+:root:not([data-has-sidebar]) header.header {
+  padding: 1rem 1rem 0;
 }
 
 :root[data-has-sidebar] header.header {

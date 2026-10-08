@@ -1,33 +1,19 @@
 ---
-// The docs' bar: the site's floating bar (website/src/ui/Nav.tsx), folded into the
-// corner Starlight keeps for its site title -- the mark (to nodemp.com), search and
-// RU | EN, over the sidebar. The site's sections live in the phone menu's foot.
-//
-// The fold: this bar starts where the site's bar is, centred and wide, and slides and
-// narrows into its corner with the mark in place, search and RU | EN coming in on the
-// way. Only on a wide screen, and never under reduced motion.
-//
-// The site keeps its bar's box in window.name ("nmp-from-site:{x,y,w,h}"; the name
-// survives a navigation between nodemp.com and its own subdomains), and this bar folds
-// out of it however the docs are reached from the site. From the site's Docs link the
-// fold has already begun there, on the click: the site's bar moves at once and trades
-// its links for a pixel copy of this bar's items (website/src/ui/DocsLink.tsx,
-// globals.css), and the box carries the moment it began (t); this bar picks the fold up
-// from that moment, so it runs on unbroken however long the page took. A first docs page
-// in a tab folds from the start; so does a page brought back from the cache.
-//
-// Leaving by any way -- the mark, Back, a link to the site -- this bar's resting box goes
-// with the page ("nmp-from-docs:", in window.name from the start of the visit), and the
-// site's bar opens out of this corner on arrival, its first frame a copy of this bar:
-// the fold, run backwards (website/src/ui/Nav.tsx).
+// Two bars, one card: the overview (splash) is the site's floating bar — mark,
+// Servers / Download / Docs, EN | RU, Sign in — so opening the docs from
+// nodemp.com is the same header on another host, no fold. Any other page is
+// the compact bar over the sidebar (mark, search, EN | RU). Same origin, so
+// the browser can morph one into the other (nodemp.css, @view-transition).
 import config from 'virtual:starlight/user-config';
 import Search from 'virtual:starlight/components/Search';
 import Mark from './Mark.astro';
 import { inLocale } from '../lib/locale';
 
-const { locale } = Astro.locals.starlightRoute;
+const { locale, entry } = Astro.locals.starlightRoute;
 const ru = locale === 'ru';
+const home = entry.data.template === 'splash';
 const site = `https://nodemp.com/${ru ? 'ru' : 'en'}`;
+const docsHome = ru ? '/ru/' : '/';
 const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
   short: code === 'root' ? 'EN' : code.toUpperCase(),
   name: l!.label,
@@ -36,94 +22,47 @@ const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
   current: (code === 'root' ? undefined : code) === locale,
 }));
 const shouldRenderSearch = config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+const siteLinks = [
+  { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
+  { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
+  { href: docsHome, label: ru ? 'Документация' : 'Docs', current: true },
+];
 ---
 
-<script is:inline>
-  (() => {
-    try {
-      const root = document.documentElement;
-      const wide = matchMedia('(min-width: 50rem)').matches;
-      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const FOLD = 620;
-      let hand = null;
-      if (window.name.startsWith('nmp-from-site:')) {
-        try { hand = JSON.parse(window.name.slice(14)); } catch {}
-      }
-      // Ours from another docs page, or the site's: either way read, so dropped.
-      if (window.name.startsWith('nmp-from-site:') || window.name.startsWith('nmp-from-docs:')) window.name = '';
-      if (hand) sessionStorage.setItem('nmp-site-bar', JSON.stringify(hand));
-      const from = document.referrer ? new URL(document.referrer).host : '';
-      const fromSite = from !== location.host && /(^|\.)nodemp\.com$/.test(from);
-      const first = !sessionStorage.getItem('nmp-docs-entered');
-      sessionStorage.setItem('nmp-docs-entered', '1');
-      const stored = () => {
-        try { return JSON.parse(sessionStorage.getItem('nmp-site-bar') || 'null'); } catch { return null; }
-      };
-      // This bar rests 0.75rem (12 px) in from the top and the left (header.header's padding).
-      const fold = (b, at) => {
-        if (b) {
-          root.style.setProperty('--nmp-from-l', b.x - 12 + 'px');
-          root.style.setProperty('--nmp-from-w', b.w + 'px');
-          root.style.setProperty('--nmp-from-dy', b.y - 12 + 'px');
-        }
-        if (at === null) root.style.removeProperty('--nmp-fold-delay');
-        else root.style.setProperty('--nmp-fold-delay', -at + 'ms');
-        root.classList.add('nmp-entering');
-      };
-      const settle = () => setTimeout(() => root.classList.remove('nmp-entering', 'nmp-arriving'), FOLD + 480);
-      if (!calm) {
-        if (hand) {
-          // With t the fold began on the site's click and is picked up from there; without
-          // (Forward, a typed address) it starts here.
-          root.classList.add('nmp-arriving');
-          const at = hand.t ? Math.max(0, Date.now() - hand.t) : null;
-          if (wide && (at === null || at < FOLD)) fold(hand, at);
-        } else if (wide && first && !fromSite) {
-          fold(stored(), null);
-        }
-        settle();
-      }
-      // This bar's resting box, left in window.name for the whole visit, so any way out
-      // carries it. Written now, not on pagehide: for a page that can go into the
-      // back-forward cache Chrome swaps the browsing context before pagehide, and a name
-      // written then never reaches the next page.
-      const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
-      window.name = 'nmp-from-docs:' + JSON.stringify({ x: 12, y: 12, w: Math.round(wide ? 17.75 * rem : innerWidth - 24), h: 52 });
-      addEventListener('pageshow', (e) => {
-        root.classList.remove('nmp-leaving');
-        if (!e.persisted) return;
-        window.name = 'nmp-from-docs:' + JSON.stringify({ x: 12, y: 12, w: Math.round(wide ? 17.75 * rem : innerWidth - 24), h: 52 });
-        if (calm || !wide) return;
-        root.classList.remove('nmp-entering', 'nmp-arriving');
-        void root.offsetWidth;
-        root.classList.add('nmp-arriving');
-        fold(stored(), null);
-        settle();
-      });
-      // The mark: the page dims while the site loads; the bar stays whole until the site's takes over.
-      addEventListener('click', (e) => {
-        const a = e.target instanceof Element ? e.target.closest('.nmp-home') : null;
-        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        root.classList.remove('nmp-entering', 'nmp-arriving');
-        root.classList.add('nmp-leaving');
-        setTimeout(() => root.classList.remove('nmp-leaving'), 5000);
-      });
-    } catch {}
-  })();
-</script>
-
-<div class="nmp-bar">
+<div class:list={['nmp-bar', home ? 'nmp-bar--home' : 'nmp-bar--page']}>
   <a class="nmp-home" href={site} aria-label={ru ? 'NodeMP — на главную сайта' : 'NodeMP — the website'}>
     <Mark size={22} />
   </a>
-  <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
-  <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
-    {langs.map((l) => (
-      <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
-        {l.short}
-      </a>
-    ))}
-  </nav>
+  {home ? (
+    <>
+      <span class="nmp-rule" aria-hidden="true"></span>
+      <nav class="nmp-site-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
+        {siteLinks.map((l) => (
+          <a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a>
+        ))}
+      </nav>
+      <span class="nmp-rule" aria-hidden="true"></span>
+      <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
+        {langs.map((l) => (
+          <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+            {l.short}
+          </a>
+        ))}
+      </nav>
+      <a class="nmp-signin" href={`${site}/account/login`}>{ru ? 'Войти' : 'Sign in'}</a>
+    </>
+  ) : (
+    <>
+      <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
+      <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
+        {langs.map((l) => (
+          <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+            {l.short}
+          </a>
+        ))}
+      </nav>
+    </>
+  )}
 </div>
 
 <style>
@@ -138,6 +77,13 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     border-radius: 18px;
     background: var(--nmp-nav-surface);
     box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+    view-transition-name: nmp-bar;
+  }
+
+  .nmp-bar--home {
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 8px;
   }
 
   .nmp-home {
@@ -148,6 +94,7 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     padding-inline: 8px;
     border-radius: 13px;
     color: var(--nmp-fg);
+    view-transition-name: nmp-mark;
     transition: background-color 200ms var(--nmp-ease);
   }
 
@@ -155,13 +102,78 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     background: var(--nmp-hover);
   }
 
+  .nmp-rule {
+    display: none;
+    width: 1px;
+    height: 20px;
+    margin-inline: 6px;
+    background: var(--nmp-hover-strong);
+  }
+
+  .nmp-site-nav {
+    display: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .nmp-site-nav a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding-inline: 12px;
+    border-radius: 13px;
+    color: var(--nmp-fg-soft);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 200ms var(--nmp-ease),
+      color 200ms var(--nmp-ease);
+  }
+
+  .nmp-site-nav a:hover {
+    color: var(--nmp-fg);
+    background: var(--nmp-hover);
+  }
+
+  .nmp-site-nav a[aria-current] {
+    color: var(--nmp-accent);
+  }
+
+  .nmp-site-nav a[aria-current]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 13px;
+    background: var(--nmp-accent-wash);
+  }
+
+  .nmp-signin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 35px;
+    margin-inline-start: auto;
+    padding-inline: 16px;
+    border-radius: 13px;
+    background: var(--nmp-control);
+    color: var(--nmp-fg);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 200ms var(--nmp-ease);
+  }
+
+  .nmp-signin:hover {
+    background: var(--nmp-control-lift);
+  }
+
   .nmp-search {
     flex: 1;
     min-width: 0;
   }
 
-  /* No max-width: Starlight's 22rem would leave a gap before RU | EN while the bar is
-     still wide in the fold, where the site's copy of these items fills the row. */
   .nmp-search :global(button[data-open-modal]) {
     width: 100%;
     max-width: none;
@@ -179,12 +191,10 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     color: var(--nmp-fg);
   }
 
-  /* No room for the shortcut's chip in the folded bar; Ctrl+K and / still open search. */
   .nmp-search :global(kbd) {
     display: none;
   }
 
-  /* A phone: Starlight drops the label, so search is a square magnifier by the menu. */
   @media (max-width: 49.99rem) {
     .nmp-search {
       display: flex;
@@ -206,6 +216,7 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     padding: 3px;
     border-radius: 13px;
     background: var(--nmp-hover);
+    view-transition-name: nmp-lang;
   }
 
   .nmp-lang a {
@@ -233,50 +244,31 @@ const shouldRenderSearch = config.pagefind || config.components.Search !== '@ast
     color: var(--nmp-fg);
   }
 
-  /* A wide screen: the bar folds into the sidebar's corner. */
   @media (min-width: 50rem) {
-    .nmp-bar {
+    .nmp-bar--page {
       width: calc(var(--sl-sidebar-width) - 0.75rem);
       padding-inline-end: 8px;
     }
 
-    .nmp-lang {
+    .nmp-bar--home .nmp-lang,
+    .nmp-bar--page .nmp-lang {
       display: inline-flex;
     }
-
-    /* The fold, the one long move on the site: 620 ms, eased at both ends so the slide
-       reads as a slide. The bar starts in the box the site handed over (--nmp-from-l /
-       -w / -dy, set by the script above), or centred at the site's width when there was
-       none, and narrows home with the mark where it was; search and RU | EN come in on
-       the way. Picked up from the site, --nmp-fold-delay is negative: the time the fold
-       has already run there. Otherwise it starts a beat late, so the first frame is the
-       site's bar. Timing and steps match the site's bar-fold and ghost-in (globals.css),
-       so the two meet on the same frame. */
-    :global(.nmp-entering) .nmp-bar {
-      animation: nmp-fold 620ms cubic-bezier(0.65, 0, 0.35, 1) var(--nmp-fold-delay, 80ms) both;
-    }
-
-    :global(.nmp-entering) .nmp-search,
-    :global(.nmp-entering) .nmp-lang {
-      animation: nmp-items-in 620ms linear var(--nmp-fold-delay, 80ms) both;
-    }
   }
 
-  @keyframes nmp-fold {
-    from {
-      translate: var(--nmp-from-l, calc((100vw - min(780px, 100vw - 1.5rem)) / 2 - 0.75rem)) var(--nmp-from-dy, 0px);
-      width: var(--nmp-from-w, min(780px, 100vw - 1.5rem));
+  /* Same cut as the site's `lg:`: the overview bar is a centred pill, not full width. */
+  @media (min-width: 64rem) {
+    .nmp-bar--home {
+      width: fit-content;
     }
-  }
 
-  @keyframes nmp-items-in {
-    0%,
-    10% {
-      opacity: 0;
+    .nmp-bar--home .nmp-rule,
+    .nmp-bar--home .nmp-site-nav {
+      display: flex;
     }
-    45%,
-    100% {
-      opacity: 1;
+
+    .nmp-bar--home .nmp-signin {
+      margin-inline-start: 4px;
     }
   }
 </style>
