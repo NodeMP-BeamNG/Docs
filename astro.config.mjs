@@ -7,6 +7,24 @@ import { existsSync } from 'node:fs';
 // scripts/import-api.mjs (prebuild/predev) has already run when Astro loads this file.
 const apiGenerated = existsSync('./src/content/docs/plugins/api/lua.md');
 
+const locales = {
+  root: { label: 'English', lang: 'en' },
+  ru: { label: 'Русский', lang: 'ru' },
+};
+
+// The bar slides (nodemp.css, nmp-fold) only between a locale's overview, which carries the
+// site's pill, and a page with the corner bar. In the head: pagereveal fires before the new
+// page's first frame, which can come before the parser reaches the header.
+function foldBetweenBars(overviews) {
+  addEventListener('pagereveal', (e) => {
+    const from = e.viewTransition?.types && window.navigation?.activation?.from?.url;
+    if (!from) return;
+    const overview = (path) => overviews.includes(path.replace(/\/?$/, '/'));
+    if (overview(new URL(from).pathname) !== overview(location.pathname)) e.viewTransition.types.add('nmp-fold');
+  });
+}
+const overviews = Object.keys(locales).map((code) => (code === 'root' ? '/' : `/${code}/`));
+
 export default defineConfig({
   site: 'https://docs.nodemp.com',
   // The styles ride in each page instead of a second request: the first paint then waits
@@ -42,6 +60,7 @@ export default defineConfig({
       head: [
         { tag: 'link', attrs: { rel: 'preload', href: '/fonts/GolosText-Variable.woff2', as: 'font', type: 'font/woff2', crossorigin: '' } },
         { tag: 'link', attrs: { rel: 'preload', href: '/fonts/Unbounded-800.woff2', as: 'font', type: 'font/woff2', crossorigin: '' } },
+        { tag: 'script', content: `(${foldBetweenBars})(${JSON.stringify(overviews)})` },
       ],
       // The NodeMP theme: the site's tokens and components in Starlight's places (src/styles/nodemp.css).
       customCss: ['./src/styles/nodemp.css'],
@@ -84,10 +103,7 @@ export default defineConfig({
         { icon: 'github', label: 'GitHub', href: 'https://github.com/NodeMP-BeamNG' },
       ],
       defaultLocale: 'root',
-      locales: {
-        root: { label: 'English', lang: 'en' },
-        ru: { label: 'Русский', lang: 'ru' },
-      },
+      locales,
       // Item labels come from the page titles (slug entries), so the RU sidebar
       // shows the RU titles without a second list of labels here.
       sidebar: [

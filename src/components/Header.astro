@@ -3,7 +3,8 @@
 // Servers / Download / Docs, EN | RU, Sign in — so opening the docs from
 // nodemp.com is the same header on another host, no fold. Any other page is
 // the compact bar over the sidebar (mark, search, EN | RU). Same origin, so
-// the browser can morph one into the other (nodemp.css, @view-transition).
+// the browser slides one into the place of the other (nodemp.css, nmp-fold):
+// the card, the mark and the items are captured apart for that.
 import config from 'virtual:starlight/user-config';
 import Search from 'virtual:starlight/components/Search';
 import Mark from './Mark.astro';
@@ -34,36 +35,38 @@ const siteLinks = [
   <a class="nmp-home" href={site} aria-label={ru ? 'NodeMP — на главную сайта' : 'NodeMP — the website'}>
     <Mark size={22} />
   </a>
-  {home ? (
-    <>
-      <span class="nmp-rule" aria-hidden="true"></span>
-      <nav class="nmp-site-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
-        {siteLinks.map((l) => (
-          <a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a>
-        ))}
-      </nav>
-      <span class="nmp-rule" aria-hidden="true"></span>
-      <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
-        {langs.map((l) => (
-          <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
-            {l.short}
-          </a>
-        ))}
-      </nav>
-      <a class="nmp-signin" href={`${site}/account/login`}>{ru ? 'Войти' : 'Sign in'}</a>
-    </>
-  ) : (
-    <>
-      <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
-      <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
-        {langs.map((l) => (
-          <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
-            {l.short}
-          </a>
-        ))}
-      </nav>
-    </>
-  )}
+  <div class="nmp-items">
+    {home ? (
+      <>
+        <span class="nmp-rule" aria-hidden="true"></span>
+        <nav class="nmp-site-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
+          {siteLinks.map((l) => (
+            <a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a>
+          ))}
+        </nav>
+        <span class="nmp-rule" aria-hidden="true"></span>
+        <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
+          {langs.map((l) => (
+            <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+              {l.short}
+            </a>
+          ))}
+        </nav>
+        <a class="nmp-signin" href={`${site}/account/login`}>{ru ? 'Войти' : 'Sign in'}</a>
+      </>
+    ) : (
+      <>
+        <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
+        <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
+          {langs.map((l) => (
+            <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+              {l.short}
+            </a>
+          ))}
+        </nav>
+      </>
+    )}
+  </div>
 </div>
 
 <style>
@@ -101,6 +104,21 @@ const siteLinks = [
 
   .nmp-home:hover {
     background: var(--nmp-hover);
+  }
+
+  /* Everything after the mark, laid out as the bar's own row was. */
+  .nmp-items {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  /* Named only while a transition runs: at rest the name would paint the row as a layer
+     of its own, and Chrome would draw Sign in without subpixel antialiasing. */
+  :global(:root:active-view-transition) .nmp-items {
+    view-transition-name: nmp-items;
   }
 
   .nmp-rule {
@@ -209,6 +227,8 @@ const siteLinks = [
     }
   }
 
+  /* isolate: painted together with Sign in, this text on a translucent plate makes Chrome
+     drop subpixel antialiasing for Sign in as well. */
   .nmp-lang {
     display: none;
     flex-shrink: 0;
@@ -217,7 +237,7 @@ const siteLinks = [
     padding: 3px;
     border-radius: 13px;
     background: var(--nmp-hover);
-    view-transition-name: nmp-lang;
+    isolation: isolate;
   }
 
   .nmp-lang a {

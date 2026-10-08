@@ -133,9 +133,14 @@ body {
 }
 
 /* ── Overview bar ↔ page bar (components/Header.astro) ──
-   Same origin, so the browser keeps the old page until the new one paints and
-   morphs the named bar: the site's pill on the splash becomes the compact bar
-   over the sidebar, and back. Reduced motion turns the morph off. */
+   Same origin, so the browser keeps the old page until the new one paints. From
+   the overview to a page, or back (type nmp-fold, set in the head by
+   astro.config.mjs), the bar slides as one piece: card, mark and items move by
+   the same offset on the same clock. Nothing is scaled -- the card's length
+   eases to the other bar's, the items keep their size and are cut at its end,
+   the old ones fade out over the first third and the new ones in over the last.
+   Any other navigation shows the new bar from the first frame. Reduced motion
+   turns the transition off. */
 @view-transition {
   navigation: auto;
 }
@@ -145,16 +150,63 @@ body {
   animation-duration: 180ms;
 }
 
-::view-transition-group(nmp-bar) {
+::view-transition-group(nmp-bar),
+::view-transition-group(nmp-mark),
+::view-transition-group(nmp-items) {
+  animation-duration: 0s;
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-group(nmp-bar),
+:root:active-view-transition-type(nmp-fold)::view-transition-group(nmp-mark),
+:root:active-view-transition-type(nmp-fold)::view-transition-group(nmp-items) {
   animation-duration: 620ms;
   animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-::view-transition-old(nmp-mark),
-::view-transition-new(nmp-mark),
-::view-transition-old(nmp-lang),
-::view-transition-new(nmp-lang) {
-  animation-duration: 180ms;
+/* The card is drawn on the group: a snapshot would be stretched to the group's width. */
+:root:active-view-transition-type(nmp-fold)::view-transition-group(nmp-bar) {
+  border-radius: 18px;
+  background: var(--nmp-nav-surface);
+  box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-image-pair(nmp-bar),
+:root:active-view-transition-type(nmp-fold)::view-transition-old(nmp-mark) {
+  display: none;
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-new(nmp-mark) {
+  animation: none;
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-group(nmp-items) {
+  overflow: clip;
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-old(nmp-items),
+:root:active-view-transition-type(nmp-fold)::view-transition-new(nmp-items) {
+  width: auto;
+  height: auto;
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-old(nmp-items) {
+  animation: nmp-fade-out 200ms var(--nmp-ease) both;
+}
+
+:root:active-view-transition-type(nmp-fold)::view-transition-new(nmp-items) {
+  animation: nmp-fade-in 260ms var(--nmp-ease) 360ms both;
+}
+
+@keyframes nmp-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes nmp-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
