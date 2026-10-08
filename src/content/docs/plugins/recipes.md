@@ -69,8 +69,16 @@ admins = [42, 108]   # directory account ids
 local admins = {}
 for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
 
+-- accountRoles is a comma-separated list such as "USER,SUPPORTER,ADM"
+local function hasRole(player, tag)
+    for role in (player.accountRoles or ""):gmatch("[^,]+") do
+        if role == tag then return true end
+    end
+    return false
+end
+
 local function promote(player)
-    if player.accountRoles == "ADM" or (player.accountId and admins[player.accountId]) then
+    if hasRole(player, "ADM") or (player.accountId and admins[player.accountId]) then
         player:setRole("admin")
         node.log("%s is admin (account %s)", tostring(player), tostring(player.accountId))
     end
@@ -103,7 +111,9 @@ end)
 
 Three identities are in play. `player.accountId` is the directory's account id - stable across
 sessions and addresses, `nil` for a Test Drive guest - and the only thing worth keying an admin
-list by. `player.accountRoles` is the directory's role string, `"ADM"` for a directory admin.
+list by. `player.accountRoles` is the directory's roles as a comma-separated list of tags -
+`USER` (everyone), `SUPPORTER`, `PARTNER`, `MOD`, `DEV`, `ADM` (a directory admin) - and `""`
+for a guest; compare whole tags as `hasRole` does, since an account usually has several.
 `player.role` is this server's own per-session label, set with `player:setRole` and cleared at
 disconnect, which is why `promote` runs at every join. `{ role = "admin" }` makes the prelude
 answer `You are not allowed to use /say` to anyone else before your handler runs.

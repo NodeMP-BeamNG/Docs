@@ -70,8 +70,16 @@ admins = [42, 108]   # directory account ids
 local admins = {}
 for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
 
+-- accountRoles is a comma-separated list such as "USER,SUPPORTER,ADM"
+local function hasRole(player, tag)
+    for role in (player.accountRoles or ""):gmatch("[^,]+") do
+        if role == tag then return true end
+    end
+    return false
+end
+
 local function promote(player)
-    if player.accountRoles == "ADM" or (player.accountId and admins[player.accountId]) then
+    if hasRole(player, "ADM") or (player.accountId and admins[player.accountId]) then
         player:setRole("admin")
         node.log("%s is admin (account %s)", tostring(player), tostring(player.accountId))
     end
@@ -104,7 +112,9 @@ end)
 
 В игре три идентичности. `player.accountId` - идентификатор аккаунта в директории: стабилен между
 сессиями и адресами, `nil` у гостя Test Drive, и единственное, что стоит использовать в качестве
-ключа списка админов. `player.accountRoles` - строка роли из директории, `"ADM"` для администратора директории.
+ключа списка админов. `player.accountRoles` - роли из директории списком тегов через запятую:
+`USER` (у всех), `SUPPORTER`, `PARTNER`, `MOD`, `DEV`, `ADM` (администратор директории), у гостя -
+`""`. Сравнивайте теги целиком, как `hasRole`: ролей у аккаунта обычно несколько.
 `player.role` - собственная метка этого сервера на одну сессию, задаётся `player:setRole` и
 сбрасывается при отключении, поэтому `promote` выполняется при каждом подключении.
 `{ role = "admin" }` заставляет прелюдию ответить `You are not allowed to use /say` всем остальным

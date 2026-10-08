@@ -83,7 +83,7 @@ relay filter (`relayRequest`, formerly `canRelay`) - are on [Events](/plugins/ev
 | `MP.IsPlayerConnected(pid)` | `player:isConnected()` |
 | `MP.IsPlayerGuest(pid)` | `player.guest` |
 | `MP.GetPlayerIdentifiers(pid)` (`{ ip, beammp }`) | `player.identifiers` - an array of `"nodemp:<id>"`, `"discord:<id>"`, `"ip:<addr>"` as the directory lists them, empty when unverified - plus `player.ip` and `player.accountId`. There is no `beammp` identifier. |
-| the `role` argument of `onPlayerAuth` | `player.accountRoles` (the directory's role, `"ADM"` for a directory admin); `player:setRole(role)` and `player.role` are this server's own per-session label |
+| the `role` argument of `onPlayerAuth` | `player.accountRoles` (the directory's roles, comma-separated tags such as `"USER,ADM"`; `ADM` is a directory admin); `player:setRole(role)` and `player.role` are this server's own per-session label |
 | `MP.DropPlayer(pid, reason)` | `player:kick(reason)` |
 | - | `player:ban(reason)`, `node.bans.add(who, reason)`, `node.bans.remove`, `node.bans.has`, `node.bans.all()` - persisted in `bans.json` |
 

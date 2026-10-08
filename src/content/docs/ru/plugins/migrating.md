@@ -85,7 +85,7 @@ main = "server/main.lua"
 | `MP.IsPlayerConnected(pid)` | `player:isConnected()` |
 | `MP.IsPlayerGuest(pid)` | `player.guest` |
 | `MP.GetPlayerIdentifiers(pid)` (`{ ip, beammp }`) | `player.identifiers` - массив `"nodemp:<id>"`, `"discord:<id>"`, `"ip:<addr>"`, как их перечисляет директория, пустой у непроверенного, - плюс `player.ip` и `player.accountId`. Идентификатора `beammp` нет. |
-| аргумент `role` в `onPlayerAuth` | `player.accountRoles` (роль из директории, `"ADM"` у администратора директории); `player:setRole(role)` и `player.role` - собственная метка этого сервера на одну сессию |
+| аргумент `role` в `onPlayerAuth` | `player.accountRoles` (роли из директории тегами через запятую, например `"USER,ADM"`; `ADM` - администратор директории); `player:setRole(role)` и `player.role` - собственная метка этого сервера на одну сессию |
 | `MP.DropPlayer(pid, reason)` | `player:kick(reason)` |
 | - | `player:ban(reason)`, `node.bans.add(who, reason)`, `node.bans.remove`, `node.bans.has`, `node.bans.all()` - хранятся в `bans.json` |
 
