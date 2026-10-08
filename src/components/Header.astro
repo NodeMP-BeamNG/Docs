@@ -23,6 +23,7 @@ const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
 }));
 const shouldRenderSearch = config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
 const siteLinks = [
+  { href: `${site}/news`, label: ru ? 'Новости' : 'News' },
   { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
   { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
   { href: docsHome, label: ru ? 'Документация' : 'Docs', current: true },
