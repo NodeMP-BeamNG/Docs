@@ -178,7 +178,7 @@ All but `Inputs` and `HeadPose` are cached per (vehicle, subtype) and replayed t
 |---|---|---|
 | `Event` | G↔S, T and R | A named custom event: the name and an opaque payload as two separate fields. This is `node.emitServer` on the client and `player:send`, `node.broadcast`, `emit_client`, `emit_all` on the server. Names starting with `node:` are reserved. |
 
-### Command (21)
+### Command (22)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -203,6 +203,7 @@ All but `Inputs` and `HeadPose` are cached per (vehicle, subtype) and replayed t
 | `ClockPing` | G→L, CC | `u64 t_game_us`: the game's clock, once a second; the launcher answers at once. (launcher 1.1.18) |
 | `ClockPong` | L→G, CC | `u64 t_game_us, u64 t_launcher_us`: the difference is the offset between the two clocks to a fraction of a millisecond, whatever frame the game reads it in. |
 | `ArrivalStamp` | L→G, R | `u64 t_launcher_us`, immediately before the frame it stamps: when that datagram reached the launcher's UDP socket. Lets the position pipeline build a remote car's time base from the arrival rather than the graphics frame that read it (setting `nodempSyncArrivalStamp`, off by default). |
+| `ServerName` | L→G, CC | `tail:str name`, right after `Server`: the server's name as the server list shows it, for the game's server panel. Only for the server the launcher was started for, never one the game connected to itself. (launcher 1.1.21) |
 
 `Command` packets never leave the machine.
 
