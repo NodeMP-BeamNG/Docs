@@ -1,15 +1,24 @@
 ---
-// The NodeMP mark as the site draws it (website/src/brand/Mark.tsx): beams in
-// the text colour, nodes in the accent. Changes there change here.
+// The NodeMP mark as the site draws it (website/src/brand/Mark.tsx, shapes from
+// website/src/brand/mark.json): beams in the text colour, nodes in the accent,
+// 50 units tall in a 64-unit box. Changes there change here.
 const { size = 24, mono = false } = Astro.props as { size?: number; mono?: boolean };
 ---
 
 <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-  <path d="M14 50V14L50 50V14" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
-  <g fill={mono ? 'currentColor' : 'var(--nmp-accent)'}>
-    <circle cx="14" cy="14" r="7"></circle>
-    <circle cx="14" cy="50" r="7"></circle>
-    <circle cx="50" cy="14" r="7"></circle>
-    <circle cx="50" cy="50" r="7"></circle>
+  <g transform="translate(8.662 7) scale(0.07728)">
+    <g fill="currentColor">
+      <path d="M135 91V147.57L101.63 99.91L114.35 91Z"></path>
+      <path d="M135 192.28v261.44c-13.21-5.61-27.74-8.72-43-8.72-12.98 0-25.44 2.25-37 6.38V194.62c11.56 4.13 24.02 6.38 37 6.38 15.26 0 29.79-3.11 43-8.72Z"></path>
+      <path d="M511.3 545.51L497.75 555H476V495.1Z"></path>
+      <path d="M556 192.28v261.44c-13.21-5.61-27.74-8.72-43-8.72-12.98 0-25.44 2.25-37 6.38V194.62c11.56 4.13 24.02 6.38 37 6.38 15.26 0 29.79-3.11 43-8.72Z"></path>
+      <path d="M201.36 102.86l251.9 359.76c-24.46 15.85-42.23 41.16-48.13 70.74L157.35 179.49c24.09-17.82 40.65-45.25 44.01-76.63Z"></path>
+    </g>
+    <g fill={mono ? 'currentColor' : 'var(--nmp-accent)'}>
+      <circle cx="91.5" cy="91.5" r="91.5"></circle>
+      <circle cx="91.5" cy="555.5" r="91.5"></circle>
+      <circle cx="512.5" cy="91.5" r="91.5"></circle>
+      <circle cx="512.5" cy="555.5" r="91.5"></circle>
+    </g>
   </g>
 </svg>
