@@ -30,7 +30,8 @@ To narrow the list down:
 Click a row and the server's card opens on the right:
 
 - a picture of the map, the name and the description;
-- the host's links: Discord, rules, website, donations, voice chat;
+- the host's links: Discord, rules, website, donations, voice chat. A link opens in your browser; a
+  Mumble or TeamSpeak address is copied instead, to paste into that app;
 - tags, how many players are on, whether you need an account, the mode and the location;
 - who's playing right now;
 - **It will send you**: the server's mods you don't have yet, with their total size. **Stock
