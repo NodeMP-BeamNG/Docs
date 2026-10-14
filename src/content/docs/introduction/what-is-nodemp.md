@@ -1,50 +1,65 @@
 ---
 title: What is NodeMP
-description: NodeMP is a multiplayer platform for BeamNG.drive — launcher, client mod, game server, directory and plugins — and this is how a session starts.
+description: NodeMP lets you play BeamNG.drive online with other people. What the parts are, how a join goes and which versions are current.
 ---
 
-NodeMP lets you play [BeamNG.drive](https://www.beamng.com/) online with others: cruising, crashing, and spawning vehicles together on the same map. The server relays vehicle state and motion between players. The platform provides a desktop launcher, an open server browser, and a plugin system.
+NodeMP lets you drive [BeamNG.drive](https://www.beamng.com/) online with other people: one map,
+everybody's cars on it, everybody's crashes. You install one app, pick a server and hold a button.
+The rest happens on its own.
 
-## The parts
+## What you install
 
-The platform consists of five primary components:
+Only the **launcher**, a small Windows app. It signs you in, shows the list of servers, keeps the
+multiplayer mod up to date and starts BeamNG.drive for you when you join.
+→ [Install the launcher](/players/install/)
 
-- **Launcher** — a desktop app for Windows. Choose a server, sign in or continue in Test Drive, and launch BeamNG.drive.
-- **Client mod** — the NodeMP in-game mod. Automatically downloaded by the launcher, it handles vehicle synchronization, in-game chat, the player list, and networking settings.
-- **Game server** — the `Node-Server` program (available for Linux, Windows, and Docker). Synchronizes vehicle state, distributes mods, and executes server plugins.
-- **Directory** — the web service at `https://api.nodemp.com`, managing the public server browser and account authentication.
-- **Website** — the portal at `https://nodemp.com` for downloads, account management, and server keys.
+The **client mod** (`NodeMP.zip`) is the part that runs inside the game: other players' cars, the
+chat, the name tags, the player list. The launcher installs and updates it, so you never have to
+touch it.
 
-## How a session starts
+## What a server does
 
-1. Select a server from the launcher's browser or enter an address manually in Direct Connect.
-2. The launcher checks the client mod and updates it automatically if a newer release exists.
-3. The launcher starts BeamNG.drive and establishes a secure connection to the server.
-4. The server validates client game files according to its verification settings (from basic checks to strict clean-install matching).
-5. The map loads, missing mods are downloaded automatically, and you spawn onto the map.
+A **server** is a program somebody runs on their PC or on a rented machine. It holds the session
+together: who is on, which cars exist and where they are. Before you join, it sends you the mods
+the session needs (a custom car, a map), and while you play it runs its own rules, called plugins.
 
-For a deeper look at the network architecture, see the [framework overview](/framework/overview/).
+Anyone can run one, on Windows, Linux or in Docker. → [Run a server](/hosting/quick-start/)
 
-## What a plugin is
+## Your account
 
-The term *plugin* covers two distinct extension formats:
+You can play with a free NodeMP account or without one, in Test Drive. With an account you keep
+your name from server to server, and a server can tell it is really you.
+→ [Your account](/players/sign-in/)
 
-- **Resources** — folders configured with a `resource.toml` manifest. Server-side code is written in Lua or JavaScript (requires `js-host`), while client scripts stream to players dynamically to run inside the game.
-- **Native modules** — shared libraries (`.dll` or `.so`) written in C or C++ against `node.h`. Used for high-performance tasks, network packet filtering, or adding new language runtimes.
+## How a join goes
 
-To get started, see the [plugin overview](/plugins/overview/).
+1. You pick a server in the launcher and hold **Hold to play**.
+2. The launcher makes sure the client mod is current and checks the game files the server cares
+   about.
+3. It downloads the server's mods you don't have yet.
+4. BeamNG.drive starts and loads straight into the server's map.
 
-## What NodeMP is not
+If something stops along the way, the launcher tells you what and why.
+→ [Can't join a server](/support/joining/)
 
-NodeMP is not a replacement for BeamMP: it uses its own architecture and does not run BeamMP server plugins. See [Differences from BeamMP](/introduction/differences-from-beammp/).
+## Plugins
+
+Whatever makes one server different from another, such as chat commands, roles, races or an
+economy, is a plugin. Plugins live on the server and are written in Lua (or in C when speed
+matters); a plugin can also send a script to every player's game.
+→ [Plugin development](/plugins/overview/)
+
+Coming from another multiplayer mod? The [differences](/introduction/differences-from-beammp/)
+page compares the two.
 
 ## Versions
 
-| Component | Version | Download |
+| Part | Version | Where to get it |
 |---|---|---|
-| Game server (`Node-Server`) | 1.5.0 | [Linux / Windows releases](https://github.com/NodeMP-BeamNG/releases) or Docker `ghcr.io/nodemp-beamng/server:v1.5.0` |
-| Launcher | 1.1.18 | [NodeMP-Setup-1.1.18.exe](https://github.com/NodeMP-BeamNG/releases) |
-| Client mod (`NodeMP.zip`) | 1.6.19 | Installed automatically by the launcher |
-| Wire protocol | v23 | Launcher and server versions must match |
+| Game server (`Node-Server`) | 1.7.0 | [Releases](https://github.com/NodeMP-BeamNG/releases): Linux, Windows and a Docker image |
+| Launcher | 1.1.25 | [nodemp.com/download](https://nodemp.com/download) |
+| Client mod (`NodeMP.zip`) | 1.7.3 | installed by the launcher |
 
-All official builds are published on [GitHub Releases](https://github.com/NodeMP-BeamNG/releases).
+The client mod is built for BeamNG.drive 0.39.4.0. The launcher, the mod and the server talk
+protocol v23. When one side is too old the launcher says which, and when it is the launcher itself,
+it offers to update.

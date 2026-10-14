@@ -1,47 +1,51 @@
 ---
 title: Differences from BeamMP
-description: What NodeMP and BeamMP do the same, where they differ (transport, plugin runtime, client delivery, tooling), what BeamMP has that NodeMP does not, and why a BeamMP server cannot move over as it is.
+description: For people who know BeamMP - what works the same in NodeMP, what works differently, and what moving a server over involves.
 ---
 
-If you have experience hosting or developing for BeamMP, this page will help you understand how NodeMP is structured and what changes when transitioning between the two platforms.
+If you have played, hosted or written plugins for BeamMP, much of NodeMP will feel familiar. The
+two are separate projects, though: the NodeMP launcher joins only NodeMP servers, and a NodeMP
+server accepts only NodeMP players. This page lists what carries over and what does not.
 
-While both are multiplayer solutions for BeamNG.drive, their ecosystems and network stacks are completely independent: the NodeMP launcher connects exclusively to NodeMP servers, and a NodeMP server accepts only NodeMP clients.
+## What is the same
 
-Below is a direct comparison of both platforms today — where workflows feel familiar, how the internals differ, and what to keep in mind when moving a server or writing plugins. BeamMP details reflect [docs.beammp.com](https://docs.beammp.com/).
+- A desktop launcher starts the game and handles the connection; a client mod does the work
+  inside the game.
+- The server sends its mods (cars, maps) as zip files to everyone who joins, before they enter
+  the world.
+- The player driving a car is the one whose game simulates it.
+- The server is configured with one TOML file, and every setting can also come from an
+  environment variable (`NODE_*` in NodeMP).
+- A public listing needs a key from the project's website, and players can join with an account
+  or as guests (NodeMP calls it Test Drive).
 
-## The same in both
-
-The core concepts of both platforms are very similar:
-
-- The underlying architecture follows a familiar model: the server distributes mods to joining players, a desktop launcher starts the game and manages the connection, and the client driving a vehicle remains authoritative for its physics.
-- Configuration uses a single primary TOML file that can be overridden by environment variables (`NODE_*` in NodeMP, `BEAMMP_*` since BeamMP 3.2.0). See [Configuration](/hosting/configuration/).
-- Mods and maps reside on the server as zip archives (`content/` in NodeMP, `Resources/Client` in BeamMP) and are downloaded automatically before players enter the world.
-- Public server listing requires a key from the project's website: the `[Directory]` section in `server.toml` for NodeMP, or an `AuthKey` in `ServerConfig.toml` for BeamMP. Keys and user accounts are entirely separate.
-- Both platforms support accounts as well as guest access (`[Directory] TestDrive` in NodeMP, `AllowGuests` in BeamMP).
-
-## What differs
+## What works differently
 
 | | NodeMP | BeamMP |
 |---|---|---|
-| Transport | TLS 1.3 over TCP; UDP position stream with an auth trailer; every packet is a typed binary `(Category, SubType)` frame. Wire protocol v23 is validated on connect (version mismatches are rejected). | Plain TCP and UDP; packets identified by a leading character; game traffic is unencrypted. |
-| Plugin runtime | Non-blocking, single-threaded event loop for all resource handlers: no locks, but blocking calls freeze the worker. Async tasks use coroutines (`node.async`, `node.sleep`) or thread pools (`node.job`). No synchronous HTTP or blocking sleep. | `MP.*` API; calls like `MP.Sleep` and `Http.Get` block the calling Lua state. Periodic work runs via `MP.CreateEventTimer`. |
-| Plugin API shape | `node.on(name, fn)` receives structured `Player` and `Vehicle` objects; reject actions with `return false, reason`; one entry point per resource, other modules loaded via `require`. | `MP.RegisterEvent(name, "handler")` passes raw IDs; reject actions with `return 1`; automatically loads every top-level `.lua` file in the folder. |
-| Reload | Explicit: `node.resources.reload(name)` with a `resourceUnload` cleanup hook. Files are not watched automatically. | Automatic: editing any top-level `.lua` triggers a hot reload; `onFileChanged` watches everything under `Resources/Server`. |
-| Client-side Lua | Streamed on join from `resources/<name>/client/`, runs inside the game under the resource's namespace, and never touches the disk. Obfuscated with Prometheus by default. Cannot overwrite base game or client mod files ([Client scripting](/plugins/client-scripting/#what-a-client-file-can-and-cannot-do)). | Packaged inside mod zips in `Resources/Client` and mounted by BeamNG like standard mods. |
-| Other languages | C ABI for native modules (`.dll`/`.so`). Modules can provide language runtimes — such as `type = "js"` via `js-host` ([Native modules](/plugins/native-modules/)). | Lua only. |
-| Database | Built-in asynchronous PostgreSQL pool via `node.pg` ([Database access](/plugins/database/)). | No built-in database support. |
-| Game install check | `[General] VerifyGame`: the helper verifies player game files (`size`, `scripts`, `full`, or `strict` against a reference manifest) before join ([Strict verification](/hosting/strict-verification/)). | No equivalent in `ServerConfig.toml`. |
-| Chat | Modular: chat is handled by the `chat` resource; `node.chat.say` is a no-op without it. | Core feature: built-in `onChatMessage` and `MP.SendChatMessage`. |
-| Console | The server takes no direct stdin console commands; administer via chat, event bus, or custom client tools. | Interactive console with built-in commands and an `onConsoleInput` hook. |
-| Files and JSON from Lua | Resource-scoped: `node.fs.read`, `write`, `writeAsync`, `list`; `node.json.encode`/`decode`. Standard `io` and `os` libraries remain accessible ([Resources → Files](/plugins/resources/#files-nodefs)). | System-wide `FS.*` file operations (`Exists`, `CreateDirectory`, `Remove`, etc.); `Util.Json*` with prettify, minify, flatten, and RFC 6902 diff/patch. |
-| Diagnostics from Lua | `node.server.metrics()` (player counts, vehicle stats, network counters, event queue) plus a stall watchdog. No OS name, memory stats, or per-handler timings. | `MP.GetOSName`, `MP.GetStateMemoryUsage`, `MP.GetLuaMemoryUsage`, `Util.DebugExecutionTime`. |
-| Protected mods | All zips in `content/` download to every connecting player. | `protectmod`: allows marking mods that clients must obtain separately. |
+| Connection | TLS 1.3 for everything reliable; positions over UDP, each datagram signed. Launcher and server check each other's protocol version on connect. | Plain TCP and UDP. |
+| Game file check | The server can ask the launcher to check the player's install, up to a strict check against a clean copy ([Strict verification](/hosting/strict-verification/)). | No equivalent setting. |
+| Chat | Part of the server. Plugins can refuse or rewrite a line (`chatMessageRequest`) and add commands (`node.commands.add`). | Part of the server, with `onChatMessage`. |
+| Server console | `help`, `status`, `players`, `kick`, `say`, `reload`, `stop` ([Administration](/hosting/administration/)). Plugins cannot add console commands yet. | Console with built-in commands and `onConsoleInput`. |
+| Plugin API | `node.on(name, fn)`; handlers get `Player` and `Vehicle` objects; refuse with `return false, "reason"`. One entry file per resource, more files through `require`. | `MP.RegisterEvent(name, "handler")` with ids; refuse with `return 1`; every top-level `.lua` file is loaded. |
+| Waiting | Nothing blocks. Timers, coroutines (`node.async`, `node.sleep`) and background jobs; HTTP is asynchronous. | `MP.Sleep` and `Http.*` block the plugin. |
+| Reloading a plugin | On request: `reload <name>` in the console or `node.resources.reload(name)`, with a `resourceUnload` hook to save state. | Automatic when a file changes. |
+| Scripts in the player's game | Streamed on join from the resource's `client/` folder; never written to the player's disk; obfuscated by default. | Shipped inside mod zips. |
+| Database | The `db` module in the server archive: PostgreSQL and SQLite, and MySQL/MariaDB on Windows ([Database](/plugins/database/)). | None built in. |
+| Other languages | Native modules in C or C++ against a C header; a module can add a language. | Lua only. |
+| Protected mods | A mod marked `protected` in `content/mods.json` is never sent; players put it in their launcher cache themselves. | `protectmod`. |
 
-## Can I run my BeamMP server on NodeMP?
+Players notice one more thing: the NodeMP launcher downloads a server's mods and checks the game
+files before it starts the game, and a connection that breaks mid-session resumes within 30 seconds
+by default instead of ending it.
 
-No. `Node-Server` is a distinct binary with its own configuration structure, directory keys, and plugin architecture. It does not load `MP.*` plugins.
+## Can I move my BeamMP server over?
 
-When migrating a server:
-- **Maps and vehicles** move over as they are: simply place your mod zip archives into `content/`.
-- **Plugin scripts** need to be rewritten using the `node` API. See the [Migration guide](/plugins/migrating/) for a detailed comparison of functions and events between platforms.
-- **Players** will need to [Install the launcher](/players/install/). Once you [Register your server](/hosting/registering/), your community can find it in the public server list.
+Most of it, by hand:
+
+- **Maps and cars** move as they are: put the zips into the server's `content/` folder.
+- **Settings** go into `server.toml`; the [configuration page](/hosting/configuration/) lists
+  them. The listing key comes from your NodeMP account ([Get listed](/hosting/registering/)).
+- **Plugins** have to be ported to the `node` API. [Migrating BeamMP plugins](/plugins/migrating/)
+  maps every `MP.*` call and event to its NodeMP form and walks through a port.
+- **Players** install the NodeMP launcher ([Install the launcher](/players/install/)).

@@ -1,15 +1,15 @@
 ---
 title: NodeMP documentation
-description: Multiplayer for BeamNG.drive — how to play, how to host a server and how to write plugins.
+description: Multiplayer for BeamNG.drive. How to play, how to run a server of your own and how to write plugins for it.
 template: splash
 hero:
   title: NodeMP documentation
-  tagline: Multiplayer for BeamNG.drive. Install the launcher and play, host your own server, or extend it with plugins.
+  tagline: Multiplayer for BeamNG.drive. Install the launcher and drive with friends, run a server of your own, or teach it new rules with plugins.
   actions:
     - text: Install the launcher
       link: /players/install/
       icon: right-arrow
-    - text: Host a server
+    - text: Run a server
       link: /hosting/quick-start/
       variant: secondary
     - text: Write a plugin
@@ -27,58 +27,59 @@ import SectionGrid from '../../components/SectionGrid.astro';
       groups: [
         { label: 'Start', links: [
           { href: '/players/install/', text: 'Install the launcher' },
-          { href: '/players/sign-in/', text: 'Account and sign-in' },
-          { href: '/players/join/', text: 'Join a server' },
+          { href: '/players/sign-in/', text: 'Your account' },
+          { href: '/players/join/', text: 'Find and join a server' },
         ]},
-        { label: 'Set up', links: [
+        { label: 'In the game', links: [
           { href: '/players/settings/', text: 'Settings and controls' },
+          { href: '/players/vpn/', text: 'VPN and bad connections' },
         ]},
       ],
     },
     {
-      title: 'Support',
+      title: 'Help',
       lede: 'Something went wrong? Start from what you see.',
       groups: [
         { label: 'Fix it', links: [
-          { href: '/support/troubleshooting/', text: 'Troubleshooting' },
-          { href: '/support/joining/', text: "Can't join a server" },
+          { href: '/support/troubleshooting/', text: 'When something goes wrong' },
+          { href: '/support/joining/', text: 'Can’t join a server' },
           { href: '/support/strict-servers/', text: 'Strict servers' },
         ]},
         { label: 'Look it up', links: [
-          { href: '/support/error-codes/', text: 'Error codes' },
+          { href: '/support/error-codes/', text: 'Messages and exit codes' },
           { href: '/support/faq/', text: 'FAQ' },
         ]},
       ],
     },
     {
       title: 'Server hosting',
-      lede: 'Run Node-Server, configure it and get into the launcher’s list.',
+      lede: 'Run Node-Server, set it up and get it into the launcher’s list.',
       groups: [
         { label: 'Start', links: [
-          { href: '/hosting/quick-start/', text: 'Quick start' },
-          { href: '/hosting/running/', text: 'Running the server' },
-          { href: '/hosting/registering/', text: 'Getting listed' },
+          { href: '/hosting/quick-start/', text: 'Run a server' },
+          { href: '/hosting/registering/', text: 'Get listed' },
+          { href: '/hosting/resources/', text: 'Mods and resources' },
         ]},
-        { label: 'Configure and maintain', links: [
+        { label: 'Day to day', links: [
           { href: '/hosting/configuration/', text: 'server.toml' },
-          { href: '/hosting/administration/', text: 'Administration' },
+          { href: '/hosting/administration/', text: 'Console, kicks and bans' },
           { href: '/hosting/updating/', text: 'Updating' },
         ]},
       ],
     },
     {
       title: 'Plugin development',
-      lede: 'Resources in Lua or JavaScript, native modules in C.',
+      lede: 'Resources in Lua, native modules in C.',
       groups: [
         { label: 'Start', links: [
           { href: '/plugins/getting-started/', text: 'Your first resource' },
-          { href: '/plugins/events/', text: 'Events' },
-          { href: '/plugins/recipes/', text: 'Recipes' },
+          { href: '/plugins/events/', text: 'Events and the join order' },
+          { href: '/plugins/examples/', text: 'The example plugins' },
         ]},
-        { label: 'Reference', links: [
-          { href: '/plugins/api/lua/', text: 'Lua API' },
-          { href: '/plugins/database/', text: 'Database' },
-          { href: '/plugins/protocol/', text: 'Wire protocol' },
+        { label: 'Look it up', links: [
+          { href: '/plugins/api/lua/', text: 'Lua API reference' },
+          { href: '/plugins/players-and-vehicles/', text: 'Players and vehicles' },
+          { href: '/plugins/recipes/', text: 'Recipes' },
         ]},
       ],
     },

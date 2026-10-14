@@ -50,6 +50,11 @@ export default defineConfig({
     '/ru/reference/faq/': '/ru/support/faq/',
     '/support/': '/support/troubleshooting/',
     '/ru/support/': '/ru/support/troubleshooting/',
+    // The 2026-10 rewrite for server 1.7.0: merged and moved pages.
+    '/framework/overview/': '/introduction/how-it-works/',
+    '/ru/framework/overview/': '/ru/introduction/how-it-works/',
+    '/framework/sync/': '/introduction/how-it-works/',
+    '/ru/framework/sync/': '/ru/introduction/how-it-works/',
   },
   integrations: [
     starlight({
@@ -111,17 +116,15 @@ export default defineConfig({
           // The mark in the bar goes to nodemp.com, so the docs' own front page is here.
           { slug: 'index', label: 'All sections', translations: { ru: 'Все разделы' } },
           { slug: 'introduction/what-is-nodemp' },
+          { slug: 'introduction/how-it-works' },
           { slug: 'introduction/differences-from-beammp' },
-          { label: 'How it works', translations: { ru: 'Как это устроено' }, collapsed: true, items: [
-            { slug: 'framework/overview' },
-            { slug: 'framework/sync' },
-          ]},
         ]},
         { label: 'Players', translations: { ru: 'Игрокам' }, items: [
           { slug: 'players/install' },
           { slug: 'players/sign-in' },
           { slug: 'players/join' },
           { slug: 'players/settings' },
+          { slug: 'players/vpn' },
         ]},
         { label: 'Support', translations: { ru: 'Поддержка' }, items: [
           { slug: 'support/troubleshooting' },

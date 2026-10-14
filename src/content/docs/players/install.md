@@ -1,88 +1,103 @@
 ---
 title: Install the launcher
-description: Download and install the NodeMP launcher for Windows — it sets up the client mod, updates automatically, and launches the game.
+description: Download and install the NodeMP launcher for Windows. It sets up the multiplayer mod, keeps itself up to date and starts the game for you.
 ---
 
-The **launcher** is where your multiplayer journey begins: you sign in, pick a server, and launch BeamNG.drive. It also automatically downloads and updates the **client mod**, so you never have to move files around by hand.
+The **launcher** is where all things multiplayer happen: you sign in, pick a server and join. It
+also installs and updates the **client mod**, the part of NodeMP that runs inside the game.
 
-In short: grab the installer from [nodemp.com/download](https://nodemp.com/download), run it, sign in via your browser or choose Test Drive — and you're ready to [join a server](/players/join/).
+The short version: download the installer from [nodemp.com/download](https://nodemp.com/download),
+run it, sign in through your browser or choose Test Drive, and you're ready to
+[join a server](/players/join/).
 
 ## What you need
 
-- Windows 10 or 11 (64-bit).
-- BeamNG.drive **0.39.4.0** — the client mod is built and tested specifically for this version.
-- The game launched at least once. Running BeamNG once creates its user folder, where the launcher installs the multiplayer mod.
+- Windows 10 or 11.
+- BeamNG.drive 0.39.4.0, the version the client mod is built for.
+- BeamNG.drive started at least once. The first start creates the game's user folder, which is
+  where the launcher puts the multiplayer mod.
 
-The launcher detects Steam installations automatically. If your game is installed elsewhere, you can point to it manually in settings (see [below](#if-the-launcher-did-not-find-the-game)).
+The launcher finds a Steam install by itself. If your game lives somewhere else, you can point
+the launcher at it, see [below](#if-the-launcher-cant-find-the-game).
 
 ## Download and install
 
-1. Download `NodeMP-Setup-<version>.exe` from the [Download page](https://nodemp.com/download) or from [GitHub releases](https://github.com/NodeMP-BeamNG/releases).
-2. Run the installer. It installs to your user profile (`%LOCALAPPDATA%\NodeMP`), so no administrator privileges are required.
-3. Once installation finishes, the launcher opens automatically.
+1. Download `NodeMP-Setup-<version>.exe` from the [download page](https://nodemp.com/download) or
+   from [GitHub releases](https://github.com/NodeMP-BeamNG/releases).
+2. Run it. It installs for your Windows user only, so it doesn't ask for administrator rights.
+3. The launcher opens when the installer finishes.
 
-:::caution[Windows warning]
-The installer is not yet digitally signed, so Windows SmartScreen may show an "Unknown publisher" prompt. Simply click **More info → Run anyway** to proceed.
+:::caution[Windows SmartScreen]
+The installer isn't signed with a code-signing certificate yet, so Windows may say the publisher
+is unknown. Click **More info**, then **Run anyway**.
 :::
 
-## First start
+## The first start
 
-On your first launch, the launcher takes care of initial setup:
+1. A small window checks for a newer launcher and loads the server list.
+2. The sign-in window asks you to **Sign in with browser** or **Continue as Test Drive**.
+   [Your account](/players/sign-in/) explains both.
+3. The main window opens and you can play.
 
-1. **Checking for updates** — a small window with the NodeMP logo checks for newer versions and pulls the server list.
-2. **Sign-in** — choose between **Sign in with browser** and **Continue as Test Drive**. Learn more on the [Account and sign-in](/players/sign-in/) page. Signing in is remembered across restarts, while Test Drive can be picked anytime you launch.
-3. **Main window** — everything is ready. While you explore the interface, the launcher verifies your client mod in the background.
-
-If an issue occurs before the main window opens, you might see one of these prompts:
+### If you see a message instead of the main window
 
 | Window | What happened | What to do |
 |---|---|---|
-| **Connection lost** | Could not fetch the server list. | Click **Try again**, or choose **Continue without the list** if you plan to connect by direct IP address. |
-| **Account banned** | The account has an active ban (the window shows the reason and duration). | You cannot join servers with this account until the ban expires. |
+| **Connection lost** | The launcher couldn't load the server list. | Check your internet and click **Try again**. If you know a server's address, **Continue without the list** and use Direct Connect. |
+| **Account banned** | Your account is banned from NodeMP servers. The window shows the reason and until when. | You can't join with this account while the ban lasts. **Appeal** opens the page to contest it. |
 
 ## Launcher updates
 
-The launcher updates itself. It checks for new releases on startup and before each join, downloads them in the background, and prompts you to apply them with **Restart and update**. Updates never interrupt an active game session — they only apply after you leave the server.
+The launcher looks for updates on its own and downloads them in the background. It installs one
+only when you let it: when you click **Restart and update**, or when it finds one right before a
+join (then it updates, restarts and carries on with the join). It never installs anything while
+you're on a server.
 
-You can manage update preferences under **Settings → Launcher → Updates**:
+The update settings are in **Settings → Launcher → Updates**:
 
-- **Update channel** — choose between stable releases (*Release*) and earlier test builds (*Beta*).
-- **Check for updates automatically** — toggle automatic update checks on or off.
-- **Roll back to previous version** — quickly reinstall the previously cached version if you encounter unexpected issues.
+- **Update channel**: *Release*, or *Beta* to get new versions earlier.
+- **Check for updates automatically**: at start-up and before each join. You can turn it off.
+- **Go back to v…**: reinstalls the previous version if the new one gives you trouble. That
+  version isn't offered again automatically afterwards.
 
-You can also always download the latest installer directly from the [Download page](https://nodemp.com/download) and install it over your current build.
+If a server needs a launcher newer than yours, the launcher says so and offers **Update now**. You
+can always download the latest installer from the [download page](https://nodemp.com/download) and
+run it over your current version.
 
 ## The client mod
 
-The client mod (`NodeMP.zip`) powers everything inside the game: vehicle synchronization, chat, player nametags, and in-game menus. The launcher installs it directly into your BeamNG user folder:
+The client mod (`NodeMP.zip`) does everything inside the game: other players' cars, the chat, the
+name tags and the multiplayer menus. The launcher puts it into the game's user folder:
 
 ```
 %LOCALAPPDATA%\BeamNG\BeamNG.drive\current\mods\multiplayer\NodeMP.zip
 ```
 
-You never need to copy files manually. The launcher verifies the mod whenever you start it or join a server, downloads the latest build, and makes sure it's enabled in the game's mod manager. Just ensure BeamNG.drive is closed while the mod updates so the file isn't locked by the game. To check your mod status manually, head to **Settings → Launcher → Client mod** and click **Check now**.
+You never copy it by hand. The launcher checks the mod when it starts and before every join,
+downloads a new version when there is one and turns it on in the game's mod manager.
 
-:::note[If an update fails]
-If the download service is temporarily unreachable, the launcher will still attempt to join using your existing mod (if present) and display a warning. Whether an older mod version is accepted depends on server settings.
+:::caution[Close the game first]
+Don't start BeamNG.drive while the mod is downloading: the running game locks the file.
 :::
 
-<details>
-<summary>For developers: unpacked mod copies</summary>
+To check the mod yourself, open **Settings → Launcher → Client mod** and click **Check now**.
 
-If you are developing the mod and keep source files unpacked under `mods/unpacked/nodemp`, the launcher leaves them untouched and runs the unpacked copy. Custom user folders are also recognized automatically.
+:::note[If the update didn't download]
+When the download service can't be reached, the launcher joins with the copy you already have and
+shows a warning. Whether a server accepts an older mod is up to the server.
+:::
 
-</details>
+## If the launcher can't find the game
 
-## If the launcher did not find the game
+Open **Settings → Game**. The line under the heading shows the game version the launcher found.
+If it found nothing:
 
-Check **Settings → Game**. The status line under the header displays your detected game build (for example, `Version 0.39.4.0`). If the game is reported as missing:
+- click **Browse** and pick the folder that contains `Bin64\BeamNG.drive.x64.exe`, or
+- start BeamNG.drive once through Steam, close it, and click **Find it**.
 
-- click **Browse** and select the folder containing `Bin64\BeamNG.drive.x64.exe`, or
-- launch BeamNG once through Steam, close it, and click **Find it** in the launcher.
-
-Without a detected game installation, joins cannot start, so make sure this is configured before connecting.
+Joining needs the game, so sort this out before you try a server.
 
 ## Next
 
-- [Account and sign-in](/players/sign-in/) — sign in or jump right into Test Drive.
-- [Join a server](/players/join/) — browse servers, use filters, and hit the road.
+- [Your account](/players/sign-in/): sign in, or play as Test Drive.
+- [Find and join a server](/players/join/).
