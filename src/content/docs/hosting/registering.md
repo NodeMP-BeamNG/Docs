@@ -12,7 +12,7 @@ With a key the server introduces itself to NodeMP, shows up in the launcher and 
 ## Create a key
 
 You need a NodeMP account with a confirmed e-mail and a linked Discord account. Discord is linked
-under **Connections** in your account and isn't used for anything else.
+under **Connections** in your account.
 
 1. Sign in at [nodemp.com](https://nodemp.com) and open
    [**My servers**](https://nodemp.com/account/servers).
