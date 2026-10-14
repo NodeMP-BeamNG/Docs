@@ -1,33 +1,120 @@
 ---
-title: Перенос плагинов BeamMP
-description: Запустить серверный плагин BeamMP через модуль совместимости или перенести его на API node — папка, соответствие MP.* и node.*, и перенесённый плагин чата.
+title: Переход с других платформ
+description: Для авторов плагинов BeamMP и KissMP — как их понятия ложатся на NodeMP, что модуль beammp-compat запускает без изменений и чему нет замены.
 ---
 
-Серверный плагин BeamMP может прийти на NodeMP двумя путями:
+Если вы писали плагины для BeamMP или KissMP, большая часть знаний пригодится: сервер выполняет Lua,
+реагирует на игроков и машины и общается со скриптами в игре. Здесь — как одно ложится на другое, а
+затем — как запустить плагин BeamMP как есть.
 
-- **Запустить как есть** через модуль совместимости `beammp-compat`. Он даёт плагину его таблицы
-  `MP`, `Util` и `FS`, так что папка плагина загружается без изменений. Подходит, чтобы попробовать
-  плагин или если трогать его не хочется.
-- **Перенести** на API `node`. Работы больше, зато получается обычный ресурс: он получает объекты
-  вместо номеров, отказывает с причиной, которую видит игрок, ждёт, не блокируя сервер, и может
-  пользоваться всем, что описано на этих страницах.
+## Что устроено иначе
 
-## Запуск плагина через модуль совместимости
+- **Всё выполняется в одном потоке.** Обработчики всех ресурсов работают по очереди на одном рабочем
+  потоке. Обработчик, который спит или крутится в цикле, задерживает все остальные ресурсы. Ждут с
+  помощью таймеров и корутин ([Таймеры и корутины](/ru/plugins/concurrency/)).
+- **Обработчики получают объекты.** Обработчику приходит `Player` или `Vehicle` с полями и методами, а
+  не голое число ([Игроки и машины](/ru/plugins/players-and-vehicles/)).
+- **Id машин общие.** У каждой машины один id, уникальный на сервере, кто бы её ни заспавнил.
+- **Машины переживают хозяина.** Когда игрок уходит, его машины остаются в мире без хозяина. Если ваш
+  плагин рассчитывает, что они исчезнут, удалите их сами или поставьте `vehicle-cleanup`.
+- **Чат встроен в сервер.** Он работает без плагинов. Команда — это строка чата, которую ресурс
+  забирает, вернув `{ handled = true }` ([Чат и команды](/ru/plugins/chat/)).
+- **У отказа есть причина.** Если запрос вернул `false, "причина"`, игрок увидит эту причину.
+- **Личность проверяется.** На сервере из списка аккаунт каждого игрока проверяет NodeMP;
+  `player.accountId` — надёжный ключ для данных.
 
-`beammp-compat` — нативный модуль, который запускает ресурсы с `type = "beammp"`. В архиве релиза
-его нет: он собирается из исходников, а файл кладётся в `modules/` рядом с исполняемым файлом
-сервера. Модули сервер загружает раньше ресурсов, так что плагин застаёт его на месте.
+## Что куда переезжает
 
-Положите файлы плагина в папку ресурса и добавьте манифест в две строки:
+| На старой платформе | В NodeMP |
+|---|---|
+| Серверные плагины в `Resources/Server/<плагин>/` | `resources/<имя>/`, точка входа — `server/main.lua` |
+| Клиентские моды в `Resources/Client/` | Zip-моды в `content/`; Lua для игры — в `resources/<имя>/client/` |
+| `ServerConfig.toml` | `server.toml` ([Настройки сервера](/ru/hosting/configuration/)) |
+| Собственный файл настроек плагина | Таблица `[config]` в `resource.toml`, читается как `node.config` |
+
+## Понятия BeamMP в NodeMP
+
+| BeamMP | NodeMP |
+|---|---|
+| `onInit` | Верх `main.lua`, он выполняется при загрузке ресурса |
+| `onPlayerAuth` | `playerConnectRequest`: `false, "причина"` — отказ, `true` — резервное место |
+| `onPlayerConnecting` | `playerAuthenticated` |
+| `onPlayerJoining` | `playerJoining` |
+| `onPlayerJoin` | `playerJoined` |
+| `onPlayerDisconnect` | `playerLeft`, с причиной |
+| `onChatMessage` | `chatMessageRequest`: отклонить, переписать или принять строку как команду |
+| `onVehicleSpawn` | `vehicleSpawnRequest` |
+| `onVehicleEdited` | `vehicleEditRequest` |
+| `onVehicleDeleted` | `vehicleDeleted` |
+| `onVehicleReset` | `vehicleReset` |
+| `onShutdown` | `serverShutdown`, а последнее слово самого ресурса — `resourceUnload` |
+| `MP.SendChatMessage` | `player:tell`, а всем — `node.chat.say` |
+| `MP.DropPlayer` | `player:kick(reason)` |
+| `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
+| `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
+| `MP.TriggerClientEvent` | `player:send(name, data)` или `node.broadcast` |
+| `MP.TriggerGlobalEvent` | `node.bus.emit` ([Шина](/ru/plugins/bus/)) |
+| `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)` |
+| `MP.Sleep` | `node.sleep(ms)` внутри `node.async`, без блокировки |
+| `MP.GetPlayerVehicles`, `MP.RemoveVehicle` | `player:vehicles()`, `vehicle:delete()` |
+| `MP.GetPositionRaw` | `vehicle:transform()` или `node.vehicles.transforms()` для всех машин |
+| `MP.Set(MP.Settings.MaxPlayers, n)` | `node.server.setMaxPlayers(n)` |
+| `Util.JsonEncode`, `Util.JsonDecode` | `node.json.encode`, `node.json.decode` |
+| `FS.*` | `node.fs.*`, в пределах папки ресурса |
+| `TriggerServerEvent` в клиентском моде | `node.emitServer` или `NodeMP.events.triggerServer` |
+| `AddEventHandler` в клиентском моде | `node.on` или `NodeMP.events.on` |
+
+То же приветствие и команда в виде ресурса NodeMP:
+
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/hello"}]]} -->
+```lua
+node.on("playerJoined", function(player)
+    node.chat.say("%s joined the server", player.name)
+end)
+
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text ~= "/hello" then return end
+    player:tell("Hello, %s!", player.name)
+    return { handled = true }
+end)
+
+-- expect-client: Alice chat:msg .*Alice joined the server
+-- expect-client: Alice chat:msg .*Hello, Alice!
+```
+
+## Понятия KissMP в NodeMP
+
+Слоя совместимости с KissMP в NodeMP нет, плагин KissMP переписывают. Понятия ложатся близко:
+
+| KissMP | NodeMP |
+|---|---|
+| Хуки подключения и ухода игрока | `playerConnectRequest`, `playerJoined`, `playerLeft` |
+| Хук чата | `chatMessageRequest` |
+| Хуки спавна, сброса и удаления машин | `vehicleSpawnRequest`, `vehicleSpawned`, `vehicleReset`, `vehicleDeleted` |
+| Хук на каждом такте сервера | `serverTick`, а лучше таймер: `node.every(ms, fn)` |
+| Объект подключения: имя, сообщения, кик | `Player`: `player.name`, `player:tell`, `player:kick` |
+| Список машин и их положения | `node.vehicles.all()`, `node.vehicles.transforms()` |
+| Данные в файлах | `node.storage`, `node.fs` или [модуль db](/ru/plugins/database/) |
+| Lua, который отправляют игрокам | Файлы `client/` ресурса ([Клиентские скрипты](/ru/plugins/client-scripting/)) |
+| Моды, которые раздаёт сервер | Zip-архивы в `content/` ([Моды и карты](/ru/hosting/mods/)) |
+
+## Плагины BeamMP без изменений
+
+Нативный модуль `beammp-compat` запускает серверные плагины BeamMP как есть. Это языковой хост: он
+занимает `type = "beammp"` и даёт каждому такому ресурсу таблицы `MP`, `Util` и `FS`, которых ждёт
+плагин BeamMP.
+
+`beammp-compat` в архив сервера не входит, его собирают из исходников через CMake, как и другие
+[нативные модули](/ru/plugins/examples/#собираются-из-исходников-в-архив-не-входят). Положите
+`beammp-compat.dll` в `modules/` рядом с сервером. Затем оформите плагин как ресурс:
 
 ```
 resources/
 └── my-plugin/
-    ├── resource.toml      # name = "my-plugin", type = "beammp", [server] main = "main.lua"
-    ├── main.lua           # the plugin's files, as they were in Resources/Server/my-plugin/
+    ├── resource.toml
+    ├── main.lua         ← файлы плагина, без изменений
     ├── commands.lua
-    └── client/            # optional: the client mod's files, unpacked from its zip
-        └── lua/ge/extensions/...
+    └── client/          ← файлы клиентского мода, распакованные (необязательно)
 ```
 
 ```toml
@@ -38,190 +125,39 @@ type = "beammp"
 main = "main.lua"
 ```
 
-Сначала выполняется файл из `[server] main`, потом все остальные `.lua` в папке по алфавиту, потом
-`onInit`. Все файлы одного плагина делят одно состояние Lua, как плагин и ожидает. **Указывайте
-`main`**, если у плагина нет папки `client/`: без того и другого сервер не считает папку ресурсом и
-пропускает её.
+Сначала выполняется файл из `[server] main`, затем все остальные `.lua` прямо в папке, по алфавиту, в
+одном состоянии Lua, как в BeamMP; потом `onInit`. Назначьте один из файлов точкой входа: папку без
+`server/main.lua` и без клиентских файлов сервер ресурсом не считает.
 
-Чего от него ждать:
+### Что работает как есть
 
-- **События** приходят с теми аргументами, которые плагин знает: `onPlayerAuth`,
-  `onPlayerConnecting`, `onPlayerJoining`, `onPlayerJoin`, `onPlayerDisconnect`, `onChatMessage`,
-  `onVehicleSpawn`, `onVehicleEdited`, `onVehicleDeleted`, `onVehicleReset`,
-  `onVehiclePaintChanged`, `onShutdown`.
-- **Отменённая строка чата тихо исчезает.** Когда `onChatMessage` отменяет строку, её никто не
-  видит, а отправителю не говорят, что ему отказали, — так `/команда` плагина не попадает в чат.
-- **Номера машин — глобальные номера сервера**, единые на весь сервер, а не свой счёт у каждого
-  игрока. `onVehicleSpawn` получает `0` для новой машины, потому что номер выдаётся после решения;
-  настоящий приходит в `postVehicleSpawn`.
-- **`MP.SendChatMessage`** показывается строкой от **System**.
-- **`MP.Sleep` блокирует все ресурсы**, а не только этот плагин, потому что у всех ресурсов один
-  рабочий поток. По возможности замените его.
-- **Нет:** `Http.CreateConnection` (берите [`node.http`](/ru/plugins/http/) из Lua-ресурса),
-  `onConsoleInput` и `onFileChanged` (никогда не срабатывают), `Util.JsonDiff` и
-  `Util.JsonDiffApply`, `MP.ConfirmationDialog` и остановка сервера через `exit()`.
+- Все события игроков и машин из таблицы выше, с аргументами BeamMP, а также `postPlayerAuth`,
+  `postChatMessage`, `postVehicleSpawn` и `postVehicleEdited`.
+- Свои события от клиентов, `MP.TriggerLocalEvent` и `MP.TriggerGlobalEvent` между плагинами, таймеры,
+  `MP.Get` и `MP.Set` для лимитов игроков и машин, карты и имени.
+- `Util.Json*`, `Util.Random*`, `Util.Log*` и `FS.*` для файлов и папок.
+- В игре — клиентские глобальные имена, которые вызывает клиентский мод BeamMP: `TriggerServerEvent`,
+  `TriggerClientEvent`, `AddEventHandler`, `MPGameNetwork`, `MPCoreNetwork`, `MPConfig`,
+  `MPVehicleGE`, `UI`.
 
-О большинстве из них модуль пишет предупреждение, когда плагин впервые к ним обращается, так что
-лог сервера подскажет, что исправить. Клиентский скрипт, написанный для BeamMP, тоже находит свои
-привычные глобальные имена ([ниже](#клиентские-скрипты)).
+### Что работает иначе
 
-## Перенос вручную
+- В `onVehicleSpawn` id машины — тот, что предложил клиент, для новой машины `0`: настоящий id NodeMP
+  выдаёт после решения. Его приносит `postVehicleSpawn`.
+- `MP.SendChatMessage` показывает строку как системную.
+- `MP.Sleep` блокирует рабочий поток, а с ним и все ресурсы. Модуль один раз предупреждает об этом.
+- Идентификатор, который BeamMP называет `beammp`, — номер аккаунта игрока в NodeMP.
 
-Переносится форма плагина: события, на которые он отвечает, и вызовы, которые делает. Таблицы ниже
-сопоставляют каждому его вид в NodeMP; все имена справа есть в
-[справочнике Lua API](/ru/plugins/api/lua/) и [справочнике событий](/ru/plugins/api/events/).
+### Чему нет замены
 
-### Папка и манифест
+- `onConsoleInput` и `onFileChanged` никогда не срабатывают.
+- `MP.ConfirmationDialog`, `Util.JsonDiff` и `Util.JsonDiffApply` — заглушки.
+- `Http.CreateConnection` нет: блокирующий HTTP-запрос остановил бы сервер. Используйте `node.http` из
+  ресурса на Lua.
+- `exit()` только пишет предупреждение: ресурс не может так остановить сервер.
+- В игре нет модулей отдельных потоков данных: `MPInputsGE`, `MPElectricsGE`, `MPPowertrainGE`,
+  `positionGE`, `MPHelpers`, `MPUpdatesGE` и `MPModManager`.
 
-| BeamMP | NodeMP |
-|---|---|
-| `Resources/Server/<плагин>/`, все `.lua` загружаются в одно состояние Lua | `resources/<имя>/` с одной точкой входа, `server/main.lua`, и необязательным `resource.toml` ([Ресурсы](/ru/plugins/resources/)) |
-| вспомогательные файлы, загружаемые в порядке папки | `require` из `server/`, предварительно добавив папку в `package.path` ([Ресурсы → Несколько серверных файлов](/ru/plugins/resources/#несколько-серверных-файлов)) |
-| `Resources/Client/<мод>.zip` | `content/<мод>.zip`, его скачивает лаунчер до входа; Lua для игры можно положить и в `resources/<имя>/client/`, оно отправляется при входе ([Клиентские скрипты](/ru/plugins/client-scripting/)) |
-| `ServerConfig.toml` | `server.toml` ([Настройка](/ru/hosting/configuration/)); собственные настройки плагина — в таблице `[config]` его `resource.toml`, они приходят как `node.config` |
-
-### События
-
-`MP.RegisterEvent(name, "handlerName")` превращается в `node.on(name, fn)`: обработчик — сама
-функция. У имён NodeMP нет приставки `on`; то, что случилось, читается как `playerJoined`, то, в чём
-обработчик может отказать, — как `vehicleSpawnRequest`.
-
-| BeamMP | NodeMP |
-|---|---|
-| `onInit` | код верхнего уровня `server/main.lua`, который выполняется при загрузке и при каждой перезагрузке |
-| `onShutdown` | `serverShutdown` |
-| `onPlayerAuth` (отказ — `1` или строка) | `playerConnectRequest(player, name)`, отказ — `return false, "reason"`; читайте `player.guest`, `player.accountId`, `player.accountRoles`, `player.identifiers` |
-| `onPlayerConnecting` | `playerAuthenticated(player)` |
-| `onPlayerJoining` | `playerJoining(player)` |
-| `onPlayerJoin` | `playerJoined(player)` |
-| `onPlayerDisconnect` | `playerLeft(player, reason)`; `player.name` ещё читается |
-| `onChatMessage` (отмена — `1`) | `chatMessageRequest(player, msg)`: `return false, "reason"` отказывает, `{ handled = true }` забирает строку как команду ([Чат](/ru/plugins/chat/)) |
-| `onVehicleSpawn` (отказ — `1`) | `vehicleSpawnRequest(player, requestedId, config)` — решить, `vehicleSpawned(vehicle)` — после |
-| `onVehicleEdited` | `vehicleEditRequest(player, vehicle, config)` — решить, `vehicleEdited` — после |
-| `onVehicleDeleted` | `vehicleDeleted(vehicle, cause)`; смысл сохраняет только `vehicle.id` |
-| `onVehicleReset` | `vehicleReset(player, vehicle, posRot)`, только наблюдать |
-| `onVehiclePaintChanged` | `vehiclePaintRequest(player, vehicle, paints)` — решить, `vehiclePainted` — после |
-| `onFileChanged` | `node.fs.watch(path, fn)` для файла в папке ресурса ([Хранилище и файлы](/ru/plugins/storage/#слежение-за-файлом)) |
-| `onConsoleInput` | нет: у консоли свои постоянные команды ([Администрирование](/ru/hosting/administration/#консоль)); дайте админам команды чата |
-
-Обработчик запроса, который ничего не вернул, разрешает. События, которых в BeamMP не было, —
-пересадки, запросы дверей и триггеров, потоки позиций, фильтр ретрансляции — на странице
-[События](/ru/plugins/events/).
-
-### Игроки
-
-| BeamMP | NodeMP |
-|---|---|
-| `MP.GetPlayerName(pid)` | `player.name` |
-| `MP.GetPlayerIDByName(name)` | `node.players.find(name)` возвращает `Player` |
-| `MP.GetPlayers()` | `node.players.all()` (массив `Player`), `node.players.ids()` |
-| `MP.GetPlayerCount()` | `node.players.count()` |
-| `MP.IsPlayerConnected(pid)` | `player:isConnected()` |
-| `MP.IsPlayerGuest(pid)` | `player.guest` |
-| `MP.GetPlayerIdentifiers(pid)` | `player.identifiers` (`"nodemp:<id>"`, `"discord:<id>"`, `"ip:<addr>"`), `player.accountId`, `player.ip` |
-| роль из `onPlayerAuth` | `player.accountRoles` (роли на сайте NodeMP); `player.role` — собственная роль этого сервера, её выдаёт `player:setRole` |
-| `MP.DropPlayer(pid, reason)` | `player:kick(reason)` |
-| баны, которые ведёт сам плагин | `player:ban(reason, untilUnix)`, `node.bans.add`, `node.bans.remove`; их хранит сервер в `bans.json` ([Игроки и машины](/ru/plugins/players-and-vehicles/#кики-и-баны)) |
-
-### Машины
-
-| BeamMP | NodeMP |
-|---|---|
-| пара `(pid, vid)` | у машины один номер, `vehicle.id`, единый на весь сервер; `vehicle.spawner`, `vehicle.driver` и `vehicle.authority` — игроки вокруг неё |
-| `MP.GetPlayerVehicles(pid)` | `player:vehicles()`; `vehicle:config()` — конфигурация таблицей |
-| `MP.GetPositionRaw(pid, vid)` | `vehicle:transform()` (`pos`, `rot`, `vel`, `angVel`) или `player:position()` |
-| `MP.RemoveVehicle(pid, vid)` | `vehicle:delete()` |
-| нет | `vehicle:teleport`, `vehicle:reset`, `vehicle:lock`, `vehicle:setTag`, `player:seat`, `player:spawnVehicle`, `player:freeze`: что сервер может сделать с машинами и игроками |
-
-### Чат и события для клиентов
-
-| BeamMP | NodeMP |
-|---|---|
-| `MP.SendChatMessage(pid, text)`, `-1` — всем | `player:tell(text, ...)`; всем — `node.chat.say(text, ...)` |
-| `MP.TriggerClientEvent(pid, name, data)`, `-1` — всем | `player:send(name, data)`; всем — `node.broadcast(name, data)` |
-| `MP.TriggerClientEventJson(pid, name, table)` | `player:send(name, table)`: таблица уходит как JSON |
-| `MP.TriggerGlobalEvent(name, ...)` | `node.bus.emit(name, data)` и `node.bus.on(name, fn)`; ответ — второе сообщение ([Между ресурсами](/ru/plugins/bus/)) |
-| `MP.TriggerLocalEvent(name, ...)` | вызовите функцию |
-
-### Таймеры, HTTP, файлы и остальное
-
-| BeamMP | NodeMP |
-|---|---|
-| `MP.CreateEventTimer(name, ms)` | `node.every(ms, fn)`, возвращает номер для `node.cancel(id)`; `node.after(ms, fn)` срабатывает один раз |
-| `MP.Sleep(ms)` | `node.sleep(ms)` внутри `node.async(fn)`: ждёт только эта корутина ([Таймеры и корутины](/ru/plugins/concurrency/)) |
-| `MP.GetTimeMS()` | `node.server.time()` (секунды с долями), `node.server.uptime()` |
-| HTTP, который ждёт ответа | `node.http.get(url, headers, cb)` и родственники с обратным вызовом или `node.http.fetch(url)` внутри `node.async` ([HTTP](/ru/plugins/http/)) |
-| состояние в собственных файлах | `node.storage.get(key, default)` и `node.storage.set(key, value)`, на диске раньше, чем `set` вернётся ([Хранилище и файлы](/ru/plugins/storage/)) |
-| `FS.Exists`, `FS.CreateDirectory`, `FS.Copy`, `FS.Rename`, `FS.Remove`, `FS.ListFiles` | `node.fs.exists`, `node.fs.mkdir`, `node.fs.copy`, `node.fs.rename`, `node.fs.remove`, `node.fs.list` — внутри папки ресурса |
-| `FS.ConcatPaths`, `FS.GetFilename`, `FS.GetExtension`, `FS.GetParentFolder` | `node.fs.join`, `node.fs.basename`, `node.fs.extension`, `node.fs.dirname` |
-| `Util.JsonEncode`, `Util.JsonDecode`, `Util.JsonPrettify` | `node.json.encode(value)`, `node.json.decode(text)`, `node.json.encode(value, { pretty = true })` |
-| `Util.JsonFlatten`, `Util.JsonDiff`, `Util.JsonDiffApply` | `node.json.flatten`, `node.json.diff`, `node.json.patch` |
-| `print`, `Util.LogInfo`, `Util.LogWarn`, `Util.LogError` | `node.log(text, ...)`, `node.log.warn`, `node.log.error` |
-| `MP.Get`, `MP.Set` с `MP.Settings` | `node.server.name()`, `map()`, `maxPlayers()`, `maxCars()`; `node.server.setName`, `setMaxPlayers`, `setMaxCars` |
-| `Util.RandomIntRange(a, b)` | `math.random(a, b)`; для токена — `node.crypto.randomHex(n)` |
-
-## Перенесённый плагин чата
-
-Плагин BeamMP, который отвечает на `/online` и объявляет о входах:
-
-<!-- doctest: skip BeamMP's MP.* API, shown for comparison; a NodeMP server has no MP table -->
-```lua
--- Resources/Server/Greeter/main.lua (BeamMP)
-function onChatMessage(pid, name, message)
-    if message == "/online" then
-        MP.SendChatMessage(pid, "Online: " .. MP.GetPlayerCount())
-        return 1
-    end
-end
-MP.RegisterEvent("onChatMessage", "onChatMessage")
-
-function onPlayerJoin(pid)
-    MP.SendChatMessage(-1, MP.GetPlayerName(pid) .. " joined")
-end
-MP.RegisterEvent("onPlayerJoin", "onPlayerJoin")
-```
-
-Тот же плагин как ресурс NodeMP, `resources/greeter/server/main.lua`:
-
-<!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
-```lua
-node.on("chatMessageRequest", function(player, msg)
-    if msg.text ~= "/online" then return end
-    player:tell("Online: %d", node.players.count())
-    return { handled = true }
-end)
-
-node.on("playerJoined", function(player)
-    node.chat.say("%s joined", player.name)
-end)
-
--- expect-client: Alice chat:msg .*Alice joined
--- expect-client: Alice chat:msg .*Online: 1
-```
-
-Что изменилось:
-
-1. `MP.RegisterEvent` больше нет: `node.on` принимает саму функцию.
-2. Обработчик получает `Player`, так что `MP.GetPlayerName(pid)` — это `player.name`, а
-   `MP.SendChatMessage(pid, ...)` — `player:tell(...)` со встроенным `string.format`.
-3. `return 1` превращается в `return { handled = true }`: строка дальше не идёт, а игрок видит только
-   ответ.
-4. `MP.SendChatMessage(-1, ...)` — это `node.chat.say(...)`.
-
-Манифест не нужен: папка с `server/main.lua` — уже ресурс с именем папки.
-
-## Клиентские скрипты
-
-Клиентский скрипт, написанный для BeamMP, находит привычные глобальные имена: `TriggerServerEvent`,
-`TriggerClientEvent`, `AddEventHandler`, `RemoveEventHandler`, помощники для клавиш и таблицы
-модулей `MPGameNetwork`, `MPCoreNetwork`, `MPConfig`, `MPVehicleGE` и `UI`. Клиентский мод держит
-их, чтобы такие скрипты работали с минимумом правок. Модулей BeamMP для отдельных потоков
-(`positionGE`, `MPInputsGE`, `MPElectricsGE` и подобных) нет; скрипт, которому они нужны,
-переписывают на клиентский API NodeMP ([Клиентские скрипты](/ru/plugins/client-scripting/)).
-`TriggerServerEvent(name, data)` приходит на сервер сетевым событием — `node.on(name, fn)` с
-`(player, data)`.
-
-## Дальше
-
-- [Первый ресурс](/ru/plugins/getting-started/): ресурс NodeMP с пустой папки.
-- [Отличия от BeamMP](/ru/introduction/differences-from-beammp/): сравнение шире, не только плагины.
+Чтобы уходить от слоя совместимости постепенно, в исходниках модуля есть ещё `mp.lua`: он даёт
+обычному ресурсу на Lua те же таблицы `MP`, `Util` и `FS`. Тогда старый код и новый, на `node`, живут
+в одном ресурсе, пока вы переписываете его по частям.

@@ -32,18 +32,18 @@ export const GUIDE_LINKS = {
   'guides/concurrency.md': '/plugins/concurrency/',
   'guides/wire.md': '/plugins/client-scripting/',
   'guides/native-modules.md': '/plugins/native-modules/',
-  'guides/recipes.md': '/plugins/recipes/',
+  'guides/recipes.md': '/plugins/examples/',
   'guides/conventions.md': '/plugins/conventions/',
 };
 export const GUIDE_TITLES = {
-  'guides/getting-started.md': 'Getting started',
-  'guides/resources.md': 'Resources',
+  'guides/getting-started.md': 'Your first resource',
+  'guides/resources.md': 'How a resource is built',
   'guides/events.md': 'Events',
-  'guides/concurrency.md': 'Concurrency',
-  'guides/wire.md': 'Client scripting',
+  'guides/concurrency.md': 'Timers and coroutines',
+  'guides/wire.md': 'Client scripts',
   'guides/native-modules.md': 'Native modules',
-  'guides/recipes.md': 'Recipes',
-  'guides/conventions.md': 'Conventions',
+  'guides/recipes.md': 'The example plugins',
+  'guides/conventions.md': 'Errors, names and versions',
 };
 
 export function apigenAnchor(text) {

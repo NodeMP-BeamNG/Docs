@@ -126,7 +126,7 @@ test('every guide link apigen emits has a target page', () => {
   assert.equal(GUIDE_LINKS['guides/wire.md'], '/plugins/client-scripting/');
   // typo guard: exactly the eight planned slugs, all absolute with a trailing slash
   const planned = ['/plugins/getting-started/', '/plugins/resources/', '/plugins/events/', '/plugins/concurrency/',
-    '/plugins/client-scripting/', '/plugins/native-modules/', '/plugins/recipes/', '/plugins/conventions/'];
+    '/plugins/client-scripting/', '/plugins/native-modules/', '/plugins/examples/', '/plugins/conventions/'];
   assert.deepEqual(Object.values(GUIDE_LINKS).sort(), planned.sort());
   for (const u of Object.values(GUIDE_LINKS)) assert.match(u, /^\/plugins\/[a-z-]+\/$/);
 });
