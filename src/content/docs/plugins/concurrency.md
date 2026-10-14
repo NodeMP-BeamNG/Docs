@@ -1,53 +1,33 @@
 ---
-title: Concurrency
-description: One worker thread for every handler; timers, node.defer, coroutines (node.async), background jobs (node.job, node.await), async HTTP and file writes.
+title: Timers and coroutines
+description: The one thread every handler runs on, timers, node.defer, waiting with coroutines, and heavy work on the background pool with node.await and node.job.
 ---
 
-The server is multithreaded; your Lua is not. Every handler of every resource runs on one plugin
-worker thread, one call at a time, and everything else the API offers exists so that thread never
-waits. This page is the model and the rules; the [Lua API reference](/plugins/api/lua/) has each
-call's signature.
+The server uses many threads; your Lua uses one. Every handler of every resource runs on the same
+worker thread, one call at a time. Everything on this page exists so that thread never has to wait.
 
-## One worker thread
+## One thread for everyone
 
-The network threads receive packets and post events to a queue; a single worker thread drains the
-queue and calls your handlers. Timers, `node.defer` callbacks, coroutine resumes, bus deliveries,
-HTTP and job completions all land on the same thread. Two consequences:
+Network threads receive packets and queue events; the worker takes them off the queue and calls your
+handlers. Timers, coroutines, bus messages, HTTP answers and finished background jobs all come back
+to that same thread. That has two consequences:
 
-- **You never need a lock.** No handler runs while another one runs, in your resource or in any
-  other, so a plain Lua table is a safe place for shared state.
-- **Blocking blocks everyone.** A handler that loops for a second stalls every other resource's
-  handlers, every timer and `serverTick` for that second. The server watches for it: every piece
-  of plugin code the worker runs - event, bus and request handlers (a `db` answer comes back as
-  one), timer callbacks, the slices of a `node.async` coroutine between two suspensions, HTTP and
-  job completion callbacks, log sinks - is timed on its own, and one that takes more than 250 ms is
-  logged with the resource and the kind:
+- **You never need a lock.** No two handlers run at once, in your resource or any other, so a plain
+  Lua table is a safe place for shared state.
+- **A slow handler holds up everyone.** A handler that loops for a second stalls every resource's
+  handlers and timers for that second. The server notices: any handler, timer or coroutine step that
+  runs longer than 250 ms is logged with the resource and what kind of code it was:
   `plugin worker job stalled the thread for 699 ms (resource race, timer) — move heavy work to node.await/node.job`.
-  A slice nested in another (a timer callback that starts a coroutine whose first slice stalls)
-  is reported once, for the inner one. (Before 1.2.1 only whole worker jobs were timed, so a slow
-  timer callback or coroutine slice went unreported, and the line named no resource.) When the
-  queue is flooded past 100 000 pending jobs, new events are dropped with
-  `plugin job queue full (100000 jobs) -- dropping events (flood?)`.
 
-What runs elsewhere: the background pool (`node.job`, `node.await`, `node.http`), the file-writer
-thread (`node.fs.writeAsync`), and the network threads themselves. None of them ever touch your
-Lua state; results come back to the worker as plain data and a callback.
+`node.server.handlerStats()` shows how long your resource's handlers take (count, mean, max, and how
+many went over 250 ms), so you can see one creeping up before it trips the warning.
 
 ## Timers
 
-- `node.after(ms, fn) -> id` runs `fn` once after `ms` milliseconds.
-- `node.every(ms, fn) -> id` runs `fn` every `ms` milliseconds until cancelled. A slow `fn` delays
-  the next run; runs do not stack.
-- `node.cancel(id)` cancels either; safe for an id that already fired.
-
-Timers are serviced after each batch of handlers, so a timer never interrupts a handler; the
-worker wakes for the earliest deadline, and `serverTick` fires every 100 ms alongside them. A
-timer belongs to the resource that set it and dies with a reload; at shutdown `serverShutdown` fires,
-then each resource's own `resourceUnload("shutdown")`, and timers do not run again. The same hook
-fires as `resourceUnload("reload")` right before a reload drops the state - the place to flush
-what a timer was accumulating; a `node.storage` write made there is kept, while a callback, timer,
-coroutine or `db` request started there never completes - the bus delivers on a later worker turn
-([Resources](/plugins/resources/#reload)).
+- `node.after(ms, fn)` runs `fn` once after `ms` milliseconds and returns a timer id.
+- `node.every(ms, fn)` runs `fn` every `ms` milliseconds until cancelled. A slow `fn` delays the next
+  run; runs don't pile up.
+- `node.cancel(id)` stops either. Safe to call for a timer that already fired.
 
 <!-- doctest: server -->
 ```lua
@@ -68,12 +48,15 @@ end)
 -- expect: half a second in, timer \d+ is ticking
 ```
 
+A timer never interrupts a handler; it runs between them. Timers belong to the resource that set
+them: a reload drops them, and at shutdown they stop after `serverShutdown`. `serverTick` is a
+built-in timer of its own, every 100 ms.
+
 ## After the others: node.defer
 
-`node.defer(fn)` runs `fn` on the worker after the current batch of handlers has finished. It is
-the way to act once every other handler of the event you are in has seen it - the prelude uses it
-to forget a leaving player's name only after every `playerLeft` handler ran. Anything you send or
-change inside `fn` happens after the event, not during it.
+`node.defer(fn)` runs `fn` once every handler of the event you're in has finished. Use it to act
+after everyone else has seen the event; anything you change inside `fn` happens after the event, not
+during it.
 
 <!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
@@ -91,20 +74,16 @@ end)
 
 ## Waiting without blocking: node.async
 
-`node.async(fn, ...)` runs `fn(...)` as a cooperative coroutine on the worker and returns its task
-id. Inside it, four calls suspend the coroutine while everything else keeps running:
+`node.async(fn, ...)` runs `fn(...)` as a coroutine on the worker. Inside it, these calls pause your
+code while everything else keeps running:
 
-- `node.sleep(ms)` - for a duration.
-- `node.wait(msOrPredicate, intervalMs?)` - a number sleeps; a function suspends until it returns
-  truthy, polled every `intervalMs` (default 50).
-- `node.yield()` - gives the worker back for one turn inside a long loop that must run on it.
-  Fairness, not parallelism.
-- `node.await(workFn, args?)` - runs a function on the background pool and resumes with its
-  result; see below. `node.http.fetch` is built on the same idea.
-
-Outside a coroutine these calls fail: `node.sleep called outside a node.async task` in the log,
-and Lua's "attempt to yield" error in the handler. The task ends when `fn` returns or raises; an
-error is logged as `error in async task`. Tasks are dropped by a reload and at shutdown.
+- `node.sleep(ms)` waits for a time.
+- `node.wait(fn, intervalMs)` waits until `fn()` returns something truthy, checking every
+  `intervalMs` (50 by default). `node.wait(ms)` is the same as `node.sleep(ms)`.
+- `node.yield()` lets other handlers run for one turn, inside a long loop that has to stay on the
+  worker.
+- `node.await(work, args)` runs a function on another thread and gives you its result
+  ([below](#heavy-work-nodeawait-and-nodejob)). `node.http.fetch` works the same way for HTTP.
 
 <!-- doctest: server+client {"emit": [["race:start", ""]]} -->
 ```lua
@@ -124,22 +103,29 @@ end)
 -- expect: race started by Player#\d+ Alice
 ```
 
-A coroutine that sleeps wakes into a changed world: the player may have left, the vehicle may be
-gone. Re-check with `player:isConnected()` and `vehicle:exists()` after every `node.sleep`, and
-remember that ids are reused.
+Called outside `node.async`, these fail: the log says `node.sleep called outside a node.async task`.
+An error inside the coroutine is logged as `error in async task` and ends it. A reload drops running
+coroutines.
 
-## Real parallelism: node.job and node.await
+A coroutine that slept wakes up in a changed world: the player may have left, the car may be gone.
+Check `player:isConnected()` and `vehicle:exists()` after every pause, and remember that ids are
+reused.
 
-Heavy computation does not belong on the worker. `node.job(workFn, args?, doneFn)` runs `workFn`
-on a background pool thread in a fresh, scratch Lua state and calls `doneFn(result, err)` on the
-worker when it finishes. `node.await(workFn, args?)` is the coroutine form, inside `node.async`
-only: it suspends until the work is done and returns `result` or `nil, err`.
+`node.suspend(arm)` is the general form behind all of these: `arm(resume)` runs, and whoever calls
+`resume(...)` later (a handler, a timer, a bus message) wakes the coroutine with those values. Use it
+to turn a callback API of your own into straight-line code.
 
-Because `workFn` runs in another Lua state, it must be **self-contained**: no upvalues, no `node`,
-no globals of your resource - it is serialised as bytecode and loaded elsewhere, and a function
-that cannot be dumped fails with `work function cannot be serialized (C function?)`. It receives
-`args` and returns a result, both JSON-serialisable (tables, strings, numbers, booleans). Give it
-copies of what it needs and get plain data back.
+## Heavy work: node.await and node.job
+
+Long computations don't belong on the worker. `node.await(work, args)` runs `work(args)` on a
+background thread and pauses your coroutine until it's done; it returns the result, or `nil` and an
+error. `node.job(work, args, done)` is the callback form: `done(result, err)` runs on the worker
+afterwards, and you don't need a coroutine.
+
+`work` runs in a separate, empty Lua state, so it must be **self-contained**: no variables from
+outside the function, no `node`, nothing of your resource. It gets `args` and returns a result, and
+both must be plain data (tables, strings, numbers, booleans). A function that can't be moved fails
+with `work function cannot be serialized (C function?)`.
 
 <!-- doctest: server+client {"emit": [["stats:request", ""]]} -->
 ```lua
@@ -167,88 +153,31 @@ end)
 -- expect-client: Alice stats:top \[\{
 ```
 
-The pool has one thread per hardware thread, clamped between 2 and 32; `NODE_PLUGIN_POOL` overrides
-the count. Its queue holds 10 000 jobs; past that, `node.job` returns `false` and `node.await`
-resumes with `nil, "background pool is full"`.
+The background pool has one thread per CPU core, between 2 and 32; the `NODE_PLUGIN_POOL`
+environment variable sets the number. When its queue is full, `node.job` returns `false` and
+`node.await` returns `nil, "background pool is full"`.
 
-## HTTP
+## What else runs off the worker
 
-`node.http` runs requests on the background pool and calls you back on the worker.
-
-- `node.http.request(method, url, opts?, cb)` is the general form (added in server 1.2.0): any method -
-  `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`, `"HEAD"` or a custom token the service
-  understands; a token is letters A–Z only, at most 16, and the prelude upper-cases it for you
-  (anything else calls back with `-1` and `invalid HTTP method`) - with `opts.headers` (a table)
-  and `opts.body` (a table is JSON-encoded, a string is sent as is, `nil` sends none).
-  `cb(status, body, headers)` runs on the worker.
-- `node.http.get(url, headers?, cb)`, `node.http.post(url, body, headers?, cb)`,
-  `node.http.put(url, body?, headers?, cb)`, `node.http.patch(url, body?, headers?, cb)`,
-  `node.http.delete(url, body?, headers?, cb)` and `node.http.head(url, headers?, cb)` are
-  `request` with the method fixed; a `HEAD` answer carries the status and the headers and an
-  empty body. A failed request calls back with status `-1` and the error text in `body`
-  (`resolve failed`, `connect failed`, `TLS handshake failed`, …); every one of them returns
-  `false` only when the request could not be queued, and then `cb` never runs.
-- `headers` in the callback (and the third value of `fetch`) is a table keyed by the **lowercased**
-  header name: `headers["content-type"]`, `headers["content-length"]`. Request headers you send
-  keep whatever case you wrote (`["Content-Type"] = "application/json"` is fine); response header
-  names are lowercased by the server, so `headers["Content-Type"]` is always `nil`.
-- `node.http.fetch(url, opts?)` is the coroutine form, inside `node.async` only:
-  `local status, body, headers = node.http.fetch(url, { method = "DELETE", body = t, headers = h })`.
-  `opts.method` is any method `request` accepts (before 1.2.0 anything but `POST` was sent as
-  `GET`); `status` is `0` with body `"request not queued"` when the request could not be queued.
-
-About 15 s timeout, an 8 MB body cap, up to five redirects. TLS peer verification is **off** unless
-the host sets `[Http] CaFile` in `server.toml` ([Configuration](/hosting/configuration/#http)):
-then every `https://` request is verified against that CA bundle and the host name, and a
-certificate that does not check out is a `-1` whose body starts with
-`TLS handshake failed (peer verification against [Http] CaFile)`, and a redirect that would take a
-verified `https://` request down to plain `http://` is not followed (`-1`,
-`redirect to plain http refused (verified request)`). Without it, do not send secrets to hosts you
-do not control.
-
-<!-- doctest: server+client -->
-```lua
-node.on("playerJoined", function(player)
-    node.http.get("https://example.com/motd.txt", function(status, body)
-        if status == 200 and player:isConnected() then
-            player:tell(body)
-        elseif status ~= 200 then
-            node.log.warn("no message of the day: %s", status == -1 and body or ("HTTP " .. status))
-        end
-    end)
-end)
-
--- expect: no message of the day: .+
-```
-
-## Files and storage off the worker
-
-`node.fs.write` is synchronous: fine for a small file, a stall for a large one.
-`node.fs.writeAsync(path, data, cb?)` hands the bytes to the file-writer thread and runs `cb(ok)`
-on the worker when the write is done; several writes to one path before the thread gets to them
-collapse into the last. `node.storage.set` appends one line to the store's change log before it
-returns - the cost of the value, not of the store - so it is fine inside a handler; the log is
-folded into the snapshot when it outgrows it. Storage is covered on
-[Resources](/plugins/resources/#state-nodestorage).
+- HTTP requests run in the background and call you back on the worker ([HTTP](/plugins/http/)).
+- `node.fs.writeAsync` writes on a file thread; `node.storage.set` costs only the size of the value,
+  so it's fine in a handler ([Storage and files](/plugins/storage/)).
+- Database queries run on the database module's own threads ([Database](/plugins/database/)).
 
 ## The rules
 
-1. Keep handlers short. Anything over a few milliseconds belongs in `node.async` (waiting) or
-   `node.await`/`node.job` (computing).
-2. Never spin-wait. There is no synchronous sleep or HTTP; use `node.sleep`, `node.wait` and
-   `node.http.fetch` inside `node.async`.
-3. Share nothing with a background job except JSON: it runs in another Lua state and sees neither
-   your tables nor `node`.
-4. Prefer polling a getter on a timer over a 60 Hz stream event when you need many vehicles at
-   once: `node.vehicles.transforms()` is one read.
-5. After any suspension, re-check that the player and vehicle still exist; ids are reused.
-6. Everything you register dies with a reload; a job or HTTP request already running does not,
-   and its callback may find the world changed.
-7. Native modules follow a different contract - `NodeApi` calls are thread-safe from any thread,
-   and the relay filter and log sink run inline. See [Native modules](/plugins/native-modules/).
+1. Keep handlers short. Waiting goes in `node.async`; computing goes in `node.await` or `node.job`.
+2. Never spin in a loop waiting for something. Use `node.sleep`, `node.wait` and `node.http.fetch`
+   inside `node.async`.
+3. Share nothing with a background job except plain data.
+4. For many cars at once, read them all on a timer (`node.vehicles.transforms`) instead of
+   subscribing to a stream per car.
+5. After any pause, check that the player and the car still exist.
+6. A reload drops everything you registered; a job or request already running still finishes, and
+   its callback goes nowhere.
 
 ## Next
 
-- [Lua API reference](/plugins/api/lua/#top-level-events-sending-timers-coroutines) - the timer
-  and coroutine calls with their signatures.
-- [Events](/plugins/events/) - what arrives on the worker in the first place.
+- [Events](/plugins/events/): what arrives on the worker in the first place.
+- [Lua API reference](/plugins/api/lua/#top-level-events-sending-timers-coroutines): every timer and
+  coroutine call.

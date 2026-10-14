@@ -9,10 +9,8 @@ carries one of their names or one of their header lines.
   a fixed cast: Alice = account 42, Bob = 108 (the ids the recipes use), Carol a directory
   admin, Guest a Test Drive session without an account. Written after the shape of the real
   directory's answers as `server/run/identity_test.py` exercises them.
-- `chat/` - a stand-in for the `chat` example resource the guides tell the reader to install,
-  speaking the protocol the guides document: `chat:send` in, `/` lines on the bus as
-  `chat:command { pid, name, args, raw }`, `chat:say { text, pid? }` on the bus out as
-  `chat:msg`. When the real `chat` changes its protocol, change it here too.
+
+Chat has no stand-in: it is part of the server, so the examples run against the real one.
 
 The wire codec and the fake player (`wire.py`, `wire_taxonomy.py`, `testclient.py`) are imported
 at run time from `run/` of a `NodeMP-BeamNG/server` checkout: `NODEMP_SERVER_DIR`, else `./server`

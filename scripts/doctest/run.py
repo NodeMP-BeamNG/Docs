@@ -46,8 +46,9 @@ the range the servers use, default 30950). The fake players need the `zstandard`
 when every block passed or was skipped with a reason, 1 on any failure, 2 when the runner itself
 cannot run.
 
-scripts/doctest/lib/ holds only this repository's own code (the stand-in directory and chat):
-the server repository is not public, and nothing of it is copied here.
+scripts/doctest/lib/ holds only this repository's own code (the stand-in directory): the
+server repository is not public, and nothing of it is copied here. Chat needs no stand-in: it is
+part of the server.
 """
 from __future__ import annotations
 
@@ -69,7 +70,6 @@ LIB = os.path.join(HERE, "lib")
 DOCS = os.path.join(ROOT, "src", "content", "docs")
 EN_DIR = os.path.join(DOCS, "plugins")
 RU_DIR = os.path.join(DOCS, "ru", "plugins")
-CHAT_DIR = os.path.join(LIB, "chat")
 
 if LIB not in sys.path:
     sys.path.insert(0, LIB)
@@ -774,7 +774,6 @@ def run_page(page, blocks, ctx, port):
     shutil.rmtree(home, ignore_errors=True)
     os.makedirs(os.path.join(home, "resources"))
     os.makedirs(os.path.join(home, "content"))
-    shutil.copytree(CHAT_DIR, os.path.join(home, "resources", "chat"))
 
     for b in blocks:
         r = results[b.index]

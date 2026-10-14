@@ -1,130 +1,76 @@
 ---
-title: Database access
-description: A real database from a resource with the db module - installing it, query/exec/tx, parameter and result types, errors, migrations, performance, wallet example.
+title: Database
+description: PostgreSQL, MySQL/MariaDB or SQLite from a resource with the db module - setup, queries, transactions, types, errors, migrations, and a complete wallet example.
 ---
 
-A database is a module, not part of the server. `modules/db.dll` (`db.so` on Linux) owns the
-connections and hands them to resources over the resource bus; a small library, `db.lua`, travels
-with your resource and hides the bus behind `db:query`, `db:exec` and `db:tx`. PostgreSQL, SQLite
-and MySQL/MariaDB sit behind that one interface, the placeholders are `$1..$n` on every engine, and
-a value never goes into the statement text. Nothing blocks the worker thread: a statement runs on a
-database thread and its outcome comes back as a callback, or resumes your coroutine.
+The server ships with a database module, `modules/db.dll` (`db.so` on Linux), and a small Lua
+library, `db.lua`, that your resource carries. Together they give you `db:query`, `db:exec` and
+`db:tx` against PostgreSQL, MySQL/MariaDB or SQLite. Placeholders are `$1..$n` on every engine, a
+value never goes into the SQL text, and nothing blocks the worker: a statement runs on a database
+thread and its answer comes back as a callback or wakes your coroutine.
 
-Up to and including release 1.2.1 this was `node.pg` in the core. It is not any more - an engine,
-its client library and its pool are not what a game server is for - so a server that never touches
-a database no longer carries one. [Migrating from node.pg](#migrating-from-nodepg) at the end of
-this page is the whole diff.
-
-## node.storage or a database
-
-Both persist data; they answer different needs.
+## Storage or a database?
 
 | | `node.storage` | the `db` module |
 |---|---|---|
-| Where | a JSON file per resource in `storage/`, kept in memory | PostgreSQL, SQLite or MySQL |
-| Setup | none | the host installs the module and names a connection |
-| Reads | synchronous, from memory | asynchronous: a callback or a suspended coroutine |
+| Setup | none | the host points the module at a database |
+| Reads | instant, from memory | asynchronous: a callback or a paused coroutine |
 | Shape | key to value | tables, indexes, `WHERE`, `ORDER BY`, `SUM` |
 | Several writes as one | no | `db:tx` |
-| Shared | one resource | every resource on the server, other servers, your own tools |
-| Size | what fits in memory | what fits on the database's disk |
+| Shared with | one resource | every resource, other servers, your website and tools |
 
-Use `node.storage` for settings, counters and last-seen marks. Use the module when several
-resources or several servers share the data, when you query it (a top-ten, a sum, a filter), when
-money or an inventory needs a transaction, or when the data outgrows memory. A resource that runs
-on servers without a database checks once at load and degrades: every call answers `db_disabled`
-when there is no connection by that name.
+Use `node.storage` for settings, counters and last-seen marks. Use a database when several resources
+or servers share the data, when you query it (a top ten, a sum, a filter), when money or an
+inventory needs a transaction, or when the data won't fit in memory.
 
-## Installing the module
+## Setting it up
 
-This part is the host's. Build the module once, drop it next to the server, and give it a
-`db.toml`:
-
-```bash
-cmake -S plugins/db -B build/db -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake \
-      -DVCPKG_TARGET_TRIPLET=x64-windows-static
-cmake --build build/db
-```
+This part is the host's. The module is already in `modules/`. Without a configuration it stays
+loaded and says so at start:
 
 ```
-Node-Server.exe
-modules/db.dll          <- the module
-modules/db.toml         <- its configuration
+Warn   › no database configured: create modules/db.toml (see db.example.toml) or set NODE_DB_URL. The module stays loaded and every request answers db_disabled.
 ```
 
-Each engine is an option (`-DNODE_DB_POSTGRES=OFF`, `-DNODE_DB_SQLITE=OFF`, `-DNODE_DB_MYSQL=OFF`)
-and turning one off drops its dependency entirely. Build it statically: the server loads **every**
-library in `modules/` and reports each one it cannot use, so a `libpq.dll` left beside the module
-is an error line on every start.
-
-`modules/db.toml` names one pool per section:
+Copy `modules/db.example.toml` to `modules/db.toml` and name a connection:
 
 ```toml
 [connections.default]
-driver = "postgres"                              # postgres | sqlite | mysql
+driver = "postgres"                              # postgres | mysql | sqlite
 url = "postgres://nodemp:change-me@127.0.0.1:5432/nodemp"
-connections = 4                                  # 1..32, one thread each
+connections = 4                                  # 1..32 statements at once
 query_timeout_ms = 10000
 tx_timeout_ms = 30000
 max_rows = 10000
 
-[connections.stats]                              # a second pool, asked for by name
+[connections.stats]                              # a second one, opened by name
 driver = "sqlite"
 url = "data/stats.db"
 connections = 1
 ```
 
-A secret does not have to be in the file: `NODE_DB_<NAME>_URL` overrides the `url` of that
-connection (`NODE_DB_DEFAULT_URL` for the one above, and the name uppercased for any other),
-and with no usable connection in the file -- or no file at all -- the module opens
-one connection called `default` from `NODE_DB_URL` - or from `NODE_DATABASE_URL`, the variable the
-server used while the database was still part of it. `driver` may be left out; a `postgres://` or
-`mysql://` URL says what it is and anything else is taken as a SQLite path.
+- **SQLite** needs nothing installed: a file path is the whole setup, and the file is created on
+  first use.
+- **PostgreSQL**: give the server its own role that owns its database and nothing else, never a
+  superuser. Add `?sslmode=require` for a database on another machine.
+- **MySQL / MariaDB**: `mysql://user:password@host:3306/dbname`.
 
-The console confirms each pool at start:
+The password doesn't have to be in the file: `NODE_DB_DEFAULT_URL` overrides the `url` of
+`default` (`NODE_DB_<NAME>_URL` for others), and with no file at all `NODE_DB_URL` opens a connection
+called `default`. The console confirms each one, with the password hidden:
 
 ```
 Db     › connection 'default': postgres, 4 connection(s)
 Db     › db[default]: connected to postgres://nodemp:***@127.0.0.1:5432/nodemp (PostgreSQL 16.9)
 ```
 
-The password is never logged, in the `?password=` and `password=` spellings either. Connections
-are made in the background with retries (0.5 s to 30 s apart), so the server starts and runs while
-the database is down; statements then fail with `08001` until it answers.
+The server starts and runs while the database is down. The module reconnects in the background, and
+statements fail with `08001` until the database answers.
 
-### The engines
+## Opening a connection
 
-**PostgreSQL** is the reference: `$1..$n` and SQLSTATE natively, `statement_timeout` per
-connection, a cancel channel used by the shutdown drain. Install it the usual way -
-
-```bash
-sudo apt install -y postgresql
-sudo -u postgres psql -c "CREATE ROLE nodemp LOGIN PASSWORD 'change-me';" \
-                      -c "CREATE DATABASE nodemp OWNER nodemp;"
-```
-
-or in Docker (`postgres:16-alpine`, the three `POSTGRES_*` variables create the role and the
-database). The role owns its database and nothing else; never hand the server a superuser. For a
-database on another machine add `?sslmode=require` so the password and the data do not cross the
-network in clear.
-
-**SQLite** needs nothing installed: `url = "data/server.db"` is the whole setup, and the file is
-created on first use. WAL and `foreign_keys = ON` are set on every connection, `$n` is rewritten to
-`?n`, and a transaction opens with `BEGIN IMMEDIATE` so a write conflict happens at its start
-rather than in its middle. `:memory:` is per connection, so such a pool is forced to one.
-
-**MySQL / MariaDB** rewrites `$n` to positional `?` (a parameter used twice is sent twice, as
-MySQL cannot reuse one) and has no per-connection cancel, so the shutdown drain opens a second
-connection and issues `KILL QUERY`.
-
-The SQL in the examples below is PostgreSQL's where it has to be (`bigserial`, `timestamptz`,
-`pg_advisory_xact_lock`); the module does not translate SQL, only placeholders.
-
-## Using it from a resource
-
-Copy `plugins/db/lua/db.lua` next to your `main.lua`, put your own folder on the Lua path the way
-every multi-file resource does, and open a connection by name:
+Copy `modules/db.lua` into your resource's `server/` folder, put that folder on the Lua path, and
+open a connection by name:
 
 <!-- doctest: skip the opening lines every db block below runs with -->
 ```lua
@@ -135,18 +81,17 @@ local db = require("db").open()          -- the "default" connection
 local stats = require("db").open("stats")
 ```
 
-Opening is free - nothing is dialled, the module already holds the pool - and an unknown name is
-not an error until the first statement, which answers `db_disabled` and names it.
+Opening costs nothing; the module already holds the connections. A name the host didn't configure
+isn't an error until the first statement, which answers `db_disabled`. A resource that should also
+run on servers without a database checks once at load and does without the feature.
 
-## Queries: query and exec
+## query and exec
 
-`db:query(sql, params?, cb?)` runs one statement and hands back its rows; `db:exec(sql, params?,
-cb?)` runs one statement and hands back a count only - rows affected by an `INSERT`, `UPDATE` or
-`DELETE`, or the rows a `SELECT` would have returned - without carrying a row back. Values go in as
-`$1..$n` parameters, never concatenated into the text.
+`db:query(sql, params, cb)` runs one statement and gives you its rows. `db:exec(sql, params, cb)`
+runs one and gives you only a count: rows changed by `INSERT`, `UPDATE` or `DELETE`. Values go in as
+`$1..$n`, never glued into the SQL.
 
-With a callback, from any handler - here the `wallets` table is the one the
-[migration below](#migrations) creates:
+With a callback, from any handler (the `wallets` table comes from the [migration below](#migrations)):
 
 <!-- doctest: db+client -->
 ```lua
@@ -180,13 +125,11 @@ end)
 -- expect-not: credit failed
 ```
 
-`cb(result, err)` runs on the worker when the statement completes, like every other callback.
-Exactly one of the two arguments is set. `result` is `{ rows, count, columns }`: `rows` an array of
-tables keyed by column name, `count` the number of rows returned (or affected), `columns` the
-column names in order.
+Exactly one of `result` and `err` is set. `result` is `{ rows, count, columns }`: `rows` is an
+array of tables keyed by column name, `count` the number of rows, `columns` the names in order.
 
-Without a callback, inside `node.async`, the same calls suspend the coroutine and return the two
-values instead:
+Inside `node.async`, leave out the callback and the same call pauses the coroutine and returns the two
+values:
 
 <!-- doctest: db+client -->
 ```lua
@@ -213,33 +156,28 @@ end)
 -- expect-not: wallet:
 ```
 
-The suspending form is `node.suspend` underneath: the library arms the reply and the coroutine
-continues when it lands. Outside a coroutine it does not wait - it logs `node.suspend called
-outside a node.async task` and returns nothing - so from a plain handler pass a callback.
+Outside a coroutine the callback-less form doesn't wait: it logs
+`node.suspend called outside a node.async task` and returns nothing. From a plain handler, pass a
+callback.
 
-Rules that follow from how the pool runs statements:
+Three rules, because the connections are shared by every resource:
 
-- **One statement per call.** Every statement is prepared and run with its parameters bound;
-  `"UPDATE …; DELETE …"` is a syntax error (`42601`). Several statements that must succeed together
-  belong in `db:tx`.
-- **No `BEGIN` by hand.** It would leave the shared connection inside a transaction for whoever
-  gets it next; the pool rolls it back at once and warns `db[default]: connection 0 left in a
-  transaction by 'BEGIN', rolling back`. Use `db:tx`.
-- **No session state.** A `SET` (`search_path`, `timezone`, …) through `db:query` sticks to the
-  pooled connection that ran it and surprises the next statement there, from any resource. Cast or
-  qualify in the statement instead (`$1::timestamptz`, `nodemp.wallets`); inside a transaction
-  `SET LOCAL` is fine, it ends with the transaction.
-- Every statement outside `tx` is its own transaction: autocommit.
+- **One statement per call.** `"UPDATE ...; DELETE ..."` is a syntax error (`42601`). Statements
+  that must succeed together go in `db:tx`.
+- **No `BEGIN` by hand.** It would leave a shared connection inside a transaction; the module rolls
+  it back at once and warns. Use `db:tx`.
+- **No session settings.** A `SET` sticks to whichever connection ran it and surprises the next
+  statement there. Cast or qualify in the statement instead (`$1::timestamptz`, `myschema.wallets`).
 
-## Transactions: tx
+## Transactions
 
-`db:tx(fn, cb?)` reserves one connection, runs `BEGIN`, calls `fn(tx)` as a coroutine, and ends
-with `COMMIT` when `fn` returns normally or `ROLLBACK` when it raises. Inside `fn` use
-`tx:query(sql, params?)` and `tx:exec(sql, params?)` - suspending forms only, same contract as
-`db:query` and `db:exec` without a callback - and `tx:rollback(reason?)`, which raises out of `fn`
-and rolls back. Without `cb`, inside `node.async`, `tx` suspends the caller and returns what `fn`
-returned, or `nil, err`; with `cb`, it runs `fn` as its own `node.async` task and calls `cb(...)`
-with the same values.
+`db:tx(fn, cb)` takes one connection, starts a transaction, and runs `fn(tx)` as a coroutine. When
+`fn` returns, the transaction is committed; when it raises an error, rolled back. Inside `fn`, use
+`tx:query(sql, params)` and `tx:exec(sql, params)` (no callbacks; they pause) and
+`tx:rollback(reason)`, which leaves `fn` and rolls back.
+
+Called inside `node.async` without `cb`, `db:tx` pauses and returns what `fn` returned, or
+`nil, err`. With `cb`, it runs on its own and calls `cb(...)` with the same values.
 
 <!-- doctest: db+client -->
 ```lua
@@ -281,131 +219,87 @@ end)
 -- expect: Alice could not withdraw: (no such wallet|insufficient funds) \(rollback\)
 ```
 
-What comes back:
-
-| `fn` | Connection | Return |
-|---|---|---|
-| returned normally, `COMMIT` succeeded | `COMMIT`, released | the return values of `fn` |
-| returned normally, `COMMIT` failed | rolled back by the engine, released | `nil, err` with the SQLSTATE (a deferred constraint, a serialization failure, a lost connection) |
-| raised with `error(x)` | `ROLLBACK`, released | `nil, { code = "rollback", message = <x, or x.message for a table>, cause = x }` |
-| called `tx:rollback(reason)` | `ROLLBACK`, released | `nil, { code = "rollback", message = reason }` |
-| outlived `tx_timeout_ms` | rolled back by the module, released | the next `tx:query`/`tx:exec`, and the `COMMIT`, answer `{ code = "db_tx_timeout" }` |
-| never started: `BEGIN` failed | none | `nil, err` - `08001`, `db_disabled`, `db_queue_full`, or `db_tx_timeout` when no connection came free in time |
-
-Rules:
-
-- **Check every `err` inside `fn`.** After a failed statement PostgreSQL refuses the rest of the
-  transaction with `25P02` until it is rolled back; `error(e)` or `tx:rollback()` at the first
-  failure is the right answer on every engine. `assert(tx:exec(...))` does it in one word: `exec`
-  returns `nil, err` on failure, and `assert` raises the `err` table, so the SQLSTATE arrives in
-  `err.cause.code`.
-- **Only `tx:` calls are in the transaction.** A plain `db:query` inside `fn` goes to another
-  connection, outside the transaction and unable to see its uncommitted rows. Its suspending form
-  also *waits* for a second free connection: with `connections = 1` there is none while `fn` holds
-  the only one, so it waits until the transaction hits `db_tx_timeout`.
-- **No `COMMIT` or `ROLLBACK` by hand.** A `tx:exec("COMMIT")` ends the transaction underneath the
-  pool: it warns `db[default]: transaction 3 was ended by a statement run inside it ('COMMIT'); the
-  handle is finished`, the handle is dead, and the next `tx:query` as well as the `COMMIT` sent for
-  you answer `25P01`. Return from `fn` to commit, raise to roll back.
-- **Keep it short.** The connection is unavailable to everyone else while `fn` runs; a `node.sleep`
-  or `node.http.fetch` inside `fn` holds it too, and `tx_timeout_ms` (default 30 s) is the hard
-  stop. Read what you need, decide, write, return.
-- **A finished handle still answers.** After the module rolled a transaction back on its own - the
-  deadline, a lost connection, the unload below - every call through `tx` gets the reason
-  (`db_tx_timeout`, `08006`, `db_tx_aborted`) rather than a shrug, until `fn` ends.
-- **A reload rolls back.** `db.lua` tells the module on `resourceUnload`, so a resource that is
-  reloaded or stopped while holding a transaction releases the connection at once instead of
-  holding it until `tx_timeout_ms`. `fn` is not resumed.
-
-## Parameters and result types
-
-Parameters (`$1..$n`, sent as values, never spliced into the text):
-
-| Lua | Sent as |
+| `fn` | Result |
 |---|---|
-| `require("db").NULL` (and, with the current `db.lua` of the examples repository, `db.NULL` on a connection too) | `NULL` (the sentinel is needed inside a parameter array, where `nil` ends the array) |
-| `boolean` | `true`/`false` |
-| integer | integer (64-bit) |
-| float | floating point (`%.17g`) |
-| `string` | as is (text) |
-| `table` | JSON (for a `json`/`jsonb` column) |
+| returned, commit worked | what `fn` returned |
+| returned, commit failed | `nil, err` with the engine's code (a constraint, a serialization failure, a lost connection) |
+| raised `error(x)` | `nil, { code = "rollback", message = ..., cause = x }` |
+| called `tx:rollback(reason)` | `nil, { code = "rollback", message = reason }` |
+| ran longer than `tx_timeout_ms` | rolled back; the next `tx:` call answers `db_tx_timeout` |
 
-Results, by the column's type:
+Rules for transactions:
 
-| Column | Lua |
+- **Check every `err` inside `fn`.** After a failed statement PostgreSQL refuses the rest with
+  `25P02`. `assert(tx:exec(...))` raises at the first failure, which rolls back; the code is then in
+  `err.cause.code`.
+- **Only `tx:` calls are in the transaction.** A `db:query` inside `fn` runs on another connection
+  and can't see the transaction's rows. With `connections = 1` it waits until the transaction times
+  out.
+- **No `COMMIT` or `ROLLBACK` by hand.** Return from `fn` to commit, raise to roll back.
+- **Keep it short.** The connection is reserved while `fn` runs, including any `node.sleep` or HTTP
+  call inside it. Read, decide, write, return.
+- **A reload rolls back.** If your resource is reloaded or stopped mid-transaction, the connection is
+  released at once and `fn` isn't resumed.
+
+## Values in and out
+
+| Lua parameter | Sent as |
+|---|---|
+| `db.NULL` | `NULL` (`nil` would end the parameter array) |
+| `true` / `false` | boolean |
+| integer | 64-bit integer |
+| float | floating point |
+| string | text |
+| table | JSON, for a `json`/`jsonb` column |
+
+| Column | Lua value |
 |---|---|
 | boolean | boolean |
-| integer (`int2`/`int4`/`int8`, SQLite `INTEGER`) | integer, exact to 64 bits |
-| floating point (`float4`/`float8`, SQLite `REAL`) | number |
-| `numeric` | string (no loss of precision; keep money as integers in minor units) |
-| text, `uuid`, timestamps, dates, intervals | string (the engine's text form) |
-| `json`/`jsonb` | string (decode with `node.json.decode`) |
-| `bytea` / `BLOB` | string of raw bytes |
-| arrays, everything else | string in the engine's text form |
-| `NULL` | key absent (`nil`) |
+| integer types | integer, exact to 64 bits |
+| floating point | number |
+| `numeric` | string, so nothing is lost; keep money as integer cents |
+| text, `uuid`, dates and times | string in the engine's text form |
+| `json` / `jsonb` | string; decode with `node.json.decode` |
+| `bytea` / `BLOB` | string of bytes |
+| `NULL` | the key is absent (`row.col == nil`) |
 
-A result row is a table `column name → value`; columns with the same name overwrite each other (use
-aliases); the order and the names are in `result.columns`.
-
-In practice:
-
-- **NULL.** `{ 1, nil, "x" }` has a hole where `$2` should be - the `nil` ends the array - and
-  `db.lua` refuses it (`db: params has a hole at #2`). The sentinel lives on the **module table**:
-  `local dbm = require("db")` ... `{ 1, dbm.NULL, "x" }`; the current `db.lua` of the examples
-  repository also exposes it on every connection, so `db.NULL` with `db` a connection is the same
-  object there (with the copy shipped in the 1.3.0 archive it is `nil` - SQLite then binds NULL by
-  accident, PostgreSQL answers `08P01`). With
-  an explicit length, `{ 1, nil, "x", n = 3 }`, a `nil` is sent as NULL. Coming back, a `NULL` cell is simply
-  missing: `row.col == nil`.
-- **Casts.** PostgreSQL infers a parameter's type from where it is used; where it cannot, or gets
-  it wrong, cast: `$1::int`, `$2::jsonb`, `$3::timestamptz`.
-- **jsonb.** Pass a Lua table and it arrives as JSON text (an array when its keys are `1..n`, an
-  object otherwise); a string that already holds JSON works too. Reading back gives the text -
-  `node.json.decode(row.data)`.
-- **Integers** stay exact up to 64 bits: an `int8` beyond 2^53 is a Lua integer, not a float.
-- **numeric** arrives as a string (`"12.50"`) so nothing is lost; do arithmetic in SQL, or store
-  money as `bigint` minor units (cents) and format when you show it.
-- **Time.** Timestamps are text (`2026-09-14 19:24:00.123456+03`); compare and convert in SQL
-  (`extract(epoch from created_at)`, `now() - interval '7 days'`) rather than parsing in Lua.
-- **One statement per call**, with up to 1000 parameters. A statement without parameters may leave
-  `params` out: `db:query(sql, cb)`, `db:exec(sql)`.
+Columns with the same name overwrite each other in a row, so alias them. PostgreSQL guesses a
+parameter's type from where it's used; where it can't, cast: `$1::int`, `$2::jsonb`. Do date
+arithmetic in SQL (`now() - interval '7 days'`) rather than parsing timestamps in Lua. Up to 1000
+parameters per statement; a statement without any may leave `params` out: `db:query(sql, cb)`.
 
 ## Errors
 
-`err` is `{ code, message, detail?, hint?, constraint?, table? }`. `code` is the SQLSTATE the
-engine reported - the other two engines are mapped onto PostgreSQL's codes, so one test works
-everywhere - or one of the module's own codes; the optional fields are present when the engine
-filled them (`constraint` on a `23505`, for example).
+`err` is `{ code, message, detail?, hint?, constraint?, table? }`. `code` is the SQLSTATE; MySQL and
+SQLite errors are mapped to PostgreSQL's codes, so one check works everywhere. The module adds a few
+of its own.
 
 | `err.code` | Meaning | What to do |
 |---|---|---|
-| `db_disabled` | There is no connection by that name: no `db.toml` entry, or its `url` is empty. | Degrade at load and run without the feature, or tell the host. |
-| `08001` | No live connection: the database is down or not reached yet. | The pool reconnects on its own; retry later or wait for `db:ready()`. |
-| `08006` | The connection was lost while the statement ran, or the server is shutting down. | Whether the statement took effect is unknown - retry only through an idempotency key (below). |
-| `57014` | The statement ran past `query_timeout_ms` (also a SQLite busy timeout). | An index, a narrower query, or a larger timeout. |
-| `23505` | Unique violation; `err.constraint` names the index. | Expected in the idempotency pattern; or `ON CONFLICT` when the duplicate is fine. |
-| `23503` / `23502` / `23514` | Foreign key, not null, check. | A bug in the write or in the schema. |
-| `42601` / `42P01` | Syntax error - also what a string with two statements gets - and no such table. | One statement per call; run your migrations first. |
-| `40001` / `40P01` | Serialization failure, deadlock. | Retry the whole transaction; lock rows in a fixed order (the wallet example does). |
-| `25P02` | A statement after an earlier one failed inside the transaction. | Check every `err` in `fn`; raise at the first. |
-| `25P01` | The transaction was ended by a `COMMIT`/`ROLLBACK` run through the handle. | Return from `fn` or raise; never end it by hand. |
-| `db_queue_full` | 1000 statements are already waiting. | You issue faster than the database answers: back off, look for the slow-statement lines, raise `connections`. |
-| `db_result_cap` | More rows than `max_rows`; the result was dropped. | `LIMIT` and paginate, or `exec` when the count is all you need. |
-| `db_tx_timeout` | The transaction outlived `tx_timeout_ms` and was rolled back, or `BEGIN` waited that long for a free connection. | Shorter transactions, never suspend for anything else inside `fn`, more connections. |
-| `db_tx_aborted` | The transaction was rolled back because its resource was unloaded. | Nothing: the resource is going. Re-read the database at load. |
-| `0A000` | The engine's driver does not support what the statement asks for (`COPY`, for one). | Say it another way -- `INSERT` inside a transaction instead of `COPY`. |
-| `db_params` | A value the module cannot send, or more than 1000 parameters. | Fix the parameter table. |
-| `rollback` | `fn` raised (`message`, and the raised value in `cause`) or called `tx:rollback(reason)`. | Your own decision; a SQLSTATE that caused it is in `err.cause.code`. |
+| `db_disabled` | No connection by that name. | Run without the feature, or tell the host. |
+| `08001` | The database is down or not reached yet. | It reconnects on its own; retry later. |
+| `08006` | The connection was lost mid-statement. | Whether it ran is unknown: retry only with an idempotency key ([below](#writes-that-must-not-happen-twice)). |
+| `57014` | Ran past `query_timeout_ms`. | An index or a narrower query. |
+| `23505` | Unique violation; `err.constraint` names the index. | Expected with idempotency keys, or use `ON CONFLICT`. |
+| `23503`, `23502`, `23514` | Foreign key, not null, check. | A bug in the write or the schema. |
+| `42601`, `42P01` | Syntax error (also two statements in one call), no such table. | One statement per call; run migrations first. |
+| `40001`, `40P01` | Serialization failure, deadlock. | Retry the whole transaction; lock rows in a fixed order. |
+| `25P02` | A statement after a failed one in a transaction. | Check every `err` in `fn`. |
+| `db_queue_full` | 1000 statements already waiting. | You send faster than the database answers. |
+| `db_result_cap` | More rows than `max_rows`. | `LIMIT` and page through. |
+| `db_tx_timeout` | The transaction ran too long, or waited too long for a connection. | Shorter transactions. |
+| `db_tx_aborted` | Rolled back because the resource was unloaded. | Nothing to do. |
+| `db_params` | A value the module can't send. | Fix the parameters. |
+| `rollback` | `fn` raised or called `tx:rollback`. | Your own decision; a cause's code is in `err.cause.code`. |
 
-A reload or shutdown between sending a statement and its answer drops the answer: the callback
-never runs and the suspended coroutine is not resumed - the statement itself may well have run.
-That is why writes that must not happen twice carry a key.
+A reload or shutdown between sending a statement and its answer drops the answer: the callback never
+runs, though the statement may well have.
 
-### Idempotency with a unique key
+### Writes that must not happen twice
 
-An `08006`, a dropped answer or a player who clicks twice leave you not knowing whether a write
-happened. Make the database refuse the repeat: give each write a key that is unique per intended
-action, store it in a `UNIQUE` column, and treat `23505` on that constraint as "already done".
+A lost connection, a dropped answer or a player clicking twice leaves you not knowing whether a write
+happened. Let the database refuse the repeat: give each intended action a key, store it in a
+`UNIQUE` column, and treat `23505` on it as "already done".
 
 <!-- doctest: db -->
 ```lua
@@ -424,16 +318,13 @@ local function recordTransfer(tx, key, fromId, toId, amount)
 end
 ```
 
-The insert goes first in the transaction, so a duplicate is refused before any balance moves. On
-PostgreSQL `err.constraint` tells you *which* unique index refused it, which is worth checking when
-the table has more than one.
+The insert goes first, so a duplicate is refused before any balance moves.
 
 ## Migrations
 
-The server does not manage your schema; a resource creates and upgrades its own tables at load.
-Two things make that safe when several server instances share one database, or a resource is
-reloaded while another copy is still starting: a transaction-scoped advisory lock, so only one
-migrator runs at a time, and a `schema_migrations` table that records how far each resource got.
+The server doesn't manage your tables; your resource creates and upgrades them at load. Do it in one
+transaction, take a lock so two servers sharing the database don't migrate at once, and record how far
+you got:
 
 <!-- doctest: db -->
 ```lua
@@ -459,23 +350,19 @@ local function migrate()
 end
 ```
 
-`pg_advisory_xact_lock` - not `pg_advisory_lock` - because the transaction-scoped lock is released
-at `COMMIT`/`ROLLBACK`; the session-scoped one would stay on the pooled connection after `tx` ends
-and block the next migrator until that connection closes. (On SQLite the lock line is unnecessary
-and unknown: one writer at a time is the engine's own rule.) Everything runs in one transaction, so
-a failing migration leaves the schema and the version as they were, and the whole batch is bounded
-by `tx_timeout_ms` - split a long data backfill into its own steps. Append to `MIGRATIONS`, never
-edit an entry that has run somewhere.
+`pg_advisory_xact_lock` ends with the transaction; the session-level `pg_advisory_lock` would stay on
+the shared connection. SQLite doesn't need (or know) the lock line: it allows one writer at a time
+anyway. Only ever append to `MIGRATIONS`; never edit a step that has run somewhere.
 
-Run it at load, once the connection answers, and gate the rest of the resource on the result:
+Run it at load, once the database answers, and hold the rest of the resource until it's done:
 
-<!-- doctest: db {"with": [5]} -->
+<!-- doctest: db {"with": [6]} -->
 ```lua
 local schemaReady = false
 
 node.async(function()
-    if not db:ready() then
-        node.wait(function() return db:ready() end, 500) -- it may still be connecting at start
+    while not db:ready() do
+        node.sleep(500) -- it may still be connecting at start
     end
     local version, err = migrate()
     if not version then
@@ -491,50 +378,22 @@ end)
 
 ## Performance
 
-- **The worker never waits, but the queue can grow.** Each statement is queued and run by the first
-  free connection; 1000 waiting statements is the cap (`db_queue_full`). A statement per
-  `serverTick` (10 Hz) or per vehicle position update floods it - poll on a timer, batch writes,
-  cache reads that change rarely, and never suspend a hot handler on a query.
-- **Pool size.** `connections` (default 4) is the number of statements in flight at once, and each
-  `db:tx` holds one for its whole life. Raise it when `queueDepth` climbs or transactions wait for
-  `BEGIN`; a PostgreSQL connection is a process on the database side, so do not raise it into the
-  hundreds. A SQLite pool writes one at a time whatever you set.
-- **Timeouts.** `query_timeout_ms` (default 10 s) bounds a statement, `tx_timeout_ms` (default
-  30 s) bounds a transaction. Both are protection, not a budget: a statement near either is a
-  statement to fix.
-- **Slow statements** are logged: `db[default]: slow statement (312 ms): SELECT …` for anything
-  over 250 ms, with the SQL cut short and parameters never logged. Read them as a to-do list for
-  indexes.
-- **`max_rows`** (default 10 000) drops a larger result with `db_result_cap` - `LIMIT` and paginate
-  (keyset: `WHERE id > $1 ORDER BY id LIMIT 100`), or `exec` when you only need the count.
-- **No session state** through `db:query` (`SET`, advisory locks, temporary tables): every
-  statement may land on a different connection, and whatever it leaves behind is the next
-  statement's problem.
-- **Counters.** `db:status()` answers one table for EVERY connection the module holds, keyed by
-  name, whichever handle you call it on -- each entry:
-  `{ driver, enabled, ready, queries, errors, p50Ms, p95Ms, queueDepth, connections, transactions,
-  deadTransactions }` - statements run and failed, latency over the last 512, statements waiting,
-  live connections, open transactions, and handles the pool finished on its own that their owner
-  has not ended yet. Log or export it from a timer.
-- **Reads that can be stale** belong in memory: load at start, refresh on a timer, write through.
-  A database round trip per chat message is fine; one per physics frame is not.
+- **Don't flood the queue.** A statement per `serverTick` or per position update fills the
+  1000-statement queue. Poll on a timer, batch writes, and keep rarely changing data in memory.
+- **`connections`** is how many statements run at once, and each transaction holds one for its whole
+  life. Raise it when statements wait; a PostgreSQL connection is a process on the database side, so
+  keep it in the tens.
+- **Slow statements are logged**: `db[default]: slow statement (312 ms): SELECT ...` for anything
+  over 250 ms, parameters never shown. Treat them as a to-do list for indexes.
+- **`db:status()`** gives counters for every connection: statements run and failed, latency, queue
+  depth, open transactions. Log it from a timer if you want to watch.
 
 ## A complete example: wallet transfers
 
 A resource `wallet` with a balance per account, a ledger, `/balance` and `/pay <player> <coins>`.
-Balances are `bigint` cents; a transfer is one transaction that inserts the ledger row under an
-idempotency key, locks both wallets in id order, checks the funds and moves them. The migration
-block from above is `migrate()` here.
-
-```toml
-name = "wallet"
-version = "1.0.0"
-
-[server]
-main = "server/main.lua"
-```
-
-`db.lua` sits beside `main.lua` in `server/`.
+Balances are integer cents; a transfer is one transaction that records the ledger row under an
+idempotency key, locks both wallets in id order, checks the funds and moves them. `db.lua` sits
+next to `main.lua` in `server/`.
 
 <!-- doctest: db+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/balance"}], ["chat:send", {"text": "/pay Bob 5"}]]} -->
 ```lua
@@ -668,7 +527,9 @@ node.commands.add("pay", function(player, args)
 end)
 
 node.async(function()
-    node.wait(function() return db:ready() end, 500)
+    while not db:ready() do
+        node.sleep(500)
+    end
     local version, err = migrate()
     if not version then
         node.log.error("migration failed: %s (%s)", err.message, err.code)
@@ -683,42 +544,29 @@ end)
 -- expect-client: Alice chat:msg .*(Sent 5 coins to Bob, \d+\.\d\d left|Transfer refused: insufficient funds)
 ```
 
-What the shape buys you: the ledger insert comes first, so a retry with the same key stops at
-`23505` before anything moves and the player is told "already applied" rather than paying twice;
-`FOR UPDATE` in a fixed order serialises two transfers between the same pair without a deadlock;
-the balance check reads the locked rows, so no concurrent transfer can slip between the read and
-the write; `assert` on every statement turns any SQL failure into a rollback whose SQLSTATE the
-caller can still log from `err.cause.code`; and the `08006` retry is the only retry, because it is
-the only case where the outcome is unknown. Amounts are integers all the way - the database never
-sees a float, the player never sees a rounding error.
+Why it's shaped like this: the ledger insert comes first, so a retry with the same key stops at
+`23505` before anything moves and the player hears "already applied" instead of paying twice.
+Locking both rows in a fixed order lets two transfers between the same pair queue up instead of
+deadlocking. The balance check reads the locked rows, so nothing can slip in between the check and
+the update. The only retry is on `08006`, the one case where the outcome is unknown. And amounts are
+integers all the way, so nobody ever sees a rounding error.
 
-## Migrating from node.pg
+## Coming from node.pg
 
-The calls are the same shape, so most of the work is mechanical:
+Before 1.3.0 the database was part of the server as `node.pg`. The calls kept their shape:
 
 | Was | Is |
 |---|---|
-| `node.pg.query/exec/tx` | `db:query/exec/tx` on a connection from `require("db").open()` |
-| `node.pg.NULL` | `require("db").NULL` (or `db.NULL` on a connection with the current `db.lua`) |
-| `node.pg.enabled()` | gone: a missing connection answers `db_disabled` on the first statement |
-| `node.pg.ready()` | `db:ready()` (suspending or with a callback, like everything else) |
-| `node.server.metrics().plugin.pg` | `db:status()` |
+| `node.pg.query/exec/tx` | `db:query/exec/tx` on `require("db").open()` |
+| `node.pg.NULL` | `db.NULL` |
+| `node.pg.enabled()` | gone: a missing connection answers `db_disabled` |
+| `node.pg.ready()` | `db:ready()` |
 | `[Database]` in `server.toml` | `[connections.default]` in `modules/db.toml` |
 | `NODE_DATABASE_URL` | `NODE_DB_URL` (the old name still works) |
 | `pg_disabled`, `pg_queue_full`, `pg_result_cap`, `tx_timeout`, `pg_params` | `db_disabled`, `db_queue_full`, `db_result_cap`, `db_tx_timeout`, `db_params` |
-| `pg_*` in the C ABI | gone. The ABI is major 2; rebuild every native module |
-
-Two differences worth knowing beyond the renaming: a statement's answer now travels over the
-resource bus as JSON, so a `bytea` column arrives as text rather than raw bytes in the strictest
-sense of the word, and `db.lua` must be copied into each resource that uses it - there is no global
-`db`.
 
 ## Next
 
-- [Configuration](/hosting/configuration/) - the server's own keys; the database's live in
-  `modules/db.toml`.
-- [Native modules](/plugins/native-modules/) - what a module is, and how one talks to resources.
-- [Concurrency](/plugins/concurrency/) - the worker thread, `node.async`, `node.suspend` and why
-  callbacks look the way they do.
-- [Resources](/plugins/resources/#state-nodestorage) - `node.storage`, for the data that does not
-  need a database.
+- [Timers and coroutines](/plugins/concurrency/): `node.async` and `node.suspend`, which the
+  callback-less form is built on.
+- [Storage and files](/plugins/storage/): for data that doesn't need a database.

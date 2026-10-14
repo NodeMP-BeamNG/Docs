@@ -1,108 +1,83 @@
 ---
-title: Plugin development overview
-description: What a NodeMP plugin is - resources in Lua or JavaScript, native modules in C - the three faces of one API, what runs where, and the lifecycle.
+title: Plugin development
+description: What a NodeMP plugin is - resources in Lua, native modules in C - what runs where, what you can build, and a map of this section.
 ---
 
-A NodeMP server does the plumbing: it accepts players, owns the vehicle registry, relays state and
-streams client scripts. Everything with a rule in it - chat, permissions, game modes, economy,
-parallel worlds - is a **plugin**. A plugin is either a **resource** (a folder of Lua or JavaScript
-under `resources/`) or a **native module** (a shared library under `modules/`). This page is the
-map of the section; the architecture around the server is in the
-[framework overview](/framework/overview/).
+The NodeMP server takes care of the multiplayer basics: it lets players in, keeps track of every
+car, passes their state around, runs the chat and sends players the server's mods. Everything with
+a rule in it, such as commands, permissions, game modes, an economy or a race, is a **plugin**.
+
+A plugin is one of two things:
+
+- a **resource**: a folder of Lua in `resources/`. This is what almost everyone writes;
+- a **native module**: a library written in C or C++ in `modules/`, for work on a hot path or to
+  teach the server another language.
+
+## What you can build
+
+A few examples of what resources do, each with a page that shows how:
+
+- greet players, give roles, keep scores and playtime → [Players and vehicles](/plugins/players-and-vehicles/), [Storage and files](/plugins/storage/);
+- chat commands, a mute, a word filter, a Discord bridge → [Chat](/plugins/chat/), [HTTP](/plugins/http/);
+- refuse a car, an edit or a join, with a reason the player sees → [Events](/plugins/events/);
+- races and checkpoints, a speed radar, a minimap → [Players and vehicles → Reading the world fast](/plugins/players-and-vehicles/#reading-the-world-fast);
+- a UI or an effect inside the players' game → [Client scripts](/plugins/client-scripting/);
+- data in PostgreSQL or SQLite → [Database](/plugins/database/).
+
+[Recipes](/plugins/recipes/) has complete, short resources for the usual jobs, and
+[The example plugins](/plugins/examples/) walks through the ones that come with the server.
 
 ## Three faces of one API
 
-The server has one capability API, described once in `sdk/api.toml` and generated into three
-shapes. You pick the shape by picking the language.
+The server has one API, described once and generated in three forms. You pick the form by picking
+the language.
 
-| Face | You write | Reference |
+| Surface | What you write | Reference |
 |---|---|---|
-| `node` | A resource in Lua. Namespaces by noun (`node.players`, `node.vehicles`, `node.storage`), `Player` and `Vehicle` objects with methods, handlers that receive objects, JSON decoded for you. | [Lua API reference](/plugins/api/lua/) |
-| `node.raw` | The same calls one-to-one with the C ABI: ids in, tables out. Always present under `node`; reach for it when you need exactly the C behaviour. | [Raw Lua reference](/plugins/api/raw/) |
-| `NodeApi` | A native module in C or C++ against `node.h`. Every Lua capability plus what only native code can do. | [C ABI reference](/plugins/api/c/) |
-
-JavaScript is a second spelling of the first face: with the `js-host` module installed, a
-resource with `type = "js"` gets the same names and capabilities in JavaScript. The
-`session-report` example is written that way.
-
-## Resources and native modules
-
-A **resource** is a folder in `resources/` (the server's working directory). It may carry a
-`resource.toml`, a server half (`server/main.lua`) and a client half (`client/`). The server half
-runs on the server; the client half is streamed to every player and runs inside the game. Chat,
-vehicle policies, cleanup rules and admin commands are resources.
-
-A **native module** is a `.dll` or `.so` in `modules/` next to the executable. It exports three
-symbols (`node_plugin_abi`, `node_plugin_init`, `node_plugin_shutdown`) and receives the `NodeApi`
-table. Write one when a Lua resource cannot do the job: to register a language host for a new
-resource type (`js-host`), or to run a relay filter inline on the network threads (`dimensions`).
-Modules load before resources, so a language host is in place before the first resource is
-scanned.
-
-Plugins written for other multiplayer servers do not run here as they are; see
-[Migrating plugins](/plugins/migrating/) for how to port one.
+| `node` | Namespaces in the Lua context (`node.players`, `node.vehicles`, `node.storage`), `Player` and `Vehicle` objects with methods; handlers receive objects, and JSON is decoded for you. | [Lua API reference](/plugins/api/lua/) |
+| `node.raw` | The same calls one to one with the C ABI: ids in, tables out. Always there inside `node`; reach for it when you want C's behaviour without the extra handling. | [Raw Lua reference](/plugins/api/raw/) |
+| `NodeApi` | A native module in C or C++. Everything Lua can do, plus what only native code can. | [C ABI reference](/plugins/api/c/) |
 
 ## What runs where
 
-- **The server half** runs on the plugin worker thread. Every handler of every resource, every
-  timer and every callback runs there, one at a time, so resources never race each other - and a
-  handler that blocks stalls them all. [Concurrency](/plugins/concurrency/) covers the model.
-- **The client half** runs in BeamNG on each player's machine, with full game access. It talks to
-  the server half with wire events: `node.emitServer(name, data)` on the client,
-  `node.on(name, fn)` on the server; `player:send` and `node.broadcast` in the other direction. A
-  client-emitted event reaches server resources only; anything that must reach other players goes
-  through a resource that forwards it. [Client scripting](/plugins/client-scripting/) covers the
-  client `node` table.
-- **Native modules** run in the server process. `NodeApi` calls are thread-safe from any thread;
-  callbacks arrive on the same worker thread as Lua handlers, with the log sink and the relay
-  filter as the inline exceptions. [Native modules](/plugins/native-modules/) has the details.
+| Code | Runs | Good for |
+|---|---|---|
+| A resource's `server/main.lua` | On the server, in the resource's own Lua 5.4 state. All resources share one worker thread and run one handler at a time. | Game logic, rules, chat, data. |
+| A resource's `client/` files | In every player's game (BeamNG's LuaJIT), sent when they join. | UI, effects, reading the player's car. |
+| A native module | On the server, in the server process. Calls are thread-safe; its callbacks run on the same worker as Lua. | The relay filter, heavy maths, other languages. |
 
-## Lifecycle
+Because every handler runs on one thread, a resource never has to lock anything, and one slow
+handler holds up all of them. [Timers and coroutines](/plugins/concurrency/) shows how to wait
+without blocking.
 
-1. **Start.** The server loads `modules/`, then scans `resources/`: for each folder it reads
-   `resource.toml`, packages the client files and runs the server entry point once. Top-level code
-   is where you subscribe to events and set up state. The console confirms each resource with
-   `demo-numbers v1.0 loaded — lua · server 1 file · 1 client file`.
-2. **Run.** The worker thread starts; events, timers and coroutines run on it. A joining player
-   receives every resource's client files after the content sync, then `playerJoined` fires.
-3. **Reload.** `node.resources.reload(name)` drops a resource's handlers, timers and coroutines and
-   runs its server half again without a restart. `node.storage` survives; client files do not
-   change until a restart.
-4. **Stop.** `serverShutdown` fires once, pending asynchronous file writes are flushed, each storage
-   store is folded into one JSON file, and the client mod unloads the streamed scripts when the
-   player leaves.
+## The life of a resource
 
-## Where to go next
+1. **Start.** The server loads native modules, then every folder in `resources/`. A resource's
+   `server/main.lua` runs once, top to bottom; that's where it subscribes to events and starts
+   timers.
+2. **Running.** The server calls your handlers as things happen: a player joins, a car spawns, a
+   chat line arrives, a timer fires.
+3. **Reload.** `reload <name>` in the console, or `node.resources.reload(name)`, drops the
+   resource's handlers, timers and Lua state and runs `main.lua` again. `resourceUnload("reload")`
+   runs first, so you can save what must survive.
+4. **Stop.** At shutdown, `serverShutdown` and then `resourceUnload("shutdown")` run, and nothing
+   after them.
 
-- [Getting started](/plugins/getting-started/) - your first resource, with both halves, in ten
-  minutes.
-- [Resources](/plugins/resources/) - folder layout, `resource.toml`, load order, client files and
-  obfuscation, reload, `node.fs`, `node.storage`, `node.config`.
-- [Events](/plugins/events/) - the four kinds of event, objects in handlers, denying a request,
-  wire events, the bus and the module channel.
-- [Concurrency](/plugins/concurrency/) - the worker thread, timers, coroutines, background jobs,
-  asynchronous HTTP and file writes.
-- [Client scripting](/plugins/client-scripting/), [Native modules](/plugins/native-modules/),
-  [Recipes](/plugins/recipes/) and [Conventions](/plugins/conventions/) - the rest of the guides.
-- [API reference](/plugins/api/) - every `node.*` function, `node.raw`, the C ABI and every event,
-  generated from `sdk/api.toml`.
-- [Wire protocol](/plugins/protocol/) - the frames underneath, for module authors.
+## Where to start
 
-Every example named in these pages - `demo-numbers`, `chat`, `vehicle-cleanup`,
-`gatekeeper-example`, `devapi-example`, `nodegrab-allow` - is a resource folder in the release
-archive under `examples/`, next to the server executable; `examples/README.txt` says what each
-one does. Copy one into `resources/` to run it. `chat` - the one the others lean on - is also
-described by its protocol on [Events → node.bus](/plugins/events/#between-resources-nodebus).
+1. [Your first resource](/plugins/getting-started/): a folder, a server half, a client half,
+   running in ten minutes.
+2. [Resources](/plugins/resources/): the folder, `resource.toml`, settings, reloading.
+3. [Events](/plugins/events/): the join order and every kind of event.
+4. Then whatever your plugin needs, from the list above.
 
-## Words
+Coming from BeamMP? [Migrating BeamMP plugins](/plugins/migrating/) maps its API to this one.
 
-The pages keep to one word per thing, and the [glossary](/reference/glossary/#for-plugin-authors)
-defines each. **Plugin** is the umbrella - the server's own lines say `plugin worker`,
-`plugin job queue` for the whole subsystem. A **resource** is a folder under `resources/`; a
-**native module** is a library under `modules/`; a **language host** is a native module that
-teaches the server a resource type (`js-host`). "Module" on its own is avoided, because the word
-also names the **module channel** (`node.modules`, numbered binary channels to clients) and the
-client mod's **module framework** (`NodeMP.modules`). The events reference names the event kinds
-`builtin`, `notify`, `cancellable`, `client`, `bus` and `module`; the guides call the same kinds
-engine events, vehicle notifications, cancellable requests, wire events, the bus and the module
-channel.
+## What the API promises
+
+- **The API version** is the C ABI version, 2.4 on server 1.7.0. Within a major version nothing
+  moves: new calls are added at the end, so a resource or module written for 2.0 runs on 2.4.
+- **Events renamed in the past** answer only to their new names; subscribing to an old one is
+  refused with an error that names the new spelling.
+- Everything on these pages describes server 1.7.0. The [API reference](/plugins/api/lua/) is
+  generated from the same description the server is built from.

@@ -1,141 +1,150 @@
 ---
 title: Events
-description: Four kinds of event, what handlers receive, denying a request, wire events from clients, the bus between resources and the module channel.
+description: The join step by step, the four kinds of event, what handlers receive, refusing a request with a reason, wire events from clients, and the relay filter.
 ---
 
-Everything a server half does starts from an event. One call subscribes to all of them -
-`node.on(name, fn)` - and the name decides what kind of event it is and what `fn` receives. This
-page explains the kinds and the shapes; the [events reference](/plugins/api/events/) lists every
-name with its exact arguments.
+Everything a server half does starts from an event. One call subscribes to all of them,
+`node.on(name, fn)`, and the name decides what `fn` receives. This page explains the kinds and
+walks through a player's visit; the [events reference](/plugins/api/events/) lists every name with
+its exact arguments.
+
+## The join, step by step
+
+This is what happens between a player pressing **Join** and driving around, and where your code
+gets a say. Steps without an event are the server's own business.
+
+1. **The door.** The launcher connects and shows its ticket from the server list. The server checks
+   it and the ban list. A banned player is turned away here, before any plugin hears of them.
+2. **A seat and a name.** The player gets an id and their display name. If someone on the server
+   already has that name, the newcomer gets `Name#<id>`.
+3. **`playerConnectRequest(player, name)`.** Your chance to refuse, with a reason the player sees.
+   The player's name, IP and account fields are readable; nothing has been downloaded yet.
+4. **`playerAuthenticated(player)`.** Let in. Good for loading what you keep about this player.
+5. **The game-file check.** The launcher checks the player's game files at the level the server asks
+   for. **`playerVerifyReported(player, report)`** reports the result, after the server applied its
+   own verdict.
+6. **Mods.** The player downloads what they're missing. No event; this can take minutes.
+7. **Map and client scripts.** The map name and every resource's client files go out together, so
+   the game can set them up while the map loads.
+8. **`playerJoined(player)`.** The player is in the world and has received every car. The usual
+   place to greet them, give a role and restore their state.
+
+While they play, **`playerLagging(player, silentSec)`** fires when nothing has arrived from them for
+a few seconds (8 by default), and **`playerRecovered(player, silentSec)`** when they're back. A lagging
+player keeps their seat and cars.
+
+At the end, **`playerLeft(player, reason)`**. The name is still readable. The player's walking
+avatar is deleted; their cars stay in the world, ownerless. `reason` is the same text as the
+server's leave line: `"Connection closed by the client"`, a kick's own text, and so on. Match
+`"Replaced"` exactly (the same account logged in again) and treat the rest as prose.
+
+Two things to keep in mind:
+
+- `playerLeft` fires for everyone who got an id, including a player you refused in
+  `playerConnectRequest` or who quit during the download. Not every `playerLeft` has a
+  `playerJoined` before it.
+- After a broken connection the server holds the slot for 30 seconds (the default) in case the
+  launcher reconnects. A player who comes back fires `playerRecovered`, not a second
+  `playerJoined`; one who doesn't fires `playerLeft` when the window runs out.
+
+<!-- doctest: server+client -->
+```lua
+node.on("playerConnectRequest", function(player, name)
+    if name:lower():find("admin", 1, true) then
+        return false, "Names with 'admin' in them are reserved"
+    end
+    node.log("%s may join", name)
+end)
+
+node.on("playerJoined", function(player)
+    player:tell("Welcome, %s. %d online.", player.name, node.players.count())
+end)
+
+node.on("playerLeft", function(player, reason)
+    node.log("%s left: %s", tostring(player.name), reason)
+end)
+
+-- expect: Alice may join
+-- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
+-- expect: Alice left: .+
+```
 
 ## Four kinds, one node.on
 
 | Kind | Names | Handler receives | Return value |
 |---|---|---|---|
-| Engine events (observe) | `<subject><Verb-ed>`, fired by the server after something happened: `playerJoined`, `vehicleSpawned`, `serverTick` | the subject - a `Player` or a `Vehicle` - or nothing | ignored |
-| Vehicle notifications (observe, with data) | fired after the server relayed and cached a player's action: `vehicleEdited`, `playerSeatChanged` | `(player, vehicle, payload)` | ignored |
-| Cancellable requests (decide) | `<subject><Action>Request`, fired before the server performs what a client asked: `vehicleSpawnRequest` | `(player, vehicle, payload)` - or a name, or a proposed id, in the second slot | `false[, reason]` denies |
-| Wire events from clients | any other name, by convention `<domain>:<verb>`: `chat:send` | `(player, data)` with `data` as the string the client sent | ignored |
+| **Engine events** | `<subject><Verb-ed>`, after something happened: `playerJoined`, `vehicleSpawned`, `serverTick` | the subject (a `Player` or a `Vehicle`) or nothing | ignored |
+| **Notifications** | after the server acted on something a player did: `vehicleEdited`, `playerSeatChanged`, `chatMessage` | `(player, vehicle, payload)`, or `(player, payload)` where no vehicle is involved | ignored |
+| **Requests** | `<subject><Action>Request`, before the server does what a player asked: `vehicleSpawnRequest`, `chatMessageRequest` | like notifications | `false[, reason]` refuses |
+| **Wire events** | any other name, by convention `<domain>:<verb>`: `race:finish` | `(player, data)`, `data` as the client sent it | ignored |
 
-Two more channels have their own subscribe calls: the bus between resources (`node.bus.on`) and
-the binary module channel (`node.modules.on`). The relay filter, `relayRequest`, is installed with
-`node.relay.filter`. All handlers run on the plugin worker thread, one at a time, in registration
-order; several resources may subscribe to the same name.
+Two more channels have their own calls: messages between resources ([The bus](/plugins/bus/)) and
+raw bytes for native modules (`node.modules.on`). The relay filter is installed with
+`node.relay.filter` ([below](#the-relay-filter)). All handlers run on one worker thread, one at a
+time, in the order they subscribed; several resources may subscribe to the same name.
 
-The [events reference](/plugins/api/events/) and `api.toml` use one-word names for the same
-kinds: `builtin` for the engine events, `notify` for the vehicle notifications, `cancellable` for
-the requests, `client` for wire events, `bus` and `module` for the two channels, and `special` for
-`relayRequest`. The server's error lines use a third vocabulary: `error in event '…'` for an
-engine or wire event handler, `error in resource event '…'` for a bus handler,
-`error in timer callback`, `error in async task`, and `error in '<path>'` for the entry point at
-load.
+### Naming
 
-## Naming
-
-Two rules cover every server event name:
-
-1. **A notification reads `<subject><Verb-ed>`** - what happened, in the past tense, after the
-   subject it happened to: `playerJoined`, `playerLeft`, `vehicleSpawned`, `vehicleDeleted`,
-   `vehicleEdited`, `playerSeatChanged`, `serverShutdown`. The handler observes; its return value
-   is ignored.
-2. **A request a handler can deny reads `<subject><Action>Request`** - what the client asks for,
-   before the server does it: `playerConnectRequest`, `vehicleSpawnRequest`, `vehicleEnterRequest`.
-   `false[, reason]` denies. The relay filter is a request too, `relayRequest`: `false` hides one
-   packet from one recipient.
-
-There is no `on` prefix - `node.on(...)` already says it - and no present tense. Wire events keep
-their own rule, `<domain>:<verb>` (`chat:send`); module channels and bus events are unchanged.
-
-Servers before 1.2.0 used other spellings, and every one of them still works as a **deprecated
-alias**: `playerJoin` → `playerJoined`, `playerConnecting` → `playerAuthenticated`, `onShutdown` →
-`serverShutdown`, `onPlayerConnectRequest` → `playerConnectRequest`, `onVehicle…Request` →
-`vehicle…Request` (spawn, enter, exit, coupler, edit, paint, trigger, node grab), `canRelay` →
-`relayRequest`. An old name subscribes to the same event as the new one and logs one warning per
-resource per old name, the first time the resource uses it:
-
-```text
-[deprecated] event "onPlayerConnectRequest" is now "playerConnectRequest"
-```
-
-Both spellings are one event: `node.off` accepts either for a handler subscribed under either, two
-different functions under the two spellings are two handlers (both run), and the same function
-under both spellings is one subscription (`node.on` replaces, so it runs once). The C ABI accepts
-the old names the same way. The aliases will be removed in 2.0 - rename when you next touch the
-resource; the [events reference](/plugins/api/events/#renamed-events) lists every pair.
+Engine events and notifications read `<subject><Verb-ed>`: what happened, after the thing it
+happened to. Requests read `<subject><Action>Request`. There is no `on` prefix and no present
+tense. Names that were renamed in the past don't work any more: `node.on` refuses them with one
+error that gives the new name (`event "playerJoin" was renamed to "playerJoined"; nothing is subscribed to the old name`).
+The [events reference](/plugins/api/events/#renamed-events) has the whole list.
 
 ## What a handler receives
 
-Where the raw API has ids, `node.on` hands you objects. A `Player` is a table with `id` and a
-metatable: reading `player.name`, `player.ip`, `player.role`, `player.vehicle` or `player.accountId`
-fetches the session record once and caches it on the object; `player:refresh()` drops the cache;
-methods (`player:kick`, `player:send`, `player:tell`, `player:setRole`, `player:vehicles`) act by
-id. A `Vehicle` works the same way: `vehicle.spawner`, `vehicle.driver` and `vehicle.passengers` are
-Players, `vehicle.spawnerId` and `vehicle.driverId` the raw ids, `vehicle.tags` a table, and the
-streaming state (`vehicle:transform()`, `vehicle:electrics()`) is a method because it is a fresh
-read each time. Two objects are `==` when their ids match; `tostring(player)` reads
-`Player#3 Alice`, `tostring(vehicle)` reads `Vehicle#12 Alice`.
+Where the server works with ids, `node.on` hands you objects. A `Player` is a small table with
+`id`; reading `player.name`, `player.ip`, `player.role` or `player.accountId` fetches the player's
+record once and keeps it on the object. Methods such as `player:kick`, `player:send`, `player:tell`
+and `player:vehicles` act by id. A `Vehicle` works the same way. The details are on
+[Players and vehicles](/plugins/players-and-vehicles/).
 
-Payloads that are JSON on the wire arrive decoded: a spawn config is a table with `config.jbm`, a
-coupler call has `call.controllerName`. Where the payload is a role name it stays a string. Wire
-events are the exception: their `data` is exactly what the client sent, so decode it yourself with
-`node.json.decode`.
+Payloads that are JSON arrive decoded: a spawn config is a table with `config.jbm`, a coupler call
+has `call.controllerName`. Wire events are the exception: their `data` is exactly what the client
+sent, so decode it yourself with `node.json.decode`.
 
-Ids are reused. A `Player` from a `playerLeft` handler still knows its name, but `player.id` will
-belong to someone else later - key anything durable by `player.accountId` or `player.name`, and
-check `player:isConnected()` after a `node.sleep`.
+Ids are reused. A `Player` from `playerLeft` still knows its name, but its `id` will belong to
+someone else later. Keep anything long-lived under `player.accountId` (or `player.name` for guests),
+and check `player:isConnected()` after waiting.
 
-`node.raw.on(name, fn)` subscribes with the raw arguments - ids and JSON text - for the hot paths
-where you do not want objects built.
+`node.raw.on(name, fn)` subscribes with the raw arguments (ids and JSON text) for hot paths where
+you don't want objects built.
 
-## Engine events (observe)
+## Engine events
 
-Fired by the server after something happened; return values are ignored.
+Fired after something happened; return values are ignored.
 
-- **Lifecycle.** `playerAuthenticated` (authenticated, about to receive the world), `playerJoined`
-  (the usual place to greet, assign a role, restore state), `playerLeft` (its vehicles go around
-  the same time), `serverTick` (every 100 ms, no argument - keep it cheap), `serverShutdown` (flush
-  what you must; timers will not run again), `resourceUnload(reason)` (this resource is about to
-  be unloaded - `"reload"` before a reload replaces it, `"shutdown"` after `serverShutdown`; fired
-  for the unloading resource only, with `serverShutdown`'s limitations - see
-  [Resources → Reload](/plugins/resources/#reload)).
-- **Registry.** `vehicleSpawned`, `vehicleDeleted` (the record is gone by then; only `vehicle.id`
-  is meaningful), `vehicleTagsChanged`, `vehicleLockChanged`, `vehicleDamageChanged`.
+- **Players.** `playerAuthenticated`, `playerJoined`, `playerLeft`, `playerPolicyChanged` (the player
+  changed who may use their cars), `playerCameraChanged`.
+- **Server and resource.** `serverTick` (every 100 ms, no argument; keep it cheap),
+  `serverShutdown` (save what you must; timers won't run again), `resourceUnload(reason)`
+  ([Resources → Saving before the unload](/plugins/resources/#saving-before-the-unload)).
+- **Vehicles.** `vehicleSpawned`, `vehicleTagsChanged`, `vehicleLockChanged`,
+  `vehicleDamageChanged`, `vehicleTeleported`, `vehicleBreakGroupsChanged`.
 - **Streams.** `vehiclePositionChanged`, `vehicleInputsChanged`, `vehicleElectricsChanged`,
   `vehiclePowertrainChanged`, `vehicleEngineChanged`, `vehicleNodesChanged`,
-  `playerInputsChanged`, `playerHeadPoseChanged`: one event per accepted packet, coalesced so that
-  at most one dispatch per vehicle is pending - a handler that lags sees fewer events, never a
-  growing queue. The argument is the object only; read the latest state with the getter
-  (`vehicle:transform()`, `player:inputs()`). Nothing is posted when nobody subscribed. For a
-  radar, poll `node.vehicles.transforms()` on a timer instead: one read for every vehicle.
-- **Transitions.** `vehicleTeleported`, `vehicleBreakGroupsChanged`, `playerCameraChanged`: one
-  event per report, not coalesced.
+  `playerInputsChanged`, `playerHeadPoseChanged`. These arrive up to 60 times a second per car,
+  merged so a slow handler sees fewer events instead of a growing queue. The handler gets only the
+  object; read the latest state with the matching method (`vehicle:transform()`,
+  `player:inputs()`). For a radar or a minimap, read every car at once on a timer instead
+  ([Players and vehicles → Reading the world fast](/plugins/players-and-vehicles/#reading-the-world-fast)).
 
-<!-- doctest: server+client -->
-```lua
-local greeted = {}
+## Notifications
 
-node.on("playerJoined", function(player)
-    player:tell("Welcome, %s. %d online.", player.name, node.players.count())
-    greeted[player.id] = true
-end)
+Fired after the server acted on something a player did. The payload is decoded when it's JSON.
 
-node.on("playerLeft", function(player)
-    greeted[player.id] = nil -- the id will be reused
-    node.log("%s left", tostring(player))
-end)
-
--- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
--- expect: Player#\d+ Alice left
-```
-
-## Vehicle notifications (observe, with data)
-
-Fired after the server relayed and cached a player's action on a vehicle. Handlers get
-`(player, vehicle, payload)` - the payload decoded into a table where it is JSON, a string where
-it is a role name; return values are ignored. The six names: `vehicleEdited` (the new config),
-`vehicleReset` (the position it was reset to), `vehiclePainted` (the paints), `playerSeatChanged`
-(`vehicle` is `nil` when the player is now on foot; `role` is `"driver"`, `"passenger"` or
-`"none"`), `vehicleCouplerChanged` and `vehicleControllerChanged` (the call).
+| Event | Arguments | When |
+|---|---|---|
+| `vehicleDeleted` | `vehicle, cause` | A car left the world. `cause` is `"player"`, `"server"`, `"leave"` (the leaver's walking avatar), `"seat"` or `"replace"`. The record is gone by then; only `vehicle.id` means anything. |
+| `vehicleRespawned` | `player, vehicle, config` | The player replaced the car they drive. |
+| `vehicleEdited` | `player, vehicle, config` | New parts or tuning were applied. |
+| `vehicleReset` | `player, vehicle, posRot` | The car was reset. `posRot.cause` is `"player"` or `"server"`; for a server reset `player` is `nil`. |
+| `vehiclePainted` | `player, vehicle, paints` | New paint. |
+| `playerSeatChanged` | `player, vehicle, role` | Got in, got out or was moved. `vehicle` is `nil` on foot; `role` is `"driver"`, `"passenger"` or `"none"`. |
+| `vehicleCouplerChanged`, `vehicleControllerChanged` | `player, vehicle, call` | A door, coupler or controller call went through. |
+| `chatMessage` | `player, msg` | A chat line was decided ([Chat](/plugins/chat/#watching-the-chat)). |
+| `playerVerifyReported` | `player, report` | A game-file check finished ([Client scripts → Strict sessions](/plugins/client-scripting/#strict-sessions)). |
+| `playerLagging`, `playerRecovered` | `player, silentSec` | See [the join](#the-join-step-by-step). |
 
 <!-- doctest: server -->
 ```lua
@@ -148,34 +157,35 @@ node.on("playerSeatChanged", function(player, vehicle, role)
         node.log("%s is now %s of %s", tostring(player), role, tostring(vehicle))
     end
 end)
+
+node.on("vehicleDeleted", function(vehicle, cause)
+    node.log("vehicle %d gone (%s)", vehicle.id, cause)
+end)
 ```
 
-A reset cannot be denied - there is no clean previous value to restore - which is why it is a
-notification and not a request.
+## Requests: saying no
 
-## Cancellable requests (decide)
+A request fires before the server does what a player asked. Return `false`, optionally with a
+reason, to refuse; return nothing to let it happen. A handler that returns nothing can still watch:
+it sees every request and changes nothing.
 
-Fired before the server performs an action a client asked for. Handlers get
-`(player, vehicle, payload)` with the payload decoded where it is JSON; a handler that returns
-`false` - optionally with a reason string as a second value - denies the action, and the first
-denial wins. Every cancellable name can also be observed: a handler that returns nothing sees the
-request and changes nothing. Names read `<subject><Action>Request`.
+Every handler runs, even after one has refused, so watchers see everything; the first reason given
+is the one used. A handler that raises an error doesn't refuse. Chat is the exception: there, the
+first `false` ends the chain ([Chat](/plugins/chat/#refusing-and-rewriting)).
 
-Every handler runs even after one has denied, so observers still see the request. A handler that
-raises an error never denies. The reason travels where the wire can carry it - the connect refusal
-is shown to the player as the kick text - and is logged otherwise.
+| Request | Arguments | A refusal |
+|---|---|---|
+| `playerConnectRequest` | `player, name` | turns the player away; they see the reason. |
+| `vehicleSpawnRequest` | `player, requestedId, config` | removes the car the player just made. `requestedId` is the client's number, not the final id. |
+| `vehicleEnterRequest`, `vehicleExitRequest` | `player, vehicle, role` | keeps the player where they were; they see the reason. |
+| `vehicleEditRequest`, `vehiclePaintRequest` | `player, vehicle, config` / `paints` | rolls the player's car back to what the server had; they see the reason if you gave one. |
+| `vehicleCouplerRequest` | `player, vehicle, call` | the door or coupler stays as it was. |
+| `vehicleTriggerRequest` | `player, vehicle, call` | blocks pressing a control on someone else's car. An explicit `true` allows it even when the car's owner doesn't let others use their controls. |
+| `vehicleNodeGrabRequest` | `player, vehicle, grab` | blocks grabbing a car with the experimental node grabber. **No handler also means no**: enabling it needs a resource that says yes (see `nodegrab-allow` in [the examples](/plugins/examples/)). |
+| `chatMessageRequest` | `player, msg` | the line isn't sent; the sender is told why. A string or table return rewrites it ([Chat](/plugins/chat/#refusing-and-rewriting)). |
 
-The nine names: `playerConnectRequest` (second argument: the requested name; bans are checked
-before it fires), `vehicleSpawnRequest` (second argument: the id the client proposed, not the
-final one; third: the spawn config), `vehicleEnterRequest` and `vehicleExitRequest` (the
-role), `vehicleCouplerRequest`, `vehicleEditRequest` and `vehiclePaintRequest` (the client
-applied these optimistically, so a denial rolls the initiator back to the server's cached
-config or paint), `vehicleTriggerRequest` (default allow), `vehicleNodeGrabRequest`
-(fail-closed: with no handler at all the grab is denied, so the experimental node grabber needs a
-resource that says yes - `nodegrab-allow` does; the client mod's synced grabber does not take this
-path).
-
-A worked example, from `gatekeeper-example`: cap the vehicles a player may spawn, with a reason.
+An example in the spirit of `gatekeeper-example`: a car limit with a reason, and doors only the
+car's owner may open.
 
 <!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
@@ -197,21 +207,46 @@ end)
 -- expect: Player#\d+ Alice spawns a coupe
 ```
 
-`vehicleSpawnRequest` fires before the vehicle exists, so `player:vehicles()` counts what the
-player already has; the denied client removes the car it created locally. The server's own
-`[General] MaxCars` limit and `node.server.setMaxCars` do the same job without a resource; the
-example shows the shape. What the server does itself - `vehicle:seat`, `vehicle:setCoupler`,
-`vehicle:trigger`, `vehicle:lock` - never asks these hooks: the server does not veto itself.
+`vehicleSpawnRequest` fires before the car exists, so `player:vehicles()` counts what the player
+already has. The server's own `MaxCars` setting does the same job without a resource; the example
+shows the shape. What the server does itself (`vehicle:seat`, `vehicle:setCoupler`,
+`vehicle:trigger`, `vehicle:lock`) never asks these hooks.
+
+## Wire events
+
+A resource makes up its own events between its server and client halves just by using a name. The
+same `node.on` subscribes to them, and the handler gets `(player, data)`, with `data` the string the
+client passed to `node.emitServer(name, data)`, by convention JSON.
+
+Name them `<domain>:<verb>`, lowercase, one colon: `hello:count`, `race:finish`. Names starting
+with `node:` belong to NodeMP, and so do `chat:send`, `chat:msg` and the other `chat:` events. To
+send the other way: `player:send(event, data)` to one player, `node.broadcast(event, data)` to
+everyone, `node.broadcast(event, data, except)` to everyone but one. A table is JSON-encoded for
+you.
+
+Wire events from a client reach the server and nothing else. To pass something on to the other
+players, forward it:
+
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["team:ping", "{\"at\": 1}"]]} -->
+```lua
+node.on("team:ping", function(sender, data)
+    if type(data) ~= "string" or #data > 256 then return end -- untrusted input
+    node.broadcast("team:ping", data, sender) -- everyone but the sender
+end)
+
+-- expect-client: Bob team:ping \{"at": 1\}
+```
+
+Treat `data` as untrusted: anyone can send anything from their own game. Check its type and length,
+decode it with `node.json.decode` and check the fields before you use them.
 
 ## The relay filter
 
-`relayRequest` is neither an event nor an action request: a question the relay asks per packet,
-named like the requests because `false` from the handler decides something. Install it with
-`node.relay.filter(fn)` (the same as `node.on("relayRequest", fn)`); `fn(fromPid, toPid, category,
-subtype, globalId)` receives ids, not
-objects, because it sits on the hot path, and returns `false` to hide that packet from that
-recipient. Verdicts are cached until `node.relay.invalidate()`, so call it whenever the data your
-hook reads has changed. `node.relay.unfilter(fn?)` removes it.
+`relayRequest` is a question the server asks for every packet it passes on: should this player see
+this packet? Install it with `node.relay.filter(fn)`. `fn(fromPid, toPid, category, subtype, gid)`
+gets ids, not objects, because it runs for every packet, and returns `false` to hide that packet
+from that player. Answers are cached, so call `node.relay.invalidate()` whenever the data your
+filter reads changes.
 
 <!-- doctest: server -->
 ```lua
@@ -225,153 +260,22 @@ end)
 local function hide(vehicle, player)
     hidden[vehicle.id] = hidden[vehicle.id] or {}
     hidden[vehicle.id][player.id] = true
-    node.relay.invalidate() -- the hook's data changed
+    node.relay.invalidate() -- the filter's data changed
 end
 ```
 
-Visibility groups are the cheap alternative for room-style rules: `player:setGroup(n)` and
-`vehicle:setGroup(n)` put players and vehicles in numbered worlds, and only matching numbers see
-each other, with no hook and no cache. Group `0` is the shared world.
-
-## Wire events from clients
-
-Not a fixed list: a resource defines its own wire events by using a name. The same `node.on`
-subscribes to them with `(player, data)`; the name not being a builtin is what makes it a wire
-event. `data` is the string the client passed to `node.emitServer(name, data)`, by convention
-JSON.
-
-Name them `<domain>:<verb>`, lowercase, one colon: `chat:send`, `hello:count`, `race:finish`.
-Names starting with `node:` are reserved for the framework. The other direction is
-`player:send(event, data)` (or `node.send`), `node.broadcast(event, data)` for everyone and
-`node.broadcast(event, data, except)` for everyone but one player - the shape of a relay, where
-the excepted player counts as the sender for the relay filter. A table given to any of these is
-JSON-encoded for you.
-
-Client-emitted events are server-terminal: they reach server resources and nothing else. A
-feature of yours that must reach other players is a resource that forwards it - a
-`team:ping` your client script emits, say:
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "hello everyone"}], ["team:ping", "{\"at\": 1}"]]} -->
-```lua
-node.on("chat:send", function(player, data)
-    local msg = node.json.decode(data)
-    if type(msg) ~= "table" or type(msg.text) ~= "string" then return end
-    node.broadcast("chat:msg", { fromPid = player.id, name = player.name, text = msg.text })
-end)
-
-node.on("team:ping", function(sender, data)
-    node.broadcast("team:ping", data or "", sender) -- everyone but the author
-end)
-
--- expect-client: Bob chat:msg .*"text":"hello everyone"
--- expect-client: Bob team:ping \{"at": 1\}
-```
-
-Treat `data` as untrusted input: check its type and length before you use it, as `chat` does.
-
-## Between resources: node.bus
-
-`node.bus.emit(name, data)` publishes to every resource and native module subscribed to `name`,
-asynchronously on the worker and to the sender too. `node.bus.on(name, fn)` subscribes
-`fn(sourceResourceName, data)`; a native module appears as `"native"`. `data` arrives as a string
-(a table you emit is JSON-encoded), so decode it. `node.bus.off(name, fn?)` unsubscribes.
-
-This is how the built-in chat helpers work: `node.chat.say`, `node.chat.tell` and `player:tell`
-emit `chat:say` on the bus, and `node.commands.add` listens for `chat:command`; the `chat`
-resource owns the screen side and answers both. Without `chat` installed those calls are silent -
-nothing reaches a player and nothing is printed on the console either.
-
-The two bus messages are a contract any resource can speak, which is also how a chat command is
-exercised without the game ([Getting started → Testing without the game](/plugins/getting-started/#testing-without-the-game)):
-
-| Bus message | Payload (JSON) | Who emits it | Who listens |
-|---|---|---|---|
-| `chat:command` | `{ "pid": 0, "name": "hello", "args": ["world"], "raw": "/hello world" }` - the player's id, the command word **in lowercase**, the remaining whitespace-separated words as an array, and the whole line as typed | `chat`, for every chat line that starts with `/` | the prelude behind `node.commands.add`, which looks the handler up by `name` exactly as sent |
-| `chat:say` | `{ "text": "…" }` for everyone, `{ "pid": 3, "text": "…" }` for one player (`-1` or no `pid` broadcasts) | `node.chat.say` (no `pid`), `node.chat.tell` and `player:tell` (with `pid`) | `chat`, which turns it into a `chat:msg` wire event with `scope = "system"`, `fromPid = -1`, `name = "System"` |
-
-`node.commands.add` lowercases the name you register and `chat` lowercases the word the player
-typed, which is why commands are case-insensitive for players; a `chat:command` you publish
-yourself must carry the lowercase `name`, or no handler matches. On the wire, the client sends
-`chat:send` with `{ "scope": "global" | "local", "text": "…" }` and receives `chat:msg` with
-`{ "scope", "fromPid", "name", "text" }`.
-
-<!-- doctest: server+client {"emit": [["race:finish", "61.5"]]} -->
-```lua
--- in one resource
-node.bus.on("race:finished", function(source, data)
-    local result = node.json.decode(data)
-    node.log("%s reports %s finished in %.1f s", source, result.name, result.seconds)
-end)
-
--- in another: the client half reports its time as a wire event, the resource publishes it
-node.on("race:finish", function(player, data)
-    node.bus.emit("race:finished", { name = player.name, seconds = tonumber(data) or 0 })
-end)
-
--- expect: \S+ reports Alice finished in 61\.5 s
-```
-
-Prefer the bus over reading another resource's globals: each resource has its own Lua state, and
-a peer that is not installed simply never answers.
-
-## The module channel
-
-Raw bytes on a numbered channel, for native modules and their client halves that speak their own
-encoding. `node.modules.on(channel, fn)` subscribes `fn(player, data)` to what clients send on a
-`u32` channel with `node.sendModule(channel, data)`; `node.modules.send(target, channel, data)`
-sends to a `Player` or to everyone with `"all"`. Nothing is parsed or logged. The `dimensions`
-module owns channel `0x44494D53`.
-
-## No file-watch event
-
-Nothing fires when a file changes. There is no `fileChanged` event - BeamMP's `onFileChanged` has
-no equivalent - and the server does not watch `resources/`: an edit to `server/main.lua` takes
-effect at the next `node.resources.reload` or restart, and `client/` is packaged once at start.
-To follow a data file the host edits while the server runs, poll it with a timer: compare the
-`size` from `node.fs.list` (there is no modification time to read), or hash the content with
-`node.crypto.sha256(node.fs.read(path))` for a file that can change without changing size. For
-settings, `node.resources.manifest().config` re-reads `resource.toml` on every call.
-
-<!-- doctest: server {"files": {"data/rules.json": "[]"}} -->
-```lua
-local sizes = {}
-local function scan()
-    local now = {}
-    for _, entry in ipairs(node.fs.list("data") or {}) do now[entry.name] = entry.size end
-    return now
-end
-sizes = scan()
-
-node.every(2000, function()
-    local now = scan()
-    for name, size in pairs(now) do
-        if sizes[name] ~= size then
-            sizes[name] = size
-            node.log("data/%s changed (%d bytes)", name, size)
-        end
-    end
-    for name in pairs(sizes) do
-        if now[name] == nil then
-            sizes[name] = nil
-            node.log("data/%s removed", name)
-        end
-    end
-end)
-
-node.after(500, function() node.fs.write("data/rules.json", '[{"speed": 90}]') end) -- the host editing the file
-
--- expect: data/rules\.json changed \(15 bytes\)
-```
+For room-style rules there's something cheaper: visibility groups. `player:setGroup(n)` and
+`vehicle:setGroup(n)` put players and cars in numbered worlds, and only the same numbers see each
+other, with no filter and no cache. Group `0` is the shared world.
 
 ## Unsubscribing
 
-`node.off(name, fn?)` removes this resource's handlers for a name - all of them, or only `fn` - and
-returns how many; a deprecated spelling names the same event as its canonical name here too. A
-reload drops every subscription the resource made, so there is nothing to clean up at that point.
+`node.off(name, fn?)` removes this resource's handlers for a name (all of them, or only `fn`) and
+returns how many it removed. A reload drops every subscription anyway, so there's nothing to clean
+up then.
 
 ## Next
 
-- [Events reference](/plugins/api/events/) - every name, its kind, its exact arguments.
-- [Concurrency](/plugins/concurrency/) - the thread handlers run on, and how to wait without
-  blocking it.
-- [Client scripting](/plugins/client-scripting/) - the other end of a wire event.
+- [Events reference](/plugins/api/events/): every name and its exact arguments.
+- [Players and vehicles](/plugins/players-and-vehicles/): the objects your handlers receive.
+- [Timers and coroutines](/plugins/concurrency/): waiting without blocking everyone.
