@@ -1,124 +1,134 @@
 ---
-title: Error codes
-description: "Reference of all error messages: launcher notifications, traffic helper exit codes, and server refusal reasons."
+title: Messages and exit codes
+description: Every message a join can end with - launcher notifications, server refusals and kick reasons, and the helper's exit codes - with what to do about each.
 ---
 
-NodeMP has no numeric error codes. What you see is clear text from one of three places: a launcher notification, the last line of the background helper log, or the reason given by the server when refusing a join or ending a session. This page indexes those exact messages (`…` indicates dynamic values). For step-by-step troubleshooting, see [Can't join a server](/support/joining/).
+NodeMP has no numbered errors. Whatever stops you is a sentence, from one of three places: a
+launcher notification, a refusal or kick reason from the server, or the last line of the helper's
+log. This page lists them all (`…` stands for a value that changes). For a guided walk through a
+failed join, start with [Can't join a server](/support/joining/).
 
-The only number you might see is `code 8` at the end of `Failed to find the game please launch it …`, which is an internal search status label, not an error code.
+## Launcher notifications
 
-## Launcher messages
-
-The notification **title** summarizes what failed; the line underneath (shown below after ` · `) is the exact reason in English.
+A notification has a **title** that says which step failed, and under it the exact reason, in
+English. Below they are written as **title** · `reason`. Older notifications stay in the bell icon
+on the left rail.
 
 ### Client mod
 
-| Message | Meaning | What to do |
+| Message | What happened | What to do |
 |---|---|---|
-| **Could not join** · `client mod is not installed and the directory is unreachable` | First join with no `NodeMP.zip`, and `api.nodemp.com` did not answer. | Get online and join again. |
-| **Could not join** · `client mod is not installed and no release has been published yet` | First join; there is no client mod release yet. | Wait for a release. |
-| **Could not join** · `could not start the download: …`, `the download server returned …`, `the download stopped: …`, `the download was N bytes, the release says M`, `the download is larger than the release says` | The file host could not be reached, or the transfer broke. | Check the connection, VPN, proxy; join again. |
-| **Could not join** · `the downloaded client mod does not match the published checksum` | The download was corrupted. | Join again. |
-| **Could not join** · `LOCALAPPDATA is not set, so BeamNG's user folder cannot be found` | A Windows environment variable is missing. | Sign out of Windows and back in. |
-| **Client mod could not be updated** · `Joining with the installed copy.` | The check failed, but an older `NodeMP.zip` exists. A warning, not an error. | If the server refuses the old mod: close the game, **Settings → Launcher → Client mod → Check now**. |
-| **Could not check the client mod** · `could not replace …\NodeMP.zip (is BeamNG.drive running?): …` | The game holds the zip open. | Close BeamNG.drive, then *Check now*. |
+| **Could not join** · `client mod is not installed and the directory is unreachable` | First join without `NodeMP.zip`, and NodeMP's service didn't answer. | Get online and join again. |
+| **Could not join** · `client mod is not installed and no release has been published yet` | First join, and no client mod has been published yet. | Wait for a release. |
+| **Could not join** · `could not start the download: …`, `the download server returned …`, `the download stopped: …`, `the download was N bytes, the release says M`, `the download is larger than the release says` | The download couldn't start or broke off. | Check your connection, VPN or proxy and join again. |
+| **Could not join** · `the downloaded client mod does not match the published checksum` | The download arrived damaged. | Join again. |
+| **Could not join** · `LOCALAPPDATA is not set, so BeamNG's user folder cannot be found` | A standard Windows setting is missing. | Sign out of Windows and back in. |
+| **Client mod could not be updated** · `Joining with the installed copy.` | The check failed, but you have an older `NodeMP.zip`. A warning, not an error. | If the server refuses the old mod: close the game, then **Settings → Launcher → Client mod → Check now**. |
+| **Could not check the client mod** · `could not replace …\NodeMP.zip (is BeamNG.drive running?): …` | The running game holds the file open. | Close BeamNG.drive and click **Check now**. |
 
-### Starting the session
+### Starting a session
 
-| Message | Meaning | What to do |
+| Message | What happened | What to do |
 |---|---|---|
-| **Could not start the session** · `could not start …: …` | Windows refused to start the helper (antivirus, policy). | Allow `%LOCALAPPDATA%\NodeMP` in the antivirus, or reinstall from [nodemp.com/download](https://nodemp.com/download). |
-| **Could not start the session** · `NODEMP_LAUNCHER points at …, which is not a file` | Developer builds only: the `NODEMP_LAUNCHER` override points nowhere. | Fix the variable ([Logs → Advanced](/support/logs/#advanced-another-directory)). |
-| **The launcher's traffic helper stopped** · *the last line of its log* | The helper exited during the join. | Find the line in [Helper exit codes](#helper-exit-codes). |
-| **You are already on a server: leave the game to join another** | A join was started while a session runs. | Close BeamNG.drive first. |
-| **Connection cancelled** | You pressed *Cancel*. Not an error. | Nothing. |
+| **Could not start the session** · `could not start …: …` | Windows or an antivirus stopped the launcher's helper from starting. | Allow NodeMP in the antivirus, or reinstall from [nodemp.com/download](https://nodemp.com/download). |
+| **The launcher's traffic helper stopped** · *the last line of its log* | The helper quit during the join. | Look the line up in [Helper exit codes](#helper-exit-codes). |
+| **You are already on a server: leave the game to join another** | You started a join while a session was running. | Close BeamNG.drive first. |
+| **Connection cancelled** | You clicked **Cancel**. | Nothing. |
 
 ### Connecting
 
-| Message | Meaning | What to do |
+| Message | What happened | What to do |
 |---|---|---|
-| **Could not connect** · `Could not reach the server` | Nothing answers at `host:port`: the server is down, the port is closed, a firewall. | Refresh the list; a host checks `30814` TCP and UDP. |
-| **Could not connect** · `DNS Lookup Failed`, `WSA failed to start` | The name in a Direct Connect address does not resolve; Windows networking could not start. | Check the spelling or use the IP; restart Windows for the second. |
-| **Could not connect** · `server certificate fingerprint mismatch` | A server you joined by address has another certificate than last time. | If the host confirms the change, delete its line from `known_servers.json`. |
-| **Could not connect** · `TLS handshake failed: …`, `TLS context creation failed: …`, `TLS session creation failed: …`, `TLS socket binding failed: …`, `server presented no certificate` | Something other than a NodeMP server answered, or the connection broke during the handshake. | Check the address and port; try again. |
+| **Could not connect** · `Could not reach the server` | Nothing answers at that address: the server is off, the port is closed or a firewall is in the way. | Refresh the list. If it's your server, check that its port is open for TCP and UDP. |
+| **Could not connect** · `DNS Lookup Failed` | The name you typed in Direct Connect doesn't resolve. | Check the spelling, or use the IP address. |
+| **Could not connect** · `server certificate fingerprint mismatch` | A server you joined by address shows a different certificate than last time. | Ask the host. If they reinstalled the server, delete its line from `known_servers.json` in the launcher's cache folder. |
+| **Could not connect** · `TLS handshake failed: …`, `server presented no certificate` | Something other than a NodeMP server answered, or the connection broke during the secure handshake. | Check the address and port and try again. With a VPN, see [VPN and bad connections](/players/vpn/#messages-you-may-see). |
 
-### The server refused, or the session ended
+### Downloading the server's mods
 
-**The server refused the join** (at the door) and **Session ended** (in the game) carry a reason
-from the [table of server refusals](#server-refusals-and-kick-reasons) below — or one of the helper's
-own errors:
+These come as **The server refused the join** or **Session ended** with one of the helper's own
+reasons:
 
-| Reason | Meaning | What to do |
+| Reason | What happened | What to do |
 |---|---|---|
-| `Invalid mod "…"`, `Failed to verify "…"`, `Server cannot find …`, `Server refused … (protected)`, `Server failed to read …`, `Mod '…' is protected and therefore must be placed in the cache folder manually here: …`, `Received corrupted download confirmation, aborting download.`, `Download announcement does not match the mod list, aborting download.` | Content sync failed: a mod the server sends is broken, missing or protected, or its transfer did not match the announcement. | Tell the host. Removing the file in **Content** forces a fresh download. |
-| `Authentication failed!`, `Unexpected reply after the welcome`, `Unexpected reply to the mod list request`, `Unknown packet from server during handshake` | The server answered the handshake with something the helper did not expect. | Update the launcher; if the server is outdated, tell its host. |
-| `Socket Closed Code 1`, `Socket Closed Code 2`, `Socket Closed Code 3`, `Socket Closed Code 5`, `Invalid Socket`, `Oversized frame from server`, `Malformed frame from server`, `Corrupt compressed frame from server` | The connection broke or carried a frame the helper could not read: the server stopped, a NAT or VPN dropped the connection, an unstable network. | Join again; check the connection. |
+| `Server cannot find …`, `Server refused … (protected)`, `Server failed to read …` | The server lists a mod it can't or won't send. | Tell the host. |
+| `Mod '…' is protected: the server does not send it, so it has to be put in the cache folder by hand: …` | The host marked this mod as one players must get themselves. | Get the zip from the host's site or Discord and put it into the folder the message names. |
+| `Failed to verify "…"` | A downloaded mod didn't match what the server announced, twice. | Tell the host. Removing the file under **Content** forces a fresh download. |
+| `Received corrupted download confirmation, aborting download.`, `Download announcement does not match the mod list, aborting download.` | The server's answer during the download didn't add up. | Join again; tell the host if it repeats. |
 
-**Session ended** without a reason means BeamNG.drive was closed.
+### The server list, the cache and updates
 
-### Server list, content and updates
-
-| Message | Meaning | What to do |
+| Message | What happened | What to do |
 |---|---|---|
-| **Could not reach NodeMP** | The server list could not be loaded; the line under it is the address in use. | Check the connection and VPN ([The server list is empty](/support/launcher/#the-server-list-is-empty)). |
-| **Could not remove the file** · `could not remove …: …`, `… is no longer in the cache`, `… is not a cached content file` | Deleting a file in **Content** failed; the first means BeamNG.drive holds the archive. | Close the game and delete again. |
-| **Browser sign-in did not work:** `could not reach the directory: …`, `the directory returned …`, `unexpected reply from the directory: …`, `could not save the sign-in: …`, `could not reach the credential store: …` | Signing in failed ([Launcher problems → Signing in](/support/launcher/#signing-in)). | Check the connection; sign in again. |
-| **Could not install the launcher update** · `the downloaded installer does not match the published checksum`, `the download stopped (…); it resumes on the next try`, `the download stopped at N of M bytes; it resumes on the next try` | The launcher update did not download ([Launcher updates](/support/launcher/#launcher-updates)). | Try again. |
-| `Could not find a BeamNG.drive install. Browse to it, or launch the game once so Steam writes its path.` | Under **Settings → Game**: the launcher found no game. | **Browse** to the game folder, or start the game once through Steam and press **Find it**. |
-| `No Bin64\BeamNG.drive.x64.exe in this folder` | Under **Settings → Game**: the folder is not the game's root. | Pick the folder that contains `Bin64\`. |
-
-## Helper exit codes
-
-The background helper is the network engine of the launcher — the same program running silently without a window. If it exits while joining, the launcher shows **The launcher's traffic helper stopped** with the last line of its log, or **Session ended** in the game. The exit code number itself is only visible when running the helper directly from a command prompt. The full session log is written to `%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\launcher.log` and is overwritten on every launch.
-
-| Code | Last log line | Meaning | What to do |
-|---|---|---|---|
-| `0` | `game closed - launcher closing soon` | BeamNG.drive was closed. The helper ends the session, waits 5 s and exits. | Nothing. |
-| `0` | `game files verified: 14193 files checked in 0.9s (strict), 7203 hashed (0.912 s)` | `--integrity-check <manifest>` ran the strict check and the install is clean. | Nothing. |
-| `1` | `game files DIFFER: … (strict), …`, then `counts: missing N, size N, hash N, unlisted N, archive N, userfolder N, folders skipped N` | `--integrity-check <manifest>` found problems; each is printed above the summary. | See [Strict servers](/support/strict-servers/#reading-the-result). |
-| `2` | `cannot read the manifest file …`, `not a reference manifest: …`, `could not check: manifest format outdated (format 1)`, `could not check: the game's user folder … does not exist` | `--integrity-check <manifest>` could not run: no such file, not a manifest, an outdated one, or no user folder. | Check the path; ask the host for a current reference; start the game once. |
-| `1` | `Config failed to parse make sure it's valid JSON!`, `Failed to open Launcher.cfg!`, `Failed to write config on disk!` | `Launcher.cfg` is corrupt or locked, or the folder is read-only. | Delete `Launcher.cfg` (it is recreated), or fix the permissions of `%LOCALAPPDATA%\com.nodemp.launcher\helper\`. |
-| `1` | `Failed to create caching directory: …. This is a fatal error. Please make sure to configure a directory which you have permission to create, read and write from/to.` | The `cache\` folder could not be created. | Fix the permissions, or `CacheDirectory` in `Launcher.cfg`. |
-| `1` | `failed to create HKEY_CURRENT_USER\Software\Valve\Steam\Apps\284160`, `failed to create the value "Name" under HKEY_CURRENT_USER\Software\Valve\Steam\Apps\284160` | Wine or Proton only: the helper's registry patch failed. | Give the helper write access to the registry. |
-| `1` | `Exception in main(): …`, then `closing in 5 seconds` | An unexpected error at start-up, before the game was started. | Read the lines above it in `launcher.log`. |
-| `2` | `Failed to find the game please launch it. Report this if the issue persists code 8` | No BeamNG.drive install in **Settings → Game**, `BeamNG.Drive.ini`, the registry or Steam's library folders. The helper exits after 10 s. | Start the game once through Steam, or set the folder in **Settings → Game**. |
-| `2` | `Failed to Launch the game! launcher closing soon.` | Neither Steam (`steam.exe -applaunch 284160`) nor `Bin64\BeamNG.drive.x64.exe` started the game. The helper exits after 5 s. | Verify the game files in Steam; check **Settings → Game**. |
+| **Could not reach NodeMP** | The server list didn't load; the line under it shows the address the launcher used. | Check your connection and VPN. Direct Connect still works. |
+| **Could not remove the file** · `could not remove …: …`, `… is no longer in the cache`, `… is not a cached content file` | Deleting a file under **Content** failed; the first usually means BeamNG.drive has it open. | Close the game and try again. |
+| **Could not install the launcher update** · `the downloaded installer does not match the published checksum`, `the download stopped (…); it resumes on the next try`, `the download stopped at N of M bytes; it resumes on the next try` | The launcher update didn't download completely. | Try again; the download continues where it stopped. |
+| `Could not find a BeamNG.drive install. Browse to it, or launch the game once so Steam writes its path.` | Shown under **Settings → Game**: no game found. | **Browse** to the game folder, or start the game once through Steam and click **Find it**. |
+| `No Bin64\BeamNG.drive.x64.exe in this folder` | Shown under **Settings → Game**: that isn't the game's main folder. | Pick the folder that contains `Bin64\`. |
 
 ## Server refusals and kick reasons
 
-The server refuses a join or disconnects a player with a clear text reason. When joining, the launcher displays it under **The server refused the join**. During a session, BeamNG.drive displays *The session has ended*, and the launcher returns to the foreground with **Session ended**. The server logs this as `<name> kicked — <reason>`.
+A server says no in plain words. At the door the launcher shows it as **The server refused the
+join**; during a session the game says the session has ended and the launcher comes back with
+**Session ended**. The server's log has the same text as `<name> kicked — <reason>`.
 
-For version checks and strict verification, the launcher translates technical refusals into plain English with actionable buttons (noted as `shown as ...` in the table); the raw server message remains available under **Details**. Plugins may also define custom kick messages; the table below lists the built-in strings from `Node-Server` and plugin API defaults.
+For version and game-file problems the launcher rewrites the server's sentence into advice with a
+button; the table says *shown as* for those, and the server's own words stay under **Details**.
+Plugins can kick with their own text, which you then see as it is.
 
 | Reason | When | What to do |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | Launcher and server speak different protocol versions; the numbers are live (the current ones speak v23). When the launcher is behind, shown as `This server needs a newer launcher — update now`, with an **Update now** button; when the server is behind, as `This server runs an older NodeMP server (protocol v21; this launcher speaks v22)`. | **Update now** updates the launcher and rejoins. When the server is behind, tell its host. |
-| `Your NodeMP mod is out of date for this server (it speaks wire protocol …, the server …). Reinstall it from the launcher.` | The client mod speaks another protocol version than the server. | Close the game, **Settings → Launcher → Client mod → Check now**, join again. |
-| `Server full!` | `[General] MaxPlayers` is reached. | Filter by *Free slots*, or wait. |
-| `The server is still starting, please try joining again later.` | The server was still loading its plugins, and the hold on the handshake ran out. | Try again in a minute. |
-| `Server shutdown` | The server is stopping; also sent to everyone in the session when it shuts down. | Wait for the host to bring it back. |
-| `You are banned from this server` | Your IP or account is in the server's ban list without a reason. A ban with a reason shows that reason instead. | Ask the host ([Running the server → Bans](/hosting/administration/#bans)). |
-| `This server requires a NodeMP account: sign in to the launcher and join again` | `[Directory] TestDrive = false`: you joined in Test Drive, or without a join ticket. | **Settings → Account → Sign in**, or filter by *No account needed*. |
-| `Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | NodeMP rejected the ticket; the parentheses carry its message. A ticket is single-use, lives about a minute and is bound to your IP. | Join again. |
-| `The server could not verify your account with the directory (…). Try again in a moment` | The server could not ask NodeMP; the parentheses say why. A server with `RedeemFailOpen = true` and Test Drive allowed lets you in unverified instead. | Try again in a moment. |
-| `Replaced` | A new login of your account joined this server — from another PC or a second launcher — and this session was closed. Next server release; not in 1.5.0. | Do not play from two places at once; change your password if it was not you. |
-| `Resume rejected` | The connection broke, and the server would not let the launcher resume the session: the old connection was gone or did not let go. Next server release; not in 1.5.0. | Join again. |
-| `Resume rejected: too many failed attempts, try again later` | Too many failed resume attempts from your address in a short time. Next server release; not in 1.5.0. | Wait a minute, then join again. |
-| `Connection refused` | A plugin refused the join without a reason; with a reason, that reason is shown. | Ask the host. |
-| `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | `[General] VerifyGame` is `size`, `scripts` or `full`, and your install differs from the game's own list. The count is live. | Verify the game files in Steam. |
+| `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | The launcher and the server speak different protocol versions (the numbers are the real ones; today's speak v23). When the launcher is behind, shown as `This server needs a newer launcher — update now` with **Update now**; when the server is behind, as `This server runs an older NodeMP server (protocol v21; this launcher speaks v22)`. | **Update now** updates the launcher and joins again. If the server is behind, tell its host. |
+| `Your NodeMP mod is out of date for this server (it speaks wire protocol …, the server …). Reinstall it from the launcher.` | Your client mod speaks another protocol version than the server. | Close the game, **Settings → Launcher → Client mod → Check now**, join again. |
+| `Server full!` | The server has as many players as it allows. | Use the *Free slots* filter, or wait. |
+| `The server is starting up; join again in a moment.` | The server was still loading its plugins. | Try again in a minute. |
+| `Server shutdown` | The server is stopping; everyone on it gets this when it shuts down. | Wait for the host to bring it back. |
+| `You are banned from this server` | Your address or account is on this server's ban list, without a reason. A ban with a reason shows that reason instead. | Ask the host. |
+| `This server requires a NodeMP account: sign in to the launcher and join again` | The server doesn't allow Test Drive, and you joined without an account. | **Settings → Account → Sign in**, or use the *No account needed* filter. |
+| `Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | NodeMP didn't accept the one-time join ticket; the brackets say why. Tickets are single-use and short-lived. | Join again. |
+| `The server could not verify your account with the directory (…). Try again in a moment` | The server couldn't reach NodeMP to check your account. | Try again in a moment. |
+| `Resume rejected` | Your connection broke, and the server wouldn't take the reconnect back: the old session was already gone. | Join again. |
+| `Resume rejected: too many failed attempts, try again later` | Too many failed reconnects from your address in a short time. | Wait a minute, then join again. |
+| `Connection refused` | A plugin turned you away without giving a reason; with a reason, you see that reason. | Ask the host. |
+| `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | The server checks your game files against the game's own list, and some differ. The number is real. | Verify the game files in Steam. |
 | `Your BeamNG install changed while you were playing, and this server requires it to match the game's own file list (1 file differs). …` | The same check, repeated during the session, found a change. | Undo what you installed; verify the game files. |
-| `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …` | `VerifyGame = "strict"`, and your install or user folder differs from the server's reference. The text carries up to three examples as `path (reason)`. Shown as `Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`, with the first problem in words and the diagnostic command. | See [Strict servers](/support/strict-servers/). |
-| `Game files changed while you were playing and no longer match this server's reference (1 problem). …` | The strict check, repeated during the session, found a change. Shown as `Your game files changed while you were playing and no longer match this server's reference (1 problem)`. | Undo the change; run the diagnostic. |
-| `Your launcher checked your BeamNG install against a different reference manifest than this server uses (checked against reference manifest … but this server uses …). Reconnect so it fetches the current one.` | The launcher used a cached reference the host has since replaced. Shown as `This server's reference manifest changed — join again`. | Join again. |
-| `This server requires the strict check of your BeamNG install, but your launcher ran only 'size'. Update your launcher and try again.` | A strict server received the result of a weaker check. A current launcher runs the check it is asked for, so this points at a modified or broken one. Shown as `This server needs a newer launcher — update now`. | **Update now**, or reinstall from [nodemp.com/download](https://nodemp.com/download). |
-| `` This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. Ask the host to run `Node-Server --gen-integrity <gamedir>` and put the file in the server's integrity folder. `` | `VerifyGame = "strict"` with no `.manifest` in `[General] IntegrityDir`. | Tell the host ([Strict verification](/hosting/strict-verification/)). |
-| `This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. Ask the host to keep exactly one manifest in the server's integrity folder.` | More than one `.manifest` in the folder. | Tell the host. |
-| `Unknown integrity manifest requested` | The launcher asked for a reference the server does not have — usually one the host just replaced. Shown as `The server would not send its reference manifest`. | Join again in a moment; if it repeats, tell the host. |
-| `Too many integrity manifest requests` | More than four reference transfers in one session. Shown as `The server stopped sending its reference manifest (asked too often)`. | Join again in a moment; if it repeats, reinstall the launcher. |
-| `This server requires a check of your BeamNG install, which could not be completed: …` | The helper could not run the check; the text after the colon says why, for example `the game's user folder … does not exist`, `could not obtain the server's reference manifest: …`, `manifest format outdated (format 1)`. Shown as `BeamNG's user folder was not found`, `Could not download the server's reference manifest`, `The server's reference manifest is out of date` or `Your game files could not be checked`. | Read the advice under it, then join again. |
-| `Kicked`, `Kicked by module` | A plugin removed you without a reason. | Ask the host. |
+| `Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …` | A strict server: your install or user folder differs from the clean copy the host prepared. Up to three examples follow. Shown as `Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`, with the first problem in words and a command that lists them all. | See [Strict servers](/support/strict-servers/). |
+| `Game files changed while you were playing and no longer match this server's reference (1 problem). …` | The strict check, repeated during the session, found a change. Shown as `Your game files changed while you were playing and no longer match this server's reference (1 problem)`. | Undo the change and join again. |
+| `Your launcher checked your BeamNG install against a different reference manifest than this server uses (checked against reference manifest … but this server uses …). Reconnect so it fetches the current one.` | The host replaced the server's clean-install description since your last visit. Shown as `This server's reference manifest changed — join again`. | Join again. |
+| `This server requires the strict check of your BeamNG install, but your launcher ran only 'size'. Update your launcher and try again.` | A strict server got the result of a lighter check. Shown as `This server needs a newer launcher — update now`. | **Update now**, or reinstall from [nodemp.com/download](https://nodemp.com/download). |
+| `` This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. Ask the host to run `Node-Server --gen-integrity <gamedir>` and put the file in the server's integrity folder. `` | The host turned on the strict check without the file it needs. | Tell the host ([Strict verification](/hosting/strict-verification/)). |
+| `This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. Ask the host to keep exactly one manifest in the server's integrity folder.` | The host has files for more than one game version. | Tell the host. |
+| `Unknown integrity manifest requested` | The launcher asked for a file the server doesn't have, usually one the host just replaced. Shown as `The server would not send its reference manifest`. | Join again in a moment; tell the host if it repeats. |
+| `Too many integrity manifest requests` | The launcher asked for that file too often in one session. Shown as `The server stopped sending its reference manifest (asked too often)`. | Join again in a moment; reinstall the launcher if it repeats. |
+| `This server requires a check of your BeamNG install, which could not be completed: …` | The check couldn't run; the text after the colon says why. Shown as `BeamNG's user folder was not found`, `Could not download the server's reference manifest`, `The server's reference manifest is out of date` or `Your game files could not be checked`. | Follow the advice under it, then join again. |
+| `Kicked`, `Kicked by the server`, `Kicked by module` | A plugin, the server console or a native module removed you without a reason. | Ask the host. |
 | `Banned` | A plugin banned you without a reason. | Ask the host. |
-| `Packet rate limit exceeded` | Your client sent packets faster than the server allows. | Join again; report it if it repeats. |
-| `Disconnected after failing to receive packets` | The server could not deliver data to you. | Join again. |
-| `TCP send of MODS_INFO failed` | The server could not send its mod list: the connection was already gone. | Join again. |
-| `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent invalid compressed packet (this is likely a bug on your end)`, `Malformed game verification report` | The launcher sent something the server does not accept — only a modified or broken launcher does that. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
+| `Packet rate limit exceeded` | Your game sent packets faster than the server allows. | Join again; report it if it repeats. |
+| `Disconnected after failing to receive packets` | The server couldn't deliver data to you. | Join again. |
+| `TCP send of MODS_INFO failed` | The server couldn't send its mod list; the connection was already gone. | Join again. |
+| `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent a compressed packet that does not decompress`, `Malformed game verification report` | The launcher sent something the server doesn't accept. Only a modified or broken launcher does that. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
+
+**Session ended** with no reason at all means BeamNG.drive was closed.
+
+## Helper exit codes
+
+The helper is the launcher's background part that does the actual joining. When it quits during a
+join, the launcher shows **The launcher's traffic helper stopped** with the last line of its log.
+The number itself is only visible if you start the helper by hand from a command prompt. The full
+log is `%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\launcher.log`.
+
+| Code | Last log line | Meaning | What to do |
+|---|---|---|---|
+| `0` | `game closed - launcher closing soon` | BeamNG.drive was closed and the session ended. | Nothing. |
+| `1` | `Launcher.cfg is there but cannot be read; check its permissions, or delete it to start from the defaults`, `Launcher.cfg is not valid JSON; fix it, or delete it to start from the defaults` | The helper's settings file is unreadable or broken. | Delete `Launcher.cfg`; the helper writes a fresh one. |
+| `1` | `Cannot create the mod cache …: …. Point CacheDirectory in Launcher.cfg at a folder you can write to.` | The folder for downloaded mods can't be created. | Fix the folder's permissions, or set `CacheDirectory` in `Launcher.cfg`. |
+| `2` | `BeamNG.drive was not found. Choose its folder (the launcher's Settings > Game, or --game-dir), or start the game once so it records where it is.` | No game install found. The helper quits after 10 seconds. | Set the folder in **Settings → Game**, or start the game once through Steam. |
+| `2` | `The game could not be started (through Steam, or by its executable); the launcher closes in 5 s.` | Neither Steam nor the game's own executable started BeamNG.drive. | Verify the game files in Steam and check **Settings → Game**. |
+| `5` | `Another Node-Launcher is already running on port 4444 - closing` | A second helper was started while one is running. | Close the other one (or BeamNG.drive with it) and try again. |
+| `6` | `port 4444 is in use by another program …` | Another program holds the local port the game talks to the helper on. | Close that program; the message names a command that shows which one it is. |
+
+The helper's game-file check can also be run on its own (`--integrity-check`, see
+[Strict servers](/support/strict-servers/#see-every-problem)). It exits with `0` when the install is
+clean (`game files verified: …`), `1` when something differs (`game files DIFFER: …`) and `2` when the
+check couldn't run (`cannot read the manifest file …`, `not a reference manifest: …`,
+`could not check: …`).

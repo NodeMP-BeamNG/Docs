@@ -55,6 +55,10 @@ export default defineConfig({
     '/ru/framework/overview/': '/ru/introduction/how-it-works/',
     '/framework/sync/': '/introduction/how-it-works/',
     '/ru/framework/sync/': '/ru/introduction/how-it-works/',
+    '/support/launcher/': '/support/troubleshooting/',
+    '/ru/support/launcher/': '/ru/support/troubleshooting/',
+    '/support/logs/': '/support/troubleshooting/',
+    '/ru/support/logs/': '/ru/support/troubleshooting/',
   },
   integrations: [
     starlight({
@@ -126,12 +130,10 @@ export default defineConfig({
           { slug: 'players/settings' },
           { slug: 'players/vpn' },
         ]},
-        { label: 'Support', translations: { ru: 'Поддержка' }, items: [
+        { label: 'Help', translations: { ru: 'Помощь' }, items: [
           { slug: 'support/troubleshooting' },
           { slug: 'support/joining' },
           { slug: 'support/strict-servers' },
-          { slug: 'support/launcher' },
-          { slug: 'support/logs' },
           { slug: 'support/error-codes' },
           { slug: 'support/faq' },
         ]},
