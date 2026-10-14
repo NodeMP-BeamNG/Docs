@@ -153,7 +153,7 @@ Fired after the server acted on something a player did. The payload is decoded w
 | `playerSeatChanged` | `player, vehicle, role` | Got in, got out or was moved. `vehicle` is `nil` on foot; `role` is `"driver"`, `"passenger"` or `"none"`. |
 | `vehicleCouplerChanged`, `vehicleControllerChanged` | `player, vehicle, call` | A door, coupler or controller call went through. |
 | `chatMessage` | `player, msg` | A chat line was decided ([Chat](/plugins/chat/#watching-the-chat)). |
-| `playerVerifyReported` | `player, report` | A game-file check finished ([Client scripts → Strict sessions](/plugins/client-scripting/#strict-sessions)). |
+| `playerVerifyReported` | `player, report` | A game-file check finished ([Client scripts → Strict sessions](/plugins/client-scripting/#strict-sessions-sessionconfigstrict)). |
 | `playerLagging`, `playerRecovered` | `player, silentSec` | See [the join](#the-join-step-by-step). |
 | `serverShutdownScheduled` | `info` | A resource scheduled a stop with `node.server.shutdown(reason, delayMs)`: `info.reason`, `info.at` (Unix seconds) and `info.by` (the resource). When the stop is called off, `info.cancelled` is `true`. A [recipe](/plugins/recipes/#a-restart-with-a-countdown) counts down in chat. |
 

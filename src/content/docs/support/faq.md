@@ -176,7 +176,7 @@ process; `node.server.platform()` the OS and architecture. → [Conventions](/pl
 
 The server can host other languages through a native module, and a JavaScript host exists, but it
 isn't part of the release archive. Lua is what every server runs out of the box.
-→ [Native modules](/plugins/native-modules/#other-languages)
+→ [Native modules](/plugins/native-modules/#language-hosts)
 
 ### Can a client script replace a file of the game or of the client mod?
 

@@ -139,4 +139,4 @@ every 10 minutes. A check that finds a change ends the session with
 - [`player:setStrict(on)`](/plugins/api/lua/#playersetstricton---boolean-string) makes the server
   stop relaying camera reports in which that player follows a car they aren't in. It says nothing
   to the client; the client-side rules of a strict session are switched on by `session:config`
-  ([Client scripts](/plugins/client-scripting/#strict-sessions)).
+  ([Client scripts](/plugins/client-scripting/#strict-sessions-sessionconfigstrict)).

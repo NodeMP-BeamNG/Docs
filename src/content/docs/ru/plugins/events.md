@@ -153,7 +153,7 @@ end)
 | `playerSeatChanged` | `player, vehicle, role` | Сел, вышел или его пересадили. `vehicle` — `nil`, если пешком; `role` — `"driver"`, `"passenger"` или `"none"`. |
 | `vehicleCouplerChanged`, `vehicleControllerChanged` | `player, vehicle, call` | Прошёл вызов двери, сцепки или контроллера. |
 | `chatMessage` | `player, msg` | Судьба строки чата решена ([Чат](/ru/plugins/chat/#следить-за-чатом)). |
-| `playerVerifyReported` | `player, report` | Закончилась проверка файлов игры ([Клиентские скрипты → Строгие сессии](/ru/plugins/client-scripting/#строгие-сессии)). |
+| `playerVerifyReported` | `player, report` | Закончилась проверка файлов игры ([Клиентские скрипты → Строгие сессии](/ru/plugins/client-scripting/#строгие-сессии-sessionconfigstrict)). |
 | `playerLagging`, `playerRecovered` | `player, silentSec` | См. [вход](#вход-по-шагам). |
 | `serverShutdownScheduled` | `info` | Ресурс назначил остановку через `node.server.shutdown(reason, delayMs)`: `info.reason`, `info.at` (секунды Unix) и `info.by` (ресурс). Когда остановку отменили, `info.cancelled` равно `true`. [Рецепт](/ru/plugins/recipes/#перезапуск-с-обратным-отсчётом) ведёт отсчёт в чате. |
 

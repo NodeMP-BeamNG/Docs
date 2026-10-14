@@ -138,4 +138,4 @@ strict game verification ON: reference manifest for game 0.39.4.0 (e326499d…)
 - [`player:setStrict(on)`](/ru/plugins/api/lua/#playersetstricton---boolean-string) заставляет
   сервер не пересылать отчёты о камере, в которых этот игрок следит за машиной, в которой не сидит.
   Клиенту он ничего не сообщает; клиентские правила строгой сессии включает `session:config`
-  ([Клиентские скрипты](/ru/plugins/client-scripting/#строгие-сессии)).
+  ([Клиентские скрипты](/ru/plugins/client-scripting/#строгие-сессии-sessionconfigstrict)).
