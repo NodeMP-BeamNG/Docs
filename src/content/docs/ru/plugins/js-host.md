@@ -1,38 +1,26 @@
 ---
 title: Ресурсы на JavaScript
-description: Ресурсы на JavaScript с модулем js-host — где его взять, первый ресурс, как API выглядит из JavaScript, пакеты npm и чем всё это отличается от Lua.
+description: Ресурсы на JavaScript с модулем js-host — что для этого нужно, первый ресурс, как API выглядит из JavaScript, отказ в запросах, пакеты npm и что умеет только Lua.
 ---
 
-Lua встроен в сервер, и для большинства ресурсов это правильный выбор. Но когда работа — в основном
-учёт, текст или разговор с другими сервисами, а в npm уже есть нужная библиотека, ресурс можно
-написать на JavaScript. Нативный модуль `js-host` запускает такие ресурсы на встроенном Node.js, с
-собственными модулями Node и вашими пакетами npm.
+Если стоит нативный модуль `js-host`, ресурс можно написать на JavaScript. Он работает на Node.js, с
+модулями самого Node и пакетами из npm. Это хороший выбор для учёта, отчётов, связи с другими
+сервисами — для задач, под которые в npm уже есть библиотека. Правила игры проще писать на Lua.
 
-## Где взять js-host
+## Что для этого нужно
 
-В архиве релиза `js-host` нет. Его собирают из исходников вместе с Node.js, собранным как
-библиотека, и пока он собирается только под Windows. Положите `js-host.dll` в `modules/` рядом с
-сервером, а `libnode.dll` от Node — рядом с исполняемым файлом, и запустите сервер. Он подтвердит:
+`js-host` в архив сервера не входит. Его собирают из исходников вместе с Node.js, собранным как
+библиотека, и собирается он на Windows. Положите `js-host.dll` в `modules/` рядом с сервером, а
+`libnode.dll` из Node — рядом с программой, и запустите сервер. В логе появится:
 
 ```
 js-host: resources with type = "js" will run on Node
 ```
 
-Без него ресурс на JavaScript пропускается, а лог объясняет почему:
-
-```
-hello-js · resource type 'js' has no language host loaded, skipping (a native module in modules/ must register one)
-```
+Без него ресурс на JavaScript пропускается, и лог объясняет почему:
+`resource type 'js' has no language host loaded, skipping`.
 
 ## Первый ресурс
-
-```
-resources/
-└── hello-js/
-    ├── resource.toml
-    └── server/
-        └── main.js
-```
 
 ```toml
 name = "hello-js"
@@ -45,81 +33,82 @@ main = "server/main.js"
 ```js
 'use strict';
 
-node.log(`${resource.name} loaded, ${node.getPlayerCount()} online`);
+node.log(`${resource.name} loaded`);
 
 node.onBuiltin('playerJoined', (playerId) => {
     const name = node.getPlayerName(playerId);
-    node.emitResource('chat:say', JSON.stringify({ pid: playerId, text: `Welcome, ${name}!` }));
-});
-
-node.onRequest('vehicleSpawnRequest', (playerId, vehicleId, data) => {
-    const config = JSON.parse(data);
-    if (config.jbm === 'citybus') return 'No buses on this server';
+    node.log(`${name} joined`);
 });
 
 const timer = node.setInterval(() => {
-    node.log(`${node.getPlayerCount()} player(s) online`);
+    node.log(`${node.getPlayerCount()} online`);
 }, 60_000);
 
 module.exports.unload = () => node.clearTimer(timer);
 ```
 
-Файл выполняется один раз, как `main.lua` в Lua. Кроме обычных глобальных имён Node он получает два
-своих: `node` — сервер и `resource` — `name` ресурса и его папку `dir`. Функция в
-`module.exports.unload` выполняется перед перезагрузкой ресурса или остановкой сервера.
+Файл выполняется один раз, как `main.lua` в Lua. Кроме глобальных переменных Node он получает `node`
+— сервер — и `resource` с именем ресурса `name` и папкой `dir`. Функция в `module.exports.unload`
+выполняется перед перезагрузкой ресурса или остановкой сервера.
 
-## Как API выглядит из JavaScript
+## API из JavaScript
 
-Вызовы — это API сервера один к одному, с теми же именами, что у [`node.raw`](/ru/plugins/api/raw/)
-в Lua: на входе номера, а вызов, который возвращает запись, отдаёт разобранный объект. Объектов
-`Player` и `Vehicle` нет — вы работаете с номерами.
+Вызовы — это API сервера один к одному, с именами как у [`node.raw`](/ru/plugins/api/raw/) в Lua: на
+вход идут id, а вызов, который возвращает запись, отдаёт разобранный объект. Объектов `Player` и
+`Vehicle` нет.
 
 | Lua | JavaScript |
 |---|---|
-| `node.on("playerJoined", fn)` | `node.onBuiltin('playerJoined', (playerId) => ...)` |
-| `node.on("vehicleEdited", fn)` | `node.onVehicle('vehicleEdited', (playerId, vehicleId, data) => ...)` |
-| `node.on("vehicleSpawnRequest", fn)` | `node.onRequest('vehicleSpawnRequest', (playerId, vehicleId, data) => ...)` |
-| `node.on("race:finish", fn)` (сетевое событие) | `node.on('race:finish', (playerId, data) => ...)` |
-| `node.bus.on(name, fn)`, `node.bus.emit(name, data)` | `node.onResource(name, (source, data) => ...)`, `node.emitResource(name, string)` |
+| `node.on("playerJoined", fn)` | `node.onBuiltin('playerJoined', (playerId) => …)` |
+| `node.on("vehicleEdited", fn)` | `node.onVehicle('vehicleEdited', (playerId, vehicleId, data) => …)` |
+| `node.on("vehicleSpawnRequest", fn)` | `node.onRequest('vehicleSpawnRequest', (playerId, vehicleId, data) => …)` |
+| `node.on("race:finish", fn)`, сетевое событие | `node.on('race:finish', (playerId, data) => …)` |
+| `node.bus.on(name, fn)` | `node.onResource(name, (source, data) => …)` |
+| `node.bus.emit(name, data)` | `node.emitResource(name, string)` |
 | `player.name`, `player:kick(reason)` | `node.getPlayerName(id)`, `node.kickPlayer(id, reason)` |
 | `player:send(name, data)` | `node.emitClient(id, name, string)` |
-| `node.after(ms, fn)`, `node.every(ms, fn)` | `node.setTimeout(fn, ms)`, `node.setInterval(fn, ms)`, `node.clearTimer(id)` |
-| `node.log(text)`, `node.log.warn(text)` | `node.log(text)`, `node.log(text, 'warn')` |
-| `node.storage.get(key)` | `node.storageGet(key)` |
+| `node.after`, `node.every` | `node.setTimeout(fn, ms)`, `node.setInterval(fn, ms)`, `node.clearTimer(id)` |
 
-Отправляемые данные — строка: объекты кодируйте через `JSON.stringify`. Данные, которые приходят в
-обработчик, — строка такой, какой её отправили: раскодируйте через `JSON.parse`. `node.off(id)`
-снимает то, что вернул вызов `on…`.
+То, что вы отправляете, — строка: объекты кодируйте через `JSON.stringify`. Обработчик получает
+строку такой, какой её отправили: разбирайте её через `JSON.parse`. `node.off(id)` снимает то, что
+вернул вызов `on…`.
 
-## Как сказать «нет»
+## Отказ в запросе
 
-Обработчик запроса отказывает, возвращая строку — это причина, которую увидит игрок, — или `false`,
-чтобы отказать без причины. Всё остальное запрос пропускает. Сервер ждёт ответа до двух секунд, а
-если ответ запоздал, пропускает запрос, так что держите эти обработчики быстрыми.
+Обработчик запроса отказывает, если вернёт строку — это причина, которую увидит игрок, — или `false`,
+чтобы отказать без причины. Всё остальное запрос пропускает.
 
-Две вещи умеет только Lua: забрать строку чата как команду (`{ handled = true }`; из JavaScript
-строку можно только отклонить, и игроку об этом скажут) и пустить игрока сверх лимита
-([резервные места](/ru/plugins/players-and-vehicles/#резервные-места)). Эти части напишите
-маленьким Lua-ресурсом — по [шине](/ru/plugins/bus/) они договорятся.
+```js
+node.onRequest('vehicleSpawnRequest', (playerId, vehicleId, data) => {
+    const config = JSON.parse(data);
+    if (config.jbm === 'citybus') return 'No buses on this server';
+});
+```
 
-## Пакеты npm и модули Node
+Сервер ждёт ответа до двух секунд, а если ответ запоздал, пропускает запрос. Поэтому такие
+обработчики должны быть быстрыми.
 
-`require` работает как в Node: собственные модули Node (`node:fs`, `node:path`, ...) и пакеты из
-папки `node_modules` внутри ресурса. Выполните `npm install` в папке ресурса и подключайте пакет по
-имени.
+## Что умеет только Lua
 
-Сеть у Node своя, а не сервера: `fetch` и `node:https` идут мимо `node.http`, поэтому настройки
-`[Http]` владельца (запрет частных адресов, набор сертификатов) на них не действуют. Помните об этом,
-когда ресурс ходит по адресам, которые ему дали игроки.
+- Принять строку чата как команду (`{ handled = true }`). Из JavaScript строку можно только отклонить.
+- Пустить игрока сверх лимита ([резервные места](/ru/plugins/events/#резервные-места)).
+
+Эти части пишут маленьким ресурсом на Lua, а с JavaScript он общается по [шине](/ru/plugins/bus/).
+
+## Пакеты npm
+
+`require` работает как в Node: модули самого Node (`node:fs`, `node:path`, …) и пакеты из папки
+`node_modules` внутри ресурса. Выполните `npm install` в папке ресурса.
+
+Сеть в Node своя, не серверная: `fetch` и `node:https` идут мимо `node.http`, поэтому настройки хоста
+из `[Http]` (запрет частных адресов, набор сертификатов) на них не действуют. Помните об этом, если
+ресурс обращается по адресам, которые ему дали игроки.
 
 ## Ошибки
 
-Исключение в обработчике или промис, который никто не поймал, попадают в лог со стеком и не
-останавливают ни ресурс, ни сервер. Ресурс, упавший при загрузке, записывается как
+Исключение в обработчике или промис, который никто не поймал, пишутся в лог со стеком, а ресурс
+работает дальше. Ресурс, который сломался при загрузке, попадает в лог как
 `js: hello-js failed to load: …` и пропускается.
 
-## Дальше
-
-- [Примеры плагинов](/ru/plugins/examples/#session-report): `session-report`, готовый ресурс на
-  JavaScript.
-- [Справочник raw Lua](/ru/plugins/api/raw/): имена, общие с вызовами JavaScript.
+`session-report` из архива сервера — готовый ресурс на JavaScript
+([Примеры плагинов](/ru/plugins/examples/)).
