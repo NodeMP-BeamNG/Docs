@@ -101,6 +101,12 @@ end)
 -- expect: Alice wants a coupe
 ```
 
+Changes to a car's parts and tuning go through `vehicleEditRequest`, and its `config` is always the
+whole configuration the car would end up with. Since client mod 1.7.5, server 1.9.0 gets an edit as
+a batch of just the changes; the handler still gets the whole config. A refusal rolls back only that
+batch: the player's car goes back to the config the server last accepted, which keeps
+every earlier edit that went through.
+
 Every request can also be watched without deciding anything: return nothing. Which requests exist,
 and what each refusal does in the game, is in the [events reference](/plugins/api/events/#cancellable-requests-decide).
 
