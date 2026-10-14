@@ -153,7 +153,7 @@ end)
 -- expect-client: Alice chat:msg .*Your car is number \d+
 ```
 
-`MaxCars` applies to `spawnVehicle` as it does to the player's own spawns: the second value says why
+`cars_per_player` applies to `spawnVehicle` as it does to the player's own spawns: the second value says why
 a spawn didn't happen (`"max_cars"`, `"bad_config"`, `"not_joined"`).
 
 ### Many cars at once

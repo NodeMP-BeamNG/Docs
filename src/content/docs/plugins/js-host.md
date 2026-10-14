@@ -101,7 +101,7 @@ Write those parts as a small Lua resource; the two talk over the [bus](/plugins/
 `node_modules` folder inside the resource. Run `npm install` in the resource folder.
 
 Node's networking is Node's, not the server's: `fetch` and `node:https` don't go through
-`node.http`, so the host's `[Http]` settings (the block on private addresses, the certificate
+`node.http`, so the host's `[http]` settings (the block on private addresses, the certificate
 bundle) don't apply to them. Keep that in mind when a resource calls addresses players gave it.
 
 ## Errors

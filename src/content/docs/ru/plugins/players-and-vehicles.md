@@ -155,7 +155,7 @@ end)
 -- expect-client: Alice chat:msg .*Your car is number \d+
 ```
 
-На `spawnVehicle` действует `MaxCars`, как и на собственные машины игрока. Второе значение говорит,
+На `spawnVehicle` действует `cars_per_player`, как и на собственные машины игрока. Второе значение говорит,
 почему машина не появилась (`"max_cars"`, `"bad_config"`, `"not_joined"`).
 
 ### Много машин сразу

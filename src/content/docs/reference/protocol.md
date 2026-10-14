@@ -66,7 +66,7 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
 | `UdpHello` | L→S, U | Binds the client's UDP address with a nonce and an HMAC. A valid one binds from any address, which is what VPN split tunnels need. |
 | `MapInfo` | S→L, T | The map the game must load. |
 | `JoinWorld` | L→S, T | The map is loaded; send the world. |
-| `VerifyRequest` | S→L, T | How closely to check the game install (`[General] VerifyGame`) and, for strict, the id of the reference manifest. Also sent mid-session by `player:verify`. |
+| `VerifyRequest` | S→L, T | How closely to check the game install (`[integrity] verify`) and, for strict, the id of the reference manifest. Also sent mid-session by `player:verify`. |
 | `VerifyReport` | L→S, T | What the launcher checked and found: the level, the outcome, the number of problems and a detail line. |
 | `Identity` | L→S, T | The join ticket, always right after `Hello`; empty means no ticket. |
 | `IntegrityManifestRequest` | L→S, T | The launcher has no cached reference manifest with this id and asks for it. |

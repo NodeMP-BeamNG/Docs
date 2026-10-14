@@ -19,7 +19,7 @@ and the page with more. Where the software prints another word, the row says so.
 | **Server list** (список серверов) | The servers that are running and have introduced themselves to NodeMP. **Servers** in the launcher, nodemp.com/servers on the web. | [Join a server](/players/join/) |
 | **Direct Connect** (прямое подключение) | Joining by `address:port` instead of from the list. | [Join a server](/players/join/#join-by-address) |
 | **Hold to play** (зажмите для игры) | The join button: you hold it so you don't join by accident. | [Join a server](/players/join/#join) |
-| **Strict server** (строгий сервер) | A server with `VerifyGame = "strict"`: it compares your game and user folder with a clean install. | [When something breaks](/players/troubleshooting/#a-strict-server-refuses-you) |
+| **Strict server** (строгий сервер) | A server with `[integrity] verify = "strict"`: it compares your game and user folder with a clean install. | [When something breaks](/players/troubleshooting/#a-strict-server-refuses-you) |
 
 ## Hosts
 

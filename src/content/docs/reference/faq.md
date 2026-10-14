@@ -65,11 +65,19 @@ More on [Get listed](/hosting/registering/).
 No. Chat is part of the server. Chat commands come from resources: the `chat-commands` example in
 the archive adds `/help`, `/me` and `/pm`. More on [Resources](/hosting/resources/).
 
-### I pasted the `[Directory]` block from the website and the server won't start.
+### I pasted the keys from the website and the server isn't listed.
 
-`server.toml` already has a `[Directory]` table, and TOML doesn't allow two. Move `Url`, `HostId`
-and `HostSecret` into the existing table and delete the pasted one.
+The site shows the keys under the names from before server 1.9.0: `Url`, `HostId` and `HostSecret`.
+A 1.9.0 server doesn't read them and names them in a warning in the log. Write them as `url`,
+`host_id` and `host_secret` in the `[listing]` table that is already in the file: a second
+`[listing]` stops the server from starting.
 More on [Get listed](/hosting/registering/#put-the-key-into-the-settings).
+
+### After the update there's a `server.toml.old` next to `server.toml`.
+
+That's the one-time move to the layout of server 1.9.0. The server wrote your settings into a new
+`server.toml` and kept the old file in case you need it. More on
+[Updating](/hosting/updating/#settings-since-190).
 
 ### My Docker server ignores `server.toml`.
 
@@ -79,7 +87,7 @@ That's on purpose: the image takes its settings from environment variables. If y
 ### Several players on one VPN can't get in.
 
 The server limits how many connections from one address may be joining at once
-(`[Network] MaxConnectionsPerIp`, 32 by default). Raise the limit or exempt the range.
+(`[network] max_connections_per_ip`, 32 by default). Raise the limit or exempt the range.
 More on [When the server misbehaves](/hosting/troubleshooting/#players-are-refused-at-the-door).
 
 ### How do I lift a ban?
@@ -126,7 +134,7 @@ More on [How a resource is built](/plugins/resources/).
 ### Does `node.http` check certificates? Can it reach my LAN?
 
 Certificates are checked by default. Private and local addresses are refused until the host turns on
-`[Http] AllowPrivateNetworks`. More on [HTTP requests](/plugins/http/).
+`[http] allow_private_networks`. More on [HTTP requests](/plugins/http/).
 
 ### Can a client script replace a file of the game?
 

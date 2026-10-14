@@ -53,7 +53,7 @@ checked.
 
 ## nodegrab-allow and the node grabber
 
-The experimental node grabber needs two things: `[Experimental] NodeGrab = true` in `server.toml`, and
+The experimental node grabber needs two things: `[experimental] node_grab = true` in `server.toml`, and
 a resource that answers `vehicleNodeGrabRequest` with a yes. Without a handler, every grab is refused.
 `nodegrab-allow` is that handler; change its rules to allow grabs only for some players or cars.
 

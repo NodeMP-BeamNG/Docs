@@ -77,13 +77,13 @@ end)
 ## Certificates
 
 HTTPS certificates are checked against the system's trusted roots and the `cacert.pem` that comes
-with the server. A host can point `[Http] CaFile` at a bundle of their own. `[Http] Insecure` turns
+with the server. A host can point `[http] ca_file` at a bundle of their own. `[http] insecure` turns
 the check off entirely; leave it off, since then anyone between the server and the service can read
 and change what you send.
 
 ## Local and private addresses
 
 A resource can't reach the server's own machine, the local network or other private addresses
-unless the host sets `[Http] AllowPrivateNetworks = true`. That keeps a resource from poking at
+unless the host sets `[http] allow_private_networks = true`. That keeps a resource from poking at
 services that were never meant to be public. A host who runs, say, a stats service next to the game
 server turns it on knowingly.

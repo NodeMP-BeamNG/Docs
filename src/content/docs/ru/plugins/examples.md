@@ -52,7 +52,7 @@ maxWorldVehicles = 20
 
 ## nodegrab-allow и захват узлов
 
-Экспериментальному захвату узлов нужны две вещи: `[Experimental] NodeGrab = true` в `server.toml` и
+Экспериментальному захвату узлов нужны две вещи: `[experimental] node_grab = true` в `server.toml` и
 ресурс, который отвечает «да» на `vehicleNodeGrabRequest`. Без обработчика любой захват запрещён.
 `nodegrab-allow` и есть такой обработчик; поменяйте его правила, чтобы разрешать захват только
 некоторым игрокам или машинам.

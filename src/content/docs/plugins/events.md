@@ -60,9 +60,9 @@ end)
 -- expect: playerLeft: Alice
 ```
 
-A broken connection doesn't end the session at once. After `[Network] LagGraceSec` of silence the
+A broken connection doesn't end the session at once. After `[network] lag_grace_sec` of silence the
 server fires `playerLagging`; if the player comes back, `playerRecovered`. `playerLeft` fires only
-when the player quits, is kicked, or doesn't return within `DisconnectSec`. A player who reconnects in
+when the player quits, is kicked, or doesn't return within `disconnect_sec`. A player who reconnects in
 time doesn't pass the join events again.
 
 Player ids are reused: a player who leaves frees the id for the next one. Keep saved data under
@@ -107,7 +107,7 @@ and what each refusal does in the game, is in the [events reference](/plugins/ap
 ## Reserved slots
 
 On a full server `playerConnectRequest` still fires, with `player.overCapacity` set. A handler that
-returns an explicit `true` lets the player in past `MaxPlayers`; silence leaves the refusal
+returns an explicit `true` lets the player in past `max_players`; silence leaves the refusal
 (`Server full!`) to the server.
 
 <!-- doctest: server -->

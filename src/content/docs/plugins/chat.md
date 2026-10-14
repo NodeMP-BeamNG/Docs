@@ -4,13 +4,13 @@ description: How the server's chat works, refusing and rewriting lines, logging 
 ---
 
 Chat is part of the server: it works with no resource installed. The server takes each line, cleans
-it, applies the limits from `[Chat]`, and sends it to everyone in its scope, the sender included.
+it, applies the limits from `[chat]`, and sends it to everyone in its scope, the sender included.
 Resources come in when they want to change that: refuse a line, rewrite it, or take it as a command.
 
 ## A line's way through the server
 
 1. A player sends a line, with the scope `global` (everyone) or `local` (the player's group).
-2. The server strips control characters and cuts the line to `[Chat] MaxLength`. A player over the
+2. The server strips control characters and cuts the line to `[chat] max_length`. A player over the
    rate limit is told so; nobody is kicked for chatting.
 3. `chatMessageRequest` handlers decide: let it through, refuse, rewrite, or take it as a command.
 4. The line goes out, and `chatMessage` tells resources what happened to it.
@@ -119,7 +119,7 @@ end)
 ```
 
 Arguments of commands that carry a password (`/login`, `/register` and the others in
-`[Chat] LogHiddenCommands`) are written to the log as `***`. The `chat-commands` example in the
+`[chat] masked_commands`) are written to the log as `***`. The `chat-commands` example in the
 server archive adds `/help`, `/me` and `/pm` this way ([The example plugins](/plugins/examples/)).
 
 ## Commands for moderators
