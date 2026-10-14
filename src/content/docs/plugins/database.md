@@ -476,7 +476,9 @@ node.on("playerJoined", function(player)
         end)
 end)
 
-node.commands.add("balance", function(player)
+local commands = {}
+
+function commands.balance(player)
     if not player.accountId or not schemaReady then
         player:tell("No wallet: sign in with a NodeMP account")
         return
@@ -493,9 +495,9 @@ node.commands.add("balance", function(player)
             local row = result.rows[1]
             player:tell("Balance: %s", money(row and row.balance or 0))
         end)
-end)
+end
 
-node.commands.add("pay", function(player, args)
+function commands.pay(player, args)
     local target = node.players.find(args[1] or "")
     local coins = math.tointeger(tonumber(args[2] or ""))
     if not (player.accountId and schemaReady and target and target.accountId and coins and coins > 0)
@@ -524,6 +526,16 @@ node.commands.add("pay", function(player, args)
             player:tell("Transfer failed, nothing was moved")
         end
     end)
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
+    local command = name and commands[name:lower()]
+    if not command then return end
+    local args = {}
+    for word in rest:gmatch("%S+") do args[#args + 1] = word end
+    command(player, args)
+    return { handled = true }
 end)
 
 node.async(function()

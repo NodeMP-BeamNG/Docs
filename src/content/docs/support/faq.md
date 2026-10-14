@@ -152,8 +152,8 @@ can save what you need. → [Resources → Reloading](/plugins/resources/#reload
 
 ### Can I test a plugin without the game?
 
-Mostly. Server code runs with no players on; chat commands can be fed through the bus
-(`chat:command`); anything that needs a car or a client script needs a game.
+Mostly. Server code runs with no players on, and a chat command can be called with a stand-in
+player; anything that needs a car or a client script needs a game.
 → [Your first resource](/plugins/getting-started/#testing-without-the-game)
 
 ### How do I check that a file exists, make a folder, or watch a file?

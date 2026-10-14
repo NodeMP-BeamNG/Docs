@@ -75,9 +75,11 @@ Coming from BeamMP? [Migrating BeamMP plugins](/plugins/migrating/) maps its API
 
 ## What the API promises
 
-- **The API version** is the C ABI version, 2.4 on server 1.7.0. Within a major version nothing
-  moves: new calls are added at the end, so a resource or module written for 2.0 runs on 2.4.
+- **The API version** is the C ABI version, 2.5 on server 1.8.0. Within a major version nothing
+  moves: new calls are added at the end, so a module written for 2.0 runs on 2.5. The Lua side
+  keeps the same rule, with one exception so far: `node.commands` was removed in server 1.8.0, when
+  chat commands became the resources' own ([Chat → Commands](/plugins/chat/#commands)).
 - **Events renamed in the past** answer only to their new names; subscribing to an old one is
   refused with an error that names the new spelling.
-- Everything on these pages describes server 1.7.0. The [API reference](/plugins/api/lua/) is
+- Everything on these pages describes server 1.8.0. The [API reference](/plugins/api/lua/) is
   generated from the same description the server is built from.

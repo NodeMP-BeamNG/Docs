@@ -25,7 +25,7 @@ server accepts only NodeMP players. This page lists what carries over and what d
 |---|---|---|
 | Connection | TLS 1.3 for everything reliable; positions over UDP, each datagram signed. Launcher and server check each other's protocol version on connect. | Plain TCP and UDP. |
 | Game file check | The server can ask the launcher to check the player's install, up to a strict check against a clean copy ([Strict verification](/hosting/strict-verification/)). | No equivalent setting. |
-| Chat | Part of the server. Plugins can refuse or rewrite a line (`chatMessageRequest`) and add commands (`node.commands.add`). | Part of the server, with `onChatMessage`. |
+| Chat | Part of the server. Plugins can refuse or rewrite a line, or take it as their own command (`chatMessageRequest`). | Part of the server, with `onChatMessage`. |
 | Server console | `help`, `status`, `players`, `kick`, `say`, `reload`, `stop` ([Administration](/hosting/administration/)). Plugins cannot add console commands yet. | Console with built-in commands and `onConsoleInput`. |
 | Plugin API | `node.on(name, fn)`; handlers get `Player` and `Vehicle` objects; refuse with `return false, "reason"`. One entry file per resource, more files through `require`. | `MP.RegisterEvent(name, "handler")` with ids; refuse with `return 1`; every top-level `.lua` file is loaded. |
 | Waiting | Nothing blocks. Timers, coroutines (`node.async`, `node.sleep`) and background jobs; HTTP is asynchronous. | `MP.Sleep` and `Http.*` block the plugin. |
