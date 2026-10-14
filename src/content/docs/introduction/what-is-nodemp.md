@@ -56,9 +56,9 @@ page compares the two.
 
 | Part | Version | Where to get it |
 |---|---|---|
-| Game server (`Node-Server`) | 1.7.0 | [Releases](https://github.com/NodeMP-BeamNG/releases): Linux, Windows and a Docker image |
+| Game server (`Node-Server`) | 1.8.0 | [Releases](https://github.com/NodeMP-BeamNG/releases): Linux, Windows and a Docker image |
 | Launcher | 1.1.25 | [nodemp.com/download](https://nodemp.com/download) |
-| Client mod (`NodeMP.zip`) | 1.7.3 | installed by the launcher |
+| Client mod (`NodeMP.zip`) | 1.7.4 | installed by the launcher |
 
 The client mod is built for BeamNG.drive 0.39.4.0. The launcher, the mod and the server talk
 protocol v23. When one side is too old the launcher says which, and when it is the launcher itself,

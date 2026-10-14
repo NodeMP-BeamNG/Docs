@@ -13,7 +13,7 @@ storage, bans) is your data and stays.
 ./Node-Server --version
 ```
 
-prints `Node-Server v1.7.0`. The start-up banner shows the same on its `version` line.
+prints `Node-Server v1.8.0`. The start-up banner shows the same on its `version` line.
 
 ## Where releases are
 
@@ -29,11 +29,11 @@ Stop the server, then in PowerShell, in the server's folder:
 
 ```powershell
 Set-Location C:\NodeMP
-$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0"
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip" -OutFile Node-Server-1.7.0-windows-x64.zip
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip.sha256" -OutFile Node-Server-1.7.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.7.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.7.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath . -Force
+$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0"
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip" -OutFile Node-Server-1.8.0-windows-x64.zip
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip.sha256" -OutFile Node-Server-1.8.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.8.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.8.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.8.0-windows-x64.zip -DestinationPath . -Force
 .\Node-Server.exe --version
 ```
 
@@ -46,12 +46,12 @@ With the folder and systemd unit from [Keeping it running](/hosting/running/):
 
 ```bash
 cd /tmp
-base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz"
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.7.0-linux-x64.tar.gz.sha256
+base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz"
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.8.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.7.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.8.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -65,8 +65,8 @@ your copies of the examples, isn't in the archive and isn't touched.
 Load the new image and point the Compose file at its tag:
 
 ```bash
-docker load -i nodemp-server-v1.7.0-image.tar
-# in compose.yaml: image: nodemp-server:1.7.0-0c9c284
+docker load -i nodemp-server-v1.8.0-image.tar
+# in compose.yaml: image: nodemp-server:1.8.0-e11def6
 docker compose up -d gameserver
 docker compose logs -f gameserver
 ```
@@ -90,13 +90,18 @@ The `/data` volume is untouched. To go back, put the previous tag in the file an
 - **`.obfcache/`** is rebuilt as needed; deleting it is always safe.
 - **Native modules** in `modules/` are checked at load. One built for an incompatible plugin
   interface is refused with
-  `module 'my-module' was built against SDK ABI 1.12, this server speaks 2.4 -- refusing to load it. Rebuild the module.`
+  `module 'my-module' was built against SDK ABI 1.12, this server speaks 2.5 -- refusing to load it. Rebuild the module.`
   Lua resources need nothing rebuilt.
+- **Chat commands** became the resources' own business in server 1.8.0, and `node.commands` is
+  gone. A resource that still calls it stops at that line with
+  `attempt to index a nil value (field 'commands')` in the log, and its commands go quiet. Update
+  the resource, or use `examples/chat-commands` from the archive as a starting point
+  ([Chat → Commands](/plugins/chat/#commands)).
 
 ## When players need a new launcher
 
 The launcher and the server speak a versioned protocol. It's been `v23` since server 1.5.0, and
-server 1.7.0 keeps it: launchers from 1.1.23 and client mods from 1.6.25 join it as before. When a
+server 1.8.0 keeps it: launchers from 1.1.23 and client mods from 1.6.25 join it as before. When a
 release does change the protocol, its notes say so in bold, and an old launcher is refused with
 `Protocol version mismatch: launcher speaks v22, server speaks v23 - update the outdated side`. The
 player's launcher then offers **Update now**, and the client mod is updated before every join

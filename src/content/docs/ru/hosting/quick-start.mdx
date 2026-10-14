@@ -1,6 +1,6 @@
 ---
 title: Запустить сервер
-description: Как запустить Node-Server 1.7.0 на Windows, Linux или в Docker, открыть порт, дать серверу имя и карту и попасть в список лаунчера.
+description: Как запустить Node-Server 1.8.0 на Windows, Linux или в Docker, открыть порт, дать серверу имя и карту и попасть в список лаунчера.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -26,8 +26,8 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 ## 1. Скачать и запустить
 
 Сервер публикуется в [релизах на GitHub](https://github.com/NodeMP-BeamNG/releases) под тегом
-`server-v1.7.0`: `Node-Server-1.7.0-windows-x64.zip`, `Node-Server-1.7.0-linux-x64.tar.gz` и образ
-Docker `nodemp-server-v1.7.0-image.tar`, у каждого есть файл `.sha256` для проверки загрузки.
+`server-v1.8.0`: `Node-Server-1.8.0-windows-x64.zip`, `Node-Server-1.8.0-linux-x64.tar.gz` и образ
+Docker `nodemp-server-v1.8.0-image.tar`, у каждого есть файл `.sha256` для проверки загрузки.
 
 <Tabs>
 <TabItem label="Windows">
@@ -37,11 +37,11 @@ Docker `nodemp-server-v1.7.0-image.tar`, у каждого есть файл `.s
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0"
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip" -OutFile Node-Server-1.7.0-windows-x64.zip
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip.sha256" -OutFile Node-Server-1.7.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.7.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.7.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath .
+$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0"
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip" -OutFile Node-Server-1.8.0-windows-x64.zip
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip.sha256" -OutFile Node-Server-1.8.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.8.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.8.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.8.0-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
@@ -54,11 +54,11 @@ Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath .
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
 cd /opt/nodemp
-base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz"
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.7.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.7.0-linux-x64.tar.gz
+base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz"
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.8.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.8.0-linux-x64.tar.gz
 sudo apt install -y lua5.1
 NODE_LUA=/usr/bin/lua5.1 ./Node-Server
 ```
@@ -72,10 +72,10 @@ NODE_LUA=/usr/bin/lua5.1 ./Node-Server
 Образ лежит в релизе файлом. Загрузите его один раз:
 
 ```bash
-docker load -i nodemp-server-v1.7.0-image.tar
+docker load -i nodemp-server-v1.8.0-image.tar
 ```
 
-Docker ответит `Loaded image: nodemp-server:1.7.0-0c9c284` — этот тег и запускайте. В образе
+Docker ответит `Loaded image: nodemp-server:1.8.0-e11def6` — этот тег и запускайте. В образе
 сервер берёт настройки только из переменных окружения (`NODE_NAME` для `[General] Name` и так
 далее) и всё, что пишет, хранит в `/data`, от имени пользователя с id 10001:
 
@@ -90,7 +90,7 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  nodemp-server:1.7.0-0c9c284
+  nodemp-server:1.8.0-e11def6
 docker logs -f nodemp-server
 ```
 

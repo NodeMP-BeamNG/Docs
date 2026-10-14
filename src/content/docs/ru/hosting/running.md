@@ -85,12 +85,12 @@ journalctl -u nodemp-server -f
 ## Docker Compose
 
 Образ берёт настройки из переменных `NODE_*` и хранит состояние в `/data`. Сначала загрузите образ
-из релиза (`docker load -i nodemp-server-v1.7.0-image.tar`), затем:
+из релиза (`docker load -i nodemp-server-v1.8.0-image.tar`), затем:
 
 ```yaml
 services:
   gameserver:
-    image: nodemp-server:1.7.0-0c9c284
+    image: nodemp-server:1.8.0-e11def6
     restart: unless-stopped
     ports:
       - "30814:30814/tcp"

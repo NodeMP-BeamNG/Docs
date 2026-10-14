@@ -83,12 +83,12 @@ Closing the console window stops the server properly: it finishes stopping befor
 ## Docker Compose
 
 The image takes its settings from `NODE_*` variables and keeps its state in `/data`. Load the image
-from the release first (`docker load -i nodemp-server-v1.7.0-image.tar`), then:
+from the release first (`docker load -i nodemp-server-v1.8.0-image.tar`), then:
 
 ```yaml
 services:
   gameserver:
-    image: nodemp-server:1.7.0-0c9c284
+    image: nodemp-server:1.8.0-e11def6
     restart: unless-stopped
     ports:
       - "30814:30814/tcp"

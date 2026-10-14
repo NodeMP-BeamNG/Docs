@@ -13,7 +13,7 @@ description: Как узнать версию, заменить сервер и�
 ./Node-Server --version
 ```
 
-выводит `Node-Server v1.7.0`. Заставка при запуске показывает то же в строке `version`.
+выводит `Node-Server v1.8.0`. Заставка при запуске показывает то же в строке `version`.
 
 ## Где релизы
 
@@ -28,11 +28,11 @@ description: Как узнать версию, заменить сервер и�
 
 ```powershell
 Set-Location C:\NodeMP
-$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0"
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip" -OutFile Node-Server-1.7.0-windows-x64.zip
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip.sha256" -OutFile Node-Server-1.7.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.7.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.7.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath . -Force
+$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0"
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip" -OutFile Node-Server-1.8.0-windows-x64.zip
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip.sha256" -OutFile Node-Server-1.8.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.8.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.8.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.8.0-windows-x64.zip -DestinationPath . -Force
 .\Node-Server.exe --version
 ```
 
@@ -45,12 +45,12 @@ Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath . -Force
 
 ```bash
 cd /tmp
-base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz"
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.7.0-linux-x64.tar.gz.sha256
+base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz"
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.8.0-linux-x64.tar.gz.sha256
 sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.7.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.8.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp-server
 /opt/nodemp/Node-Server --version
@@ -64,8 +64,8 @@ sudo systemctl start nodemp-server
 Загрузите новый образ и укажите его тег в файле Compose:
 
 ```bash
-docker load -i nodemp-server-v1.7.0-image.tar
-# in compose.yaml: image: nodemp-server:1.7.0-0c9c284
+docker load -i nodemp-server-v1.8.0-image.tar
+# in compose.yaml: image: nodemp-server:1.8.0-e11def6
 docker compose up -d gameserver
 docker compose logs -f gameserver
 ```
@@ -90,13 +90,18 @@ docker compose logs -f gameserver
 - **`.obfcache/`** перестраивается по мере надобности; удалять его можно всегда.
 - **Нативные модули** в `modules/` проверяются при загрузке. Модуль, собранный под несовместимый
   интерфейс плагинов, отклоняется с
-  `module 'my-module' was built against SDK ABI 1.12, this server speaks 2.4 -- refusing to load it. Rebuild the module.`
+  `module 'my-module' was built against SDK ABI 1.12, this server speaks 2.5 -- refusing to load it. Rebuild the module.`
   Lua-ресурсы пересобирать не нужно.
+- **Команды чата** с сервера 1.8.0 — дело самих ресурсов, `node.commands` больше нет. Ресурс,
+  который всё ещё его вызывает, останавливается на этой строке с
+  `attempt to index a nil value (field 'commands')` в логе, и его команды молчат. Обновите ресурс
+  или возьмите за основу `examples/chat-commands` из архива
+  ([Чат → Команды](/ru/plugins/chat/#команды)).
 
 ## Когда игрокам нужен новый лаунчер
 
 Лаунчер и сервер говорят на версионированном протоколе. Начиная с сервера 1.5.0 это `v23`, и сервер
-1.7.0 его сохраняет: лаунчеры от 1.1.23 и клиентские моды от 1.6.25 заходят на него как прежде.
+1.8.0 его сохраняет: лаунчеры от 1.1.23 и клиентские моды от 1.6.25 заходят на него как прежде.
 Если релиз всё же меняет протокол, его заметки говорят об этом жирным, а старый лаунчер получает
 отказ `Protocol version mismatch: launcher speaks v22, server speaks v23 - update the outdated side`.
 Лаунчер игрока тогда предложит **Обновить сейчас**, а клиентский мод и так обновляется перед каждым

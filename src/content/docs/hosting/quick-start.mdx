@@ -1,6 +1,6 @@
 ---
 title: Run a server
-description: Get Node-Server 1.7.0 running on Windows, Linux or Docker, open its port, give it a name and a map, and put it into the launcher's list.
+description: Get Node-Server 1.8.0 running on Windows, Linux or Docker, open its port, give it a name and a map, and put it into the launcher's list.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -26,8 +26,8 @@ takes five steps:
 ## 1. Download and start
 
 The server is published on [GitHub releases](https://github.com/NodeMP-BeamNG/releases) under the
-tag `server-v1.7.0`: `Node-Server-1.7.0-windows-x64.zip`, `Node-Server-1.7.0-linux-x64.tar.gz` and
-the Docker image `nodemp-server-v1.7.0-image.tar`, each with a `.sha256` file to check the download
+tag `server-v1.8.0`: `Node-Server-1.8.0-windows-x64.zip`, `Node-Server-1.8.0-linux-x64.tar.gz` and
+the Docker image `nodemp-server-v1.8.0-image.tar`, each with a `.sha256` file to check the download
 against.
 
 <Tabs>
@@ -38,11 +38,11 @@ In PowerShell:
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0"
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip" -OutFile Node-Server-1.7.0-windows-x64.zip
-Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip.sha256" -OutFile Node-Server-1.7.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.7.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.7.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath .
+$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0"
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip" -OutFile Node-Server-1.8.0-windows-x64.zip
+Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip.sha256" -OutFile Node-Server-1.8.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.8.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.8.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.8.0-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
@@ -55,11 +55,11 @@ server runs; it doubles as the [server console](/hosting/administration/#the-con
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
 cd /opt/nodemp
-base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz"
-curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.7.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.7.0-linux-x64.tar.gz
+base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz"
+curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.8.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.8.0-linux-x64.tar.gz
 sudo apt install -y lua5.1
 NODE_LUA=/usr/bin/lua5.1 ./Node-Server
 ```
@@ -73,10 +73,10 @@ server still runs and sends those scripts as plain text.
 The release has the image as a file. Load it once:
 
 ```bash
-docker load -i nodemp-server-v1.7.0-image.tar
+docker load -i nodemp-server-v1.8.0-image.tar
 ```
 
-Docker answers `Loaded image: nodemp-server:1.7.0-0c9c284`; that tag is what you run. In the image
+Docker answers `Loaded image: nodemp-server:1.8.0-e11def6`; that tag is what you run. In the image
 the server takes its settings from environment variables only (`NODE_NAME` for `[General] Name`,
 and so on) and keeps everything it writes in `/data`, as user id 10001:
 
@@ -91,7 +91,7 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  nodemp-server:1.7.0-0c9c284
+  nodemp-server:1.8.0-e11def6
 docker logs -f nodemp-server
 ```
 
