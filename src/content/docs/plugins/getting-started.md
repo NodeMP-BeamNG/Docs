@@ -1,269 +1,201 @@
 ---
 title: Your first resource
-description: Build a resource from an empty folder - resource.toml, a server half that greets players, a client half that answers - then run it, reload it and read its errors.
+description: A resource from an empty folder, step by step - a greeting, a chat command, settings in resource.toml, a client half - then reloading it and reading its errors.
 ---
 
-This page builds a resource called `hello`: a server half that greets every player and says how
-many are online once a minute, and a client half that reports back every ten seconds. Nothing
-needs installing; Lua is built into the server.
+This page builds a resource called `greeter`, one step at a time: it greets players, answers the
+`/online` command, takes its greeting from the settings, and shows a message in the player's game.
+Nothing needs installing: Lua is built into the server.
 
-You need a running `Node-Server` ([Run a server](/hosting/quick-start/)) and, for the client half, a
-launcher that can join it. The server half can be tried without the game
-([below](#testing-without-the-game)). Keep the [Lua API reference](/plugins/api/lua/) open in
-another tab.
+You need a server you can start ([Run a server](/hosting/quick-start/)) and, for the client half, a
+launcher to join it with.
 
-## The folder
+## 1. The folder
 
-Resources live in `resources/` in the server's working directory, next to `server.toml`. Make this
-tree:
+Resources live in `resources/`, next to `server.toml`. Make this tree:
 
 ```
 resources/
-└── hello/
+└── greeter/
     ├── resource.toml
-    ├── server/
-    │   └── main.lua        # runs on the server
-    └── client/
-        └── main.lua        # sent to every player
+    └── server/
+        └── main.lua
 ```
 
-The folder name is the resource's name unless the manifest says otherwise.
+The folder name is the resource's name unless `resource.toml` says otherwise. A `client/` folder
+comes in step 7.
 
-## resource.toml
+## 2. resource.toml
 
 ```toml
-name = "hello"
+name = "greeter"
 version = "1.0"
-
-[client]
-obfuscation = "none"
 ```
 
-All of it is optional. Without a manifest, a folder is a Lua resource named after the folder, with
-`server/main.lua` as its entry point and every `.lua` under `client/` sent to players.
-`obfuscation = "none"` sends the client file as plain source while you develop, so errors in the
-player's log stay readable; remove it before you publish. Every key is on
-[Resources](/plugins/resources/#resourcetoml).
+That's enough for now. Every key the file takes is on
+[How a resource is built](/plugins/resources/#resourcetoml).
 
-## The server half
+## 3. The server half
 
-`server/main.lua` runs once when the server starts. The code at the top level subscribes to events
-and starts timers; the server calls them as things happen.
+`server/main.lua` runs once, when the server loads the resource. The code at the top level
+subscribes to events; the server calls the handlers later, as things happen.
 
-<!-- doctest: server+client {"emit": [["hello:count", "1"]]} -->
+<!-- doctest: server+client -->
 ```lua
-node.log("hello loaded, players online: %d", node.players.count())
+node.log("greeter loaded")
 
--- an engine event: the handler receives a Player object
 node.on("playerJoined", function(player)
-    node.log("%s joined from %s", tostring(player), player.ip)
-    player:tell("Welcome, %s", player.name)
-    player:send("hello:greet", { name = player.name })
+    node.log("%s joined", player.name)
+    player:tell("Welcome, %s!", player.name)
 end)
 
-node.on("playerLeft", function(player)
-    node.log("%s left", tostring(player)) -- the name is still known here
+node.on("playerLeft", function(player, reason)
+    node.log("%s left: %s", player.name, reason)
 end)
 
--- a wire event from the client half: (player, data), data as the client sent it
-node.on("hello:count", function(player, data)
-    node.log("%s -> %s", tostring(player), tostring(data))
-end)
-
--- a repeating timer, on the same worker thread as every handler
-node.every(60000, function()
-    node.chat.say("%d player(s) online", node.players.count())
-end)
-
--- expect: hello loaded, players online: 0
--- expect: Player#\d+ Alice joined from \S+
--- expect: Player#\d+ Alice -> 1
--- expect: Player#\d+ Alice left
+-- expect: greeter loaded
+-- expect: Alice joined
+-- expect-client: Alice chat:msg .*Welcome, Alice!
+-- expect: Alice left: \S
 ```
 
-What each line does:
+- `node.log` writes to the server's console under the resource's name. Extra arguments work like
+  `string.format`.
+- `node.on(name, handler)` subscribes to an event. `playerJoined` passes a `Player` object: `name`
+  and `id` are fields, `tell` and `kick` are methods.
+- `player:tell` puts a system line into that player's chat. Chat is part of the server, so this works
+  with no other resource installed.
+- `playerLeft` also gets the reason the session ended.
 
-- `node.log(msg, ...)` prints to the console under the resource's name; extra arguments are
-  `string.format` arguments.
-- `node.on("playerJoined", fn)` subscribes to an engine event. The handler gets a `Player`:
-  `player.id`, `player.name` and `player.ip` are fields, `player:tell` and `player:send` are
-  methods, and `tostring(player)` reads `Player#0 Alice`. The [events reference](/plugins/api/events/)
-  lists every event with its arguments.
-- `player:tell(text, ...)` is a system line in that player's chat; `node.chat.say` says one to
-  everyone. Chat is part of the server, so both work with no other resource.
-- `player:send(event, data)` sends a **wire event** to that player's client half; a table is
-  JSON-encoded for you. Wire event names are `<domain>:<verb>`, lowercase, one colon.
-- `node.on("hello:count", fn)`: a name that isn't an engine event is a wire event from the client
-  half. Its handler gets `(player, data)`, with `data` as the string the client sent.
-- `node.every(ms, fn)` runs `fn` until `node.cancel(id)`; `node.after(ms, fn)` runs it once.
+## 4. Start it
 
-## The client half
+Start the server. The console shows your log line and then the server's line about the resource:
 
-`client/main.lua` is sent to every player when they join and runs inside BeamNG, with full access
-to the game and the client `node` table.
+```
+greeter · greeter loaded
+greeter v1.0 loaded — lua · server 1 file · 0 client files
+```
+
+Join from the launcher, and the console says `greeter · Alice joined` while your chat shows the
+greeting.
+
+## 5. A chat command
+
+Chat commands are ordinary chat lines that start with `/`. Every line passes through
+`chatMessageRequest` before the server sends it on. A handler that recognises its command answers
+`{ handled = true }`: the line isn't shown to anyone, and the resource replies itself.
+
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
+```lua
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text ~= "/online" then return end
+    local names = {}
+    for _, p in ipairs(node.players.all()) do
+        names[#names + 1] = p.name
+    end
+    player:tell("Online (%d): %s", #names, table.concat(names, ", "))
+    return { handled = true }
+end)
+
+-- expect-client: Alice chat:msg .*Online \(1\): Alice
+```
+
+A line that isn't `/online` gets no answer from the handler (`return` with nothing), so it goes to
+the chat as usual. More about commands is on [Chat and commands](/plugins/chat/).
+
+## 6. Settings
+
+Settings the host may change go into the `[config]` table of `resource.toml`:
+
+```toml
+[config]
+greeting = "Hello from the docs"
+```
+
+The resource reads them as `node.config`:
+
+<!-- doctest: server+client {"config": {"greeting": "Hello from the docs"}} -->
+```lua
+local greeting = node.config.greeting or "Welcome"
+
+node.on("playerJoined", function(player)
+    player:tell("%s, %s!", greeting, player.name)
+end)
+
+-- expect-client: Alice chat:msg .*Hello from the docs, Alice!
+```
+
+`node.config` is read once, when the resource loads. After changing the file, reload the resource
+([below](#8-reload-it)).
+
+## 7. The client half
+
+Everything in `client/` goes to every player on join and runs inside the game. Let the server send
+the player an event on join:
+
+<!-- doctest: server+client -->
+```lua
+node.on("playerJoined", function(player)
+    player:send("greeter:hello", { text = "Welcome, " .. player.name })
+end)
+
+-- expect-client: Alice greeter:hello .*Welcome, Alice
+```
+
+`player:send(name, data)` sends a **wire event** to that player; a table is turned into JSON. Create
+`client/main.lua`: it catches the event, shows the text on screen and reports back.
 
 <!-- doctest: client -->
 ```lua
-local M = {}
-
-local n = 0   -- the number we send
-local acc = 0 -- seconds since the last send
-
-node.log("hello client script loaded")
-
--- sent by server/main.lua on playerJoined; data is the JSON text of the table it sent
-node.on("hello:greet", function(data)
-    local greeting = jsonDecode(data)
-    node.log("server greets " .. tostring(greeting.name))
+node.on("greeter:hello", function(data)
+    local hello = jsonDecode(data)
+    ui_message(hello.text, 8, "greeter")
+    node.emitServer("greeter:seen", hello.text)
 end)
-
--- a returned table with on* functions is registered as a game extension,
--- so onUpdate(dt) ticks every frame
-function M.onUpdate(dt)
-    acc = acc + (dt or 0)
-    if acc < 10 then return end
-    acc = 0
-    n = n + 1
-    node.emitServer("hello:count", tostring(n))
-end
-
-return M
 ```
 
-Three things differ from the server side. A client `node.on(name, fn)` handler gets only `data`,
-the string the server sent; decode JSON with the game's `jsonDecode`. `node.emitServer(name, data)`
-sends a wire event to the server, as a string. `node.log(msg)` writes to the game's log,
-`beamng.log`. The rest of the client API is on [Client scripts](/plugins/client-scripting/).
+On the client, a handler gets the data as the string the server sent, so it's decoded with the
+game's `jsonDecode`. `ui_message` is the game's own on-screen message. `node.emitServer` sends a
+wire event back, again as a string. The server half picks it up:
 
-## Run it
-
-Start the server. The console confirms the resource:
-
-```
-hello · hello loaded, players online: 0
-hello v1.0 loaded — lua · server 1 file · 1 client file
-1 resource · 1 module loaded
-```
-
-The first line is your `node.log`: the entry point runs while the server loads it, before the line
-that says it's loaded. Join with the launcher. The console shows the join and, every ten seconds,
-the client's count:
-
-```
-hello · Player#0 Alice joined from 203.0.113.5
-hello · Player#0 Alice -> 1
-hello · Player#0 Alice -> 2
-```
-
-Alice sees `Welcome, Alice` in her chat, and everyone sees `1 player(s) online` once a minute. On
-Alice's PC, `beamng.log` (in `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\`) has the client side:
-
-```
-Activated server resource "hello" (1 ge file(s), 0 vehicle file(s))
-hello client script loaded
-server greets Alice
-```
-
-## Reload without restarting
-
-Type `reload hello` in the server console. The resource's handlers, timers and coroutines are
-dropped and `server/main.lua` runs again; the console says `hello reloaded — lua`. Two things to
-know:
-
-- Lua variables don't survive. Keep what must in `node.storage`, which survives reloads and
-  restarts ([Storage and files](/plugins/storage/)).
-- Client files are packed once, at start: a change under `client/` needs a server restart.
-
-A resource can reload itself or another one with `node.resources.reload(name)`. Here it is as a
-`/reload` chat command for players a plugin gave the `admin` role:
-
-<!-- doctest: server+client {"emit": [["chat:send", {"text": "/reload"}]]} -->
+<!-- doctest: server+client {"emit": [["greeter:seen", "Welcome, Alice"]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
-    local name = msg.text:match("^/reload%s*(%S*)$")
-    if not name then return end -- some other line: not ours
-    if name == "" then name = "hello" end
-
-    if player.role ~= "admin" then
-        player:tell("Only admins can reload resources")
-    elseif node.resources.reload(name) then
-        player:tell("reloading %s", name)
-    else
-        player:tell("no resource named %s", name)
-    end
-    return { handled = true }
+node.on("greeter:seen", function(player, text)
+    node.log("%s saw: %s", player.name, text)
 end)
 
--- expect-client: Alice chat:msg .*Only admins can reload resources
+-- expect: Alice saw: Welcome, Alice
 ```
 
-The server has no commands of its own, so a command is a chat line your resource catches in
-`chatMessageRequest` and answers with `{ handled = true }`: the line goes no further, and the
-player sees only your reply. Alice has no role yet, so she is told she may not
-([Chat → Commands](/plugins/chat/#commands) has the whole story).
+Any event name that isn't one of the server's own is a wire event. Name them `<resource>:<what>`,
+in lower case, so two resources don't collide. [Client scripts](/plugins/client-scripting/) has
+the rest of the client side.
 
-## Testing without the game
+## 8. Reload it
 
-Nothing on the server side needs a player: every server call works with the server alone. To test
-a command, write its body as a plain function and call it with a stand-in player, a table with a
-`name` and a `tell`:
-
-<!-- doctest: server -->
-```lua
--- the command under test, as a plain function
-local function hello(player, words)
-    player:tell("Hello, %s! You said: %s", player.name, table.concat(words, " "))
-end
-
-node.on("chatMessageRequest", function(player, msg)
-    local rest = msg.text:match("^/hello%s*(.*)$")
-    if not rest then return end
-    local words = {}
-    for word in rest:gmatch("%S+") do words[#words + 1] = word end
-    hello(player, words)
-    return { handled = true }
-end)
-
--- the test bench: a stand-in player whose tell writes to the console
-local tester = { name = "Tester" }
-function tester:tell(text, ...)
-    node.log("to %s: %s", self.name, string.format(text, ...))
-end
-
-node.after(500, function() hello(tester, { "big", "world" }) end)
-
--- expect: to Tester: Hello, Tester! You said: big world
-```
-
-Timers, storage, the database, HTTP, a reload, `serverShutdown` and `resourceUnload` at Ctrl+C all
-work the same with or without players. Only wire events need a client, because only the client mod
-sends them, and client files can't run outside the game at all.
-
-## Where errors show
-
-Server-side errors go to the console and `logs/server.log`, with the resource's name, what was
-running and Lua's message, which has the file and line:
+You don't need to restart the server after changing the server half. Type in the server console:
 
 ```
-hello · error in event 'hello:count': .../resources/hello/server/main.lua:16: attempt to concatenate a nil value
+reload greeter
 ```
 
-An error while `main.lua` loads is reported the same way; the resource still counts as loaded, with
-whatever it subscribed to before the failing line, so fix it and `reload hello`. An error inside a handler never unloads the
-resource. A handler that holds the worker for more than 250 ms is reported as stalling it, with the
-resource and the kind of handler named:
-`plugin worker job stalled the thread for 300 ms (resource hello, event 'hello:count') — move heavy work to node.await/node.job`.
-[Timers and coroutines](/plugins/concurrency/) shows how to avoid that.
+The resource stops (its handlers and timers are dropped) and loads again from its folder. Client
+files are packed when the server starts, so changes to `client/` reach players after a restart.
 
-Client-side errors are in the player's `beamng.log`. A file that doesn't compile is skipped
-(`Resource "hello" (main.lua): compile error: ... -- file skipped`), and an error in a handler
-reads `Error in event handler for "hello:greet" from source "node.res/hello": ...`. The server
-checks client files for syntax when it packs them and reports a broken one at start:
-`hello · client file 'main.lua' has a syntax error: main.lua:1: unexpected symbol near '=' (the file ships anyway; the game's Lua will very likely refuse it too)`.
+## 9. When something breaks
+
+An error in a handler doesn't stop the server or the resource: the server logs it with the file, the
+line and a traceback, and goes on.
+
+```
+greeter · error in event 'playerJoined': …/server/main.lua:4: attempt to …
+```
+
+The other handlers keep working, and the same handler runs again on the next event. A syntax error
+in `main.lua` shows up the same way when the resource loads.
 
 ## Next
 
-- [Resources](/plugins/resources/): the manifest, settings, files, reloading.
-- [Events](/plugins/events/): the join order and every kind of event.
-- [The example plugins](/plugins/examples/): `gatekeeper-example` refuses requests,
-  `vehicle-cleanup` reads its settings and runs a policy on a timer.
+- [How a resource is built](/plugins/resources/): every file and key, several Lua files, reloading.
+- [Events](/plugins/events/): every kind of event, and the order a player joins in.
+- [The example plugins](/plugins/examples/): bigger resources to learn from.
