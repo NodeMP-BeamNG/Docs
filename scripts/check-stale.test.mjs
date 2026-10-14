@@ -13,8 +13,8 @@ test('matching is case-insensitive and literal (brackets are not regex)', () => 
 });
 
 test('allow-listed paths are skipped', () => {
-  const files = [{ path: 'introduction/differences-from-beammp.md', text: 'BeamMP-compatible? No.' }];
-  assert.deepEqual(findStale(files, ['BeamMP-compatible'], [/differences-from-beammp\.md$/]), []);
+  const files = [{ path: 'plugins/migrating.md', text: 'BeamMP-compatible? No.' }];
+  assert.deepEqual(findStale(files, ['BeamMP-compatible'], [/plugins[\\/]migrating\.md$/]), []);
 });
 
 test('defaults cover the phase-4 list', () => {

@@ -61,7 +61,8 @@ the [bus](/plugins/bus/).
    [the database](/plugins/database/), [HTTP](/plugins/http/), [the bus](/plugins/bus/),
    [client scripts](/plugins/client-scripting/).
 4. [The example plugins](/plugins/examples/): ready-made resources from the server archive.
-5. [Moving from other platforms](/plugins/migrating/): if you wrote plugins for BeamMP or KissMP.
+5. [Moving from other platforms](/plugins/migrating/): if you wrote plugins for another multiplayer
+   mod before.
 
 Keep the [API reference](/plugins/api/lua/) at hand: it lists every function and every
 [event](/plugins/api/events/). It's generated from the API's description.

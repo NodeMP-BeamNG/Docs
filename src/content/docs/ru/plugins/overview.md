@@ -61,7 +61,8 @@ description: Что умеют плагины NodeMP, чем ресурс отл
    [база данных](/ru/plugins/database/), [HTTP](/ru/plugins/http/), [шина](/ru/plugins/bus/),
    [клиентские скрипты](/ru/plugins/client-scripting/).
 4. [Примеры плагинов](/ru/plugins/examples/) — готовые ресурсы из архива сервера.
-5. [Переход с других платформ](/ru/plugins/migrating/) — если вы писали плагины для BeamMP или KissMP.
+5. [Переход с других платформ](/ru/plugins/migrating/) — если вы уже писали плагины для другого
+   мультиплеера.
 
 Под рукой держите [справочник API](/ru/plugins/api/lua/): там каждая функция и каждое
 [событие](/ru/plugins/api/events/). Справочник генерируется из описания API и написан по-английски.

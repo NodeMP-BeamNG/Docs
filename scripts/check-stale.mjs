@@ -16,7 +16,7 @@ export const DEFAULT_PHRASES = [
   'in the NodeMP sources', 'в исходниках NodeMP', 'directory.nodemp.com',
 ];
 export const DEFAULT_ALLOW = [
-  /introduction[\\/]differences-from-beammp\.md$/,
+  // Moving from other platforms names the old stack's files and words on purpose.
   /plugins[\\/]migrating\.md$/,
   // The glossary names the retired variants on purpose, to retire them.
   /reference[\\/]glossary\.md$/,

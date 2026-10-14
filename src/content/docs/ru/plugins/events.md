@@ -38,7 +38,8 @@ description: Виды событий, порядок, в котором игро
 
 <!-- doctest: server+client -->
 ```lua
-for _, name in ipairs({ "playerAuthenticated", "playerJoining", "playerJoined" }) do
+local steps = { "playerAuthenticated", "playerJoining", "playerJoined" }
+for _, name in ipairs(steps) do
     node.on(name, function(player)
         node.log("%s: %s", name, player.name)
     end)

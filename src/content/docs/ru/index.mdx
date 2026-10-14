@@ -4,7 +4,7 @@ description: Мультиплеер для BeamNG.drive. Как играть, к
 template: splash
 hero:
   title: Документация NodeMP
-  tagline: Мультиплеер для BeamNG.drive. Поставьте лаунчер и катайтесь с друзьями, поднимите свой сервер или научите его новым правилам с помощью плагинов.
+  tagline: Мультиплеер для BeamNG.drive. Поставьте лаунчер и катайтесь с друзьями, поднимите свой сервер или задайте ему свои правила плагинами.
   actions:
     - text: Установить лаунчер
       link: /ru/players/install/
@@ -23,63 +23,63 @@ import SectionGrid from '../../../components/SectionGrid.astro';
   sections={[
     {
       title: 'Игрокам',
-      lede: 'От скачивания до первого сервера.',
+      lede: 'От загрузки до первого сервера — и что делать, если что-то сломалось.',
       groups: [
-        { label: 'Начать', links: [
+        { label: 'С чего начать', links: [
           { href: '/ru/players/install/', text: 'Установка лаунчера' },
-          { href: '/ru/players/sign-in/', text: 'Ваш аккаунт' },
-          { href: '/ru/players/join/', text: 'Найти сервер и зайти' },
+          { href: '/ru/players/sign-in/', text: 'Аккаунт и вход' },
+          { href: '/ru/players/join/', text: 'Как зайти на сервер' },
         ]},
-        { label: 'В игре', links: [
+        { label: 'Когда понадобится', links: [
           { href: '/ru/players/settings/', text: 'Настройки и управление' },
-          { href: '/ru/players/vpn/', text: 'VPN и плохая связь' },
+          { href: '/ru/players/connection/', text: 'Плохое соединение и VPN' },
+          { href: '/ru/players/troubleshooting/', text: 'Если что-то не работает' },
         ]},
       ],
     },
     {
-      title: 'Помощь',
-      lede: 'Что-то пошло не так? Начните с того, что видите.',
+      title: 'Свой сервер',
+      lede: 'Запустите Node-Server на Windows, Linux или в Docker и добавьте его в список.',
       groups: [
-        { label: 'Исправить', links: [
-          { href: '/ru/support/troubleshooting/', text: 'Если что-то не работает' },
-          { href: '/ru/support/joining/', text: 'Не пускает на сервер' },
-          { href: '/ru/support/strict-servers/', text: 'Строгие серверы' },
-        ]},
-        { label: 'Найти', links: [
-          { href: '/ru/support/error-codes/', text: 'Сообщения и коды выхода' },
-          { href: '/ru/support/faq/', text: 'Частые вопросы' },
-        ]},
-      ],
-    },
-    {
-      title: 'Хостинг сервера',
-      lede: 'Запустить Node-Server, настроить его и попасть в список лаунчера.',
-      groups: [
-        { label: 'Начать', links: [
-          { href: '/ru/hosting/quick-start/', text: 'Запустить сервер' },
+        { label: 'С чего начать', links: [
+          { href: '/ru/hosting/quick-start/', text: 'Запуск сервера' },
           { href: '/ru/hosting/registering/', text: 'Попасть в список' },
-          { href: '/ru/hosting/resources/', text: 'Моды и ресурсы' },
+          { href: '/ru/hosting/mods/', text: 'Моды и карты' },
         ]},
         { label: 'Каждый день', links: [
-          { href: '/ru/hosting/configuration/', text: 'server.toml' },
+          { href: '/ru/hosting/configuration/', text: 'Настройки сервера' },
           { href: '/ru/hosting/administration/', text: 'Консоль, кики и баны' },
-          { href: '/ru/hosting/updating/', text: 'Обновление' },
+          { href: '/ru/hosting/updating/', text: 'Обновление сервера' },
         ]},
       ],
     },
     {
       title: 'Разработка плагинов',
-      lede: 'Ресурсы на Lua, нативные модули на C.',
+      lede: 'Ресурсы на Lua, а когда нужно — JavaScript и C.',
       groups: [
-        { label: 'Начать', links: [
+        { label: 'С чего начать', links: [
           { href: '/ru/plugins/getting-started/', text: 'Первый ресурс' },
-          { href: '/ru/plugins/events/', text: 'События и порядок входа' },
+          { href: '/ru/plugins/events/', text: 'События' },
           { href: '/ru/plugins/examples/', text: 'Примеры плагинов' },
         ]},
-        { label: 'Справка', links: [
+        { label: 'Под рукой', links: [
           { href: '/ru/plugins/api/lua/', text: 'Справочник Lua API' },
-          { href: '/ru/plugins/players-and-vehicles/', text: 'Игроки и машины' },
-          { href: '/ru/plugins/recipes/', text: 'Рецепты' },
+          { href: '/ru/plugins/chat/', text: 'Чат и команды' },
+          { href: '/ru/plugins/migrating/', text: 'Переход с других платформ' },
+        ]},
+      ],
+    },
+    {
+      title: 'Справочник',
+      lede: 'Сообщения, короткие ответы и слова, которыми пользуется документация.',
+      groups: [
+        { label: 'Под рукой', links: [
+          { href: '/ru/reference/error-codes/', text: 'Сообщения об ошибках' },
+          { href: '/ru/reference/faq/', text: 'Частые вопросы' },
+        ]},
+        { label: 'Для понимания', links: [
+          { href: '/ru/introduction/what-is-nodemp/', text: 'Что такое NodeMP' },
+          { href: '/ru/reference/glossary/', text: 'Словарь' },
         ]},
       ],
     },

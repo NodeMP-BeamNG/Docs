@@ -37,9 +37,11 @@ export default defineConfig({
   // Removed slugs and where they live now, the same in every locale. Astro writes a
   // meta-refresh page for each.
   redirects: withLocales({
-    '/introduction/beammp-compatibility/': '/introduction/differences-from-beammp/',
-    '/framework/overview/': '/introduction/how-it-works/',
-    '/framework/sync/': '/introduction/how-it-works/',
+    '/introduction/beammp-compatibility/': '/plugins/migrating/',
+    '/introduction/differences-from-beammp/': '/plugins/migrating/',
+    '/introduction/how-it-works/': '/introduction/what-is-nodemp/',
+    '/framework/overview/': '/introduction/what-is-nodemp/',
+    '/framework/sync/': '/introduction/what-is-nodemp/',
     '/plugins/server-api/': '/plugins/api/lua/',
     '/plugins/client-api/': '/plugins/client-scripting/',
     // The section root has no page of its own; readers type it.
@@ -119,8 +121,6 @@ export default defineConfig({
           // The mark in the bar goes to nodemp.com, so the docs' own front page is here.
           { slug: 'index', label: 'All sections', translations: { ru: 'Все разделы' } },
           { slug: 'introduction/what-is-nodemp' },
-          { slug: 'introduction/how-it-works' },
-          { slug: 'introduction/differences-from-beammp' },
         ]},
         { label: 'Players', translations: { ru: 'Игрокам' }, items: [
           { slug: 'players/install' },

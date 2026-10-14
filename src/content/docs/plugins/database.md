@@ -128,7 +128,8 @@ node.async(function()
     end
     db:exec([[create table if not exists wallets (
         account bigint primary key, cents bigint not null)]])
-    db:exec("insert into wallets values (1, 1000), (2, 0) on conflict do nothing")
+    db:exec([[insert into wallets values (1, 1000), (2, 0)
+        on conflict do nothing]])
     local ok, err = transfer(1, 2, 500)
     node.log("first transfer: %s", tostring(ok))
     ok, err = transfer(1, 2, 5000)

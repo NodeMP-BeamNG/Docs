@@ -13,11 +13,5 @@
     "check": "config.env",
     "claim": "NODE_DB_DEFAULT_URL",
     "reason": "An instance of the documented NODE_DB_<NAME>_URL pattern (the connection called default); the database module builds the name, so it is in no source as a literal."
-  },
-  {
-    "check": "events.alias",
-    "claim": "onShutdown",
-    "page": "plugins/migrating.md",
-    "reason": "BeamMP's own event name, listed among the events beammp-compat fires for a hosted plugin; not the retired NodeMP alias."
   }
 ]
