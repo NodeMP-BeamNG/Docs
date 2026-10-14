@@ -54,7 +54,7 @@ shows how to run a BeamMP plugin as it is.
 | `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)`, or `node.broadcast` |
-| `MP.TriggerGlobalEvent` | `node.bus.emit` ([The bus](/plugins/bus/)) |
+| `MP.TriggerGlobalEvent` | `node.bus.call`, which returns what the handlers return, or `node.bus.emit` when nobody needs to answer ([The bus](/plugins/bus/#asking-and-answering)) |
 | `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)` |
 | `MP.Sleep` | `node.sleep(ms)` inside `node.async`, which doesn't block |
 | `MP.GetPlayerVehicles`, `MP.RemoveVehicle` | `player:vehicles()`, `vehicle:delete()` |

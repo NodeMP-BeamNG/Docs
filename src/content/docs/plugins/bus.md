@@ -10,6 +10,7 @@ resource subscribed to that name receives it.
 | Call | What it does |
 |---|---|
 | `node.bus.emit(name, data)` | Publishes `data` under `name`. A table is turned into JSON. |
+| `node.bus.call(name, data)` | Asks every resource subscribed to `name` and returns their answers at once. |
 | `node.bus.on(name, fn)` | Calls `fn(source, data)` for every message under `name`. |
 | `node.bus.off(name, fn)` | Unsubscribes; without `fn`, every handler of this resource for `name`. |
 
@@ -48,8 +49,40 @@ events, so two resources don't collide.
 
 ## Asking and answering
 
-The bus has no replies of its own. The usual way is to put the name to answer under into the
-question:
+`node.bus.call` asks a question and gets the answers right away. A handler answers by returning a
+value:
+
+<!-- doctest: server -->
+```lua
+node.bus.on("shop:price", function(source, data)
+    return { item = data, cents = 250 }
+end)
+```
+
+<!-- doctest: server -->
+```lua
+node.after(500, function()
+    for _, a in ipairs(node.bus.call("shop:price", "wrench")) do
+        node.log("%s asks %d cents", a.source, a.value.cents)
+    end
+end)
+
+-- expect: \S+ asks 250 cents
+```
+
+- Every handler runs now, before `call` returns, so an answer is what the other resource knows at
+  that moment.
+- The answers come as a list of `{ source, value }`, in the order the handlers subscribed. A table
+  arrives as a table. A handler that returns `nil` is left out, so an empty list means nobody
+  answered.
+- The caller's own handlers are asked too.
+- A handler that calls back into the resource that asked, and so on, can nest calls only 8 deep;
+  past that `call` raises an error.
+- A native module subscribed to the name sees the question but can't answer it.
+
+`call` arrived in server 1.9.0. A handler that has to wait for something, a database or an HTTP
+request, can't answer by returning. Then put the name to answer under into the question and answer
+later with `emit`:
 
 <!-- doctest: server -->
 ```lua

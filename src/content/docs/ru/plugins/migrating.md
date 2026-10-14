@@ -53,7 +53,7 @@ description: Для авторов плагинов BeamMP и KissMP — как 
 | `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)` или `node.broadcast` |
-| `MP.TriggerGlobalEvent` | `node.bus.emit` ([Шина](/ru/plugins/bus/)) |
+| `MP.TriggerGlobalEvent` | `node.bus.call` — он возвращает то, что вернули обработчики, или `node.bus.emit`, если отвечать никому не нужно ([Шина](/ru/plugins/bus/#вопрос-и-ответ)) |
 | `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)` |
 | `MP.Sleep` | `node.sleep(ms)` внутри `node.async`, без блокировки |
 | `MP.GetPlayerVehicles`, `MP.RemoveVehicle` | `player:vehicles()`, `vehicle:delete()` |
