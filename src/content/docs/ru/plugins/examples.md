@@ -144,8 +144,9 @@ demo-numbers · Player#0 Alice -> 2
 
 Ведёт запись каждой сессии (когда игрок зашёл, сколько ездил, сколько машин заспавнил, сколько
 проехал) и раз в минуту пишет её в `session-report.json`. Написан на JavaScript, и ему нужен модуль
-`js-host` в `modules/`; без него сервер пишет в лог, что тип `"js"` никто не обслуживает, и
-пропускает папку ([Ресурсы на JavaScript](/ru/plugins/js-host/)).
+`js-host` в `modules/`; без него сервер пишет в лог
+`resource type 'js' has no language host loaded` и пропускает папку
+([Ресурсы на JavaScript](/ru/plugins/js-host/)).
 
 ## Собираются из исходников
 

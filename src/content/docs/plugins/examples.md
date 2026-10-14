@@ -141,8 +141,9 @@ timers. It has no `resource.toml`, which shows that a folder with `server/main.l
 
 Keeps a record of every session (when a player joined, how long they drove, how many cars they
 spawned, how far they went) and writes it to `session-report.json` every minute. It's written in
-JavaScript and needs the `js-host` module in `modules/`; without it, the server logs that no
-language host claims type `"js"` and skips the folder ([JavaScript resources](/plugins/js-host/)).
+JavaScript and needs the `js-host` module in `modules/`; without it, the server logs
+`resource type 'js' has no language host loaded` and skips the folder
+([JavaScript resources](/plugins/js-host/)).
 
 ## Built from source
 
