@@ -7,9 +7,11 @@ import { tables, codeBlocks, codeLineSet, inlineCode } from './md.mjs';
 
 const finding = (check, page, line, claim, expected, actual) => ({ check, page: page.path, locale: page.locale, line, claim, expected, actual });
 
-// The reference table: the first table whose first column holds `[Section]` cells.
+// The reference: every table whose first column holds `[Section]` cells, read as one
+// (the page may give each section a table of its own).
 function referenceTable(text) {
-  return tables(text).find((t) => t.rows.length && t.rows.every((r) => /^`\[\w+\]`$/.test(r.cells[0] || '')));
+  const parts = tables(text).filter((t) => t.rows.length && t.rows.every((r) => /^`\[\w+\]`$/.test(r.cells[0] || '')));
+  return parts.length ? { start: parts[0].start, rows: parts.flatMap((t) => t.rows) } : undefined;
 }
 
 const strip = (s) => s.replace(/^`|`$/g, '').trim();

@@ -1,127 +1,93 @@
 ---
-title: Mods and resources
-description: Add maps and cars for players (content/), install plugins (resources/), what the example resources do, how client scripts are obfuscated, and native modules.
+title: Resources
+description: How to install a resource plugin, which examples come with the archive, and how to configure, reload and obfuscate a resource; native modules.
 ---
 
-A server can add three kinds of things on top of the game. This page is about installing them;
-writing plugins is the [Plugin development](/plugins/overview/) section.
+A resource is a plugin: a folder of Lua code that runs on the server and, when needed, scripts the
+server sends to players. Chat commands, rules, game modes and admin tools are all resources. Writing
+them is the [Plugin development](/plugins/overview/) section.
 
-| | Mods (content) | Resources | Native modules |
-|---|---|---|---|
-| What | BeamNG mod zips: a map, a car, a sound pack. | Plugins: a folder of Lua that runs on the server, optionally with scripts sent to players. | Compiled libraries (`.dll`, `.so`) for work that has to be fast. |
-| Where | `content/` in the working directory | `resources/<name>/` in the working directory | `modules/` next to the executable |
-| Players get | The zip, downloaded by the launcher before the game starts. | The scripts, sent when they join. Nothing to install. | Nothing; it runs on the server. |
-| Picked up | At start | At start; one can be reloaded while running | At start, before resources |
+## Install a resource
 
-## Mods: maps and cars
+1. Copy the resource's whole folder into `resources/` next to `server.toml`. If there is no
+   `resources/` folder yet, create it. In Docker that's `data/resources/`.
+2. Restart the server.
 
-Put the mod zips into `content/` and restart. At start the server checks each zip and logs
-`serving 2 mods (148.3 MB) from content/`; a file that isn't a zip is reported as
-`'…' is not a ZIP file and will be ignored`. The folder is read at start only, so restart after
-adding, replacing or removing a zip.
-
-Players download the zips through the launcher before their game starts and keep them in the
-launcher's cache, so the next visit downloads nothing. The launcher's server card lists the files
-and their total size, and players can filter servers by it. Keep the folder lean.
-
-**A custom map**: put its zip into `content/` and set `[General] Map` to
-`/levels/<folder>/info.json`, where `<folder>` is the map's folder under `levels/` inside the zip.
-If the map has a picture of its own, the server uses it for the list
-([Get listed](/hosting/registering/#the-picture)).
-
-**A mod players must get themselves**: open `content/mods.json` (the server writes it) and set
-`"protected": true` on that zip's entry. The server then never sends the file, and a player who
-doesn't have it is told where to put it in their launcher's cache. The mark survives replacing the
-zip.
-
-## Resources
-
-A resource is a folder. Installing one means copying the folder into `resources/` and restarting.
-The log confirms each one:
+The server confirms every resource it loads:
 
 ```
 demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 1 resource · 1 module loaded
 ```
 
-Chat and the server's own chat messages work without any resource. Chat commands come from
-resources, such as `chat-commands` below.
+Chat works without any resource. Chat commands such as `/pm` appear only with a resource that adds
+them.
 
-### The examples
+## The examples in the archive
 
-The release archive has a few ready-made resources in `examples/`, next to `Node-Server`, with an
-`examples/README.txt` that says what each one does. Copy a whole folder into `resources/` to use
-one; the copy is yours to change and survives updates.
+The server archive has an `examples/` folder next to the program, with ready-made resources. To try
+one, copy its folder into `resources/`. The copy is yours: change it as you like, and updating the
+server won't touch it.
 
 | Example | What it does |
 |---|---|
-| `chat-commands` | Adds `/help`, `/me` and `/pm` to the chat; the starting point for commands of your own. |
-| `demo-numbers` | The smallest resource with a server half and a client half. |
-| `freeroam-example` | Greets players, answers a client event, runs timers. |
-| `vehicle-cleanup` | Deletes cars nobody uses any more, by rules you set in its `resource.toml`. |
-| `gatekeeper-example` | Shows how to refuse a join, a spawn or an edit, with a reason the player sees. |
-| `seat-demo` | Seats players into cars from the server, takes them out, swaps them. |
+| `chat-commands` | Adds `/help`, `/me` and `/pm` to the chat. A good start for commands of your own. |
+| `vehicle-cleanup` | Deletes abandoned cars by rules set in its `resource.toml`. |
+| `gatekeeper-example` | Shows how to refuse a join, a spawn or a car edit and tell the player why. |
+| `seat-demo` | Seats players in cars on the server's command, takes them out, swaps them. |
 | `nodegrab-allow` | Allows the experimental node grabber, which is refused unless a plugin says yes. |
+| `freeroam-example` | Greets players, answers a client event, runs timers. |
+| `demo-numbers` | The smallest resource with a server half and a client half. Handy to test the connection. |
 | `devapi-example` | A tour of the plugin API, one feature at a time. |
-| `session-report` | Who played, for how long, in what. Written in JavaScript, which needs a native module the archive doesn't include; without it the server skips this one. |
+| `session-report` | A report of who played, how long and in what. Written in JavaScript, so it needs the `js-host` module, which the archive doesn't include. Without it the server skips this one. |
 
-[The example plugins](/plugins/examples/) walks through them for plugin authors.
+## A resource's settings
 
-### resource.toml
-
-A resource may carry a `resource.toml`; everything in it is optional:
+A resource may carry a `resource.toml`. The part for hosts is the `[config]` table: the resource's
+own settings. Its author says which keys it takes. For `vehicle-cleanup`, for example:
 
 ```toml
-name = "demo-numbers"
-version = "1.0"
-
-[client]
-obfuscation = "light"
-
 [config]
-greeting = "Welcome!"
+deleteIdleAfterSeconds = 600
+maxWorldVehicles = 20
 ```
 
-`name` and `version` show in the log; `[config]` holds the resource's own settings, which its
-author documents. The full list of keys is on [Resources](/plugins/resources/#resourcetoml).
+After a change, restart the server or reload the resource.
 
-### Reloading one resource
+## Reload a resource
 
 `reload <name>` in the server console runs a resource's server half again without restarting the
-server. Its client scripts are packed once, at start: changes to those reach players after a
-restart.
+whole server. The server packs client scripts once, at start: changes to those reach players only
+after a restart.
 
-## Client scripts and obfuscation
+## Obfuscating client scripts
 
-Scripts a resource sends to players are scrambled first (`[Resources] Obfuscate = true`, the
-default), so they're harder to copy. The tool is Prometheus, a Lua program in `tools/` (it has
-nothing to do with the monitoring system of the same name). It needs Lua 5.1 to run:
+The server scrambles the scripts a resource sends to players first (`[Resources] Obfuscate`, on by
+default), so they're harder to copy. The tool is Prometheus, a Lua program in `tools/`; it has
+nothing to do with the monitoring system of the same name. It needs Lua 5.1:
 
-- Windows: included in the archive, found automatically.
-- Linux: install your distribution's `lua5.1` and set `NODE_LUA=/usr/bin/lua5.1`. The Docker image
-  has it built in.
+- on Windows it's in the archive;
+- on Linux, install the `lua5.1` package and set `NODE_LUA=/usr/bin/lua5.1`;
+- the Docker image has it.
 
-When it works the log says `client obfuscation ready · runner … · Prometheus (cache .obfcache)`.
-Without Lua you get
-`no Lua 5.1/LuaJIT runner found under tools/, client scripts will be shipped unobfuscated (drop lua5.1.exe in tools/lua515/ or set NODE_LUA)`,
-and without `tools/`, `Prometheus not found under any tools/ dir, client scripts will be shipped unobfuscated`.
-Either way the server runs and sends the scripts as plain text. `Node-Server --obf-selftest` checks
-the setup and prints `[obf-selftest] available=1` when it works.
+When it works, the log says `client obfuscation ready · runner … · Prometheus (cache .obfcache)`.
+When it doesn't, the server still runs and sends the scripts as they are, and the log says what's
+missing. `Node-Server --obf-selftest` checks the setup and prints `[obf-selftest] available=1` when
+it works.
 
-A resource picks how hard to scramble in `[client] obfuscation`: `none`, `light` (the default, fine
-for code that runs every frame), `medium`, or `strong` (for menus and one-off setup, not per-frame
-code). Results are cached in `.obfcache/`, which can be deleted at any time.
+A resource picks how hard to scramble with `[client] obfuscation`: `none`, `light` (the default),
+`medium` or `strong`. Results are cached in `.obfcache/`, which you can delete at any time.
 
-The server also checks every client script for syntax errors when it packs it, and says so:
-`race · client file 'main.lua' has a syntax error: main.lua:1: unexpected symbol near '=' (the file ships anyway; the game's Lua will very likely refuse it too)`.
+The server also checks client scripts for syntax errors while packing them. It still sends a script
+with an error, but warns in the log: `… client file 'main.lua' has a syntax error: …`.
 
 ## Native modules
 
-Modules go into `modules/` next to the executable and load before resources. The archive already
-has one: the database module (`db.dll` or `db.so`), which plugins use to talk to PostgreSQL or
-SQLite ([Database](/plugins/database/)). Until it's configured, it logs one warning at start and
-otherwise waits.
+A native module is a compiled library (`.dll` or `.so`) in the `modules/` folder next to the
+program. Modules load before resources. The archive already has one, the database module for
+plugins ([The db module](/plugins/database/)). Until a database is configured, it logs one warning
+at start and does nothing else.
 
-Each module is checked against the server's plugin interface at load, and one built for an
-incompatible version is refused with a message asking for a rebuild. In Docker, `modules/` is inside
-the image, not on the data volume, so adding a module means building an image on top of it.
+At load the server checks which interface version a module was built for, and refuses an
+incompatible one with a request to rebuild it. In Docker, `modules/` is inside the image: to add a
+module, build your own image on top of it.

@@ -166,6 +166,14 @@ test('config table: clean table has no findings; wrong default/env/type, extra, 
   assert.ok(f.every((x) => x.locale === 'ru' && x.page === 'ru/hosting/configuration.md'));
 });
 
+test('config table: one table per section reads as one reference', () => {
+  const head = '| Section | Key | Type | Default | Environment |\n|---|---|---|---|---|\n';
+  const split = page(`### General\n\n${head}| \`[General]\` | \`Debug\` | bool | \`false\` | \`NODE_DEBUG\` |\n| \`[General]\` | \`Name\` | string | \`"Node Server"\` | \`NODE_NAME\` |\n\n### Database\n\n${head}| \`[Database]\` | \`Pool\` | int | \`4\` | \`NODE_DATABASE_POOL\` |\n`);
+  assert.deepEqual(checkConfigTable(split, REF), []);
+  const short = page(`${head}| \`[General]\` | \`Debug\` | bool | \`false\` | \`NODE_DEBUG\` |\n| \`[General]\` | \`Name\` | string | \`"Node Server"\` | \`NODE_NAME\` |\n`);
+  assert.ok(checkConfigTable(short, REF).some((x) => x.claim === '[Database] Pool' && x.actual === 'missing'));
+});
+
 test('config example, section-count claims and mentions', () => {
   const ex = page('```toml\n[General]\nDebug = false\nName = "Node Server"\nPort = 1\n\n[Database]\nPool = 5\n```\n');
   const f = checkConfigExample(ex, REF);

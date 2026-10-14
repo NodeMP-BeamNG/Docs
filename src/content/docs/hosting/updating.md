@@ -1,11 +1,11 @@
 ---
-title: Updating
-description: Check the version, replace the server or load the new image, what survives an update, and when players need a new launcher.
+title: Updating the server
+description: Check the version, install a new release on Windows, Linux and Docker, what survives an update, and when players need a new launcher.
 ---
 
-An update replaces the executable and the folders that come with it (`tools/`, `modules/`,
-`examples/`), or the Docker image. Everything else (`server.toml`, the TLS files, resources, mods,
-storage, bans) is your data and stays.
+An update replaces the program and the folders that come with it (`tools/`, `modules/`,
+`examples/`), or the Docker image. Everything else is your data and stays: `server.toml`, the TLS
+certificate, resources, mods, storage, bans.
 
 ## Which version is running
 
@@ -13,96 +13,91 @@ storage, bans) is your data and stays.
 ./Node-Server --version
 ```
 
-prints `Node-Server v1.8.0`. The start-up banner shows the same on its `version` line.
+It prints, for example, `Node-Server v1.8.0`. The start-up banner shows the same version.
 
 ## Where releases are
 
 Server releases are the `server-v…` tags on
-[GitHub releases](https://github.com/NodeMP-BeamNG/releases). Each has the Windows and Linux archives
-and the Docker image, each with a `.sha256`, and the release notes in its description: what
-changed, whether a default changed, and whether players need a new launcher. Read them before you
+[GitHub](https://github.com/NodeMP-BeamNG/releases/releases). Each release's description says what
+changed, whether a default changed, and whether players need a new launcher. Read it before you
 update.
 
 ## Windows
 
-Stop the server, then in PowerShell, in the server's folder:
+1. Stop the server.
+2. Download the new archive and unpack it into the same folder over the old files. Let Explorer
+   replace them.
+3. Start the server and check the version in the banner.
+
+From PowerShell, unpacking with replacement looks like this:
 
 ```powershell
-Set-Location C:\NodeMP
-$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0"
-Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip" -OutFile Node-Server-1.8.0-windows-x64.zip
-Invoke-WebRequest "$base/Node-Server-1.8.0-windows-x64.zip.sha256" -OutFile Node-Server-1.8.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.8.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.8.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.8.0-windows-x64.zip -DestinationPath . -Force
-.\Node-Server.exe --version
+$zip = "$HOME\Downloads\Node-Server-1.8.0-windows-x64.zip"
+Expand-Archive $zip -DestinationPath C:\NodeMP -Force
 ```
 
-`-Force` lets `Expand-Archive` overwrite the old files; without it, it refuses. Put the release you
-are installing in the file names.
+Without `-Force` the command refuses to overwrite files.
 
 ## Linux
 
-With the folder and systemd unit from [Keeping it running](/hosting/running/):
+With the service from [Server on Linux](/hosting/linux/#a-systemd-service):
 
 ```bash
 cd /tmp
-base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
-curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz"
-curl -LO "$base/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
+url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
+curl -LO "$url/Node-Server-1.8.0-linux-x64.tar.gz"
+curl -LO "$url/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
 sha256sum -c Node-Server-1.8.0-linux-x64.tar.gz.sha256
-sudo systemctl stop nodemp-server
-sudo tar -xzf Node-Server-1.8.0-linux-x64.tar.gz -C /opt/nodemp
-sudo chown -R nodemp:nodemp /opt/nodemp
-sudo systemctl start nodemp-server
-/opt/nodemp/Node-Server --version
 ```
 
-Unpacking over the folder replaces exactly what the archive holds. Your `resources/`, including
-your copies of the examples, isn't in the archive and isn't touched.
+Then stop the service, unpack the archive over the old files and start it again:
+
+```bash
+sudo systemctl stop nodemp
+sudo tar -xzf Node-Server-1.8.0-linux-x64.tar.gz -C /opt/nodemp
+sudo chown -R nodemp:nodemp /opt/nodemp
+sudo systemctl start nodemp
+```
+
+Unpacking over the folder replaces exactly what the archive holds. Your `resources/`, including your
+copies of the examples, isn't in the archive and isn't touched.
 
 ## Docker
 
-Load the new image and point the Compose file at its tag:
+Load the new image and use its tag:
 
 ```bash
 docker load -i nodemp-server-v1.8.0-image.tar
-# in compose.yaml: image: nodemp-server:1.8.0-e11def6
-docker compose up -d gameserver
-docker compose logs -f gameserver
 ```
 
-The `/data` volume is untouched. To go back, put the previous tag in the file and run
-`docker compose up -d` again.
+In `compose.yaml`, change the `image:` line to the new tag and run `docker compose up -d`. With
+`docker run`, remove the old container and start a new one with the same `-v` and variables. The
+`data/` folder doesn't change. To go back, put the previous tag back.
 
 ## What survives an update
 
-- **`server.toml`** stays as you wrote it. If the new version has settings your file lacks, the
-  server adds just those lines, with their defaults, and the log names them. A setting the new
-  version no longer has is ignored (and, where it matters, the log says so once). With Docker
-  there's no file: a new setting takes its default until you set its variable.
+- **`server.toml`** stays as it is. If the new version has settings your file lacks, the server adds
+  just those, with their defaults, and names them in the log. In Docker there's no file: a new
+  setting takes its default until you set its variable.
 - **`node_cert.pem` and `node_key.pem`** aren't in the archive and are only made when missing. Keep
-  them: launchers that joined by address remember the certificate and refuse a server whose
-  certificate changed.
-- **`resources/`, `content/`, `storage/`, `bans.json`** are yours and untouched. If a resource of
-  yours uses the database module's `db.lua`, copy the new `modules/db.lua` into it.
-- **`integrity/`** belongs to a game version, not a server version: a server update leaves it
-  alone, a BeamNG update makes it stale ([Strict verification](/hosting/strict-verification/#after-a-game-update)).
-- **`.obfcache/`** is rebuilt as needed; deleting it is always safe.
-- **Native modules** in `modules/` are checked at load. One built for an incompatible plugin
-  interface is refused with
-  `module 'my-module' was built against SDK ABI 1.12, this server speaks 2.5 -- refusing to load it. Rebuild the module.`
-  Lua resources need nothing rebuilt.
-- **Chat commands** became the resources' own business in server 1.8.0, and `node.commands` is
-  gone. A resource that still calls it stops at that line with
-  `attempt to index a nil value (field 'commands')` in the log, and its commands go quiet. Update
-  the resource, or use `examples/chat-commands` from the archive as a starting point
-  ([Chat → Commands](/plugins/chat/#commands)).
+  them: players who joined by address remember the certificate and won't connect to a server with a
+  different one.
+- **`resources/`, `content/`, `storage/`, `bans.json`** are yours, and the update doesn't touch
+  them. If a resource of yours uses the database module's `db.lua`, copy the new `modules/db.lua`
+  into it.
+- **`integrity/`** belongs to a game version, not a server version. After a BeamNG update, make it
+  again ([Strict file check](/hosting/strict-verification/#after-a-game-update)).
+- **Native modules** in `modules/` are checked at load. One built for an incompatible interface
+  version is refused with a request to rebuild it. Lua resources need no rebuilding.
+
+Since server 1.8.0 the server has no chat commands of its own; resources add them. A resource that
+called `node.commands` stops at that line with `attempt to index a nil value (field 'commands')`.
+Update it, or start from `examples/chat-commands` ([Chat and commands](/plugins/chat/)).
 
 ## When players need a new launcher
 
-The launcher and the server speak a versioned protocol. It's been `v23` since server 1.5.0, and
-server 1.8.0 keeps it: launchers from 1.1.23 and client mods from 1.6.25 join it as before. When a
-release does change the protocol, its notes say so in bold, and an old launcher is refused with
-`Protocol version mismatch: launcher speaks v22, server speaks v23 - update the outdated side`. The
-player's launcher then offers **Update now**, and the client mod is updated before every join
-anyway. Update your server in the same window as your players get the new launcher.
+The launcher and the server speak a versioned protocol. Server 1.8.0 speaks v23, like the releases
+before it: launchers from version 1.1.23 and client mods from version 1.6.25 join it as before. When
+a release changes the protocol, its description says so prominently, and an old launcher is refused
+with a request to update. The launcher offers **Update now** by itself, and the client mod is updated
+before every join. Update your server at the same time as players get the new launcher.
