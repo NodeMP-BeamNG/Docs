@@ -1,123 +1,83 @@
 ---
-title: Быстрый старт
-description: Запустите Node-Server 1.5.0 из архива релиза или Docker-образа, откройте порт 30814, задайте имя и карту и выведите сервер в список лаунчера.
+title: Запустить сервер
+description: Как запустить Node-Server 1.7.0 на Windows, Linux или в Docker, открыть порт, дать серверу имя и карту и попасть в список лаунчера.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-`Node-Server` — выделенный игровой сервер, к которому игроки подключаются через лаунчер. Настройка и вывод сервера в публичный список за шесть шагов:
+`Node-Server` — программа, к которой подключаются игроки. Чтобы запустить её и попасть в список
+лаунчера, нужно пять шагов:
 
-1. [Скачать и запустить](#1-скачать-и-запустить) сервер.
-2. [Открыть порт 30814](#2-открыть-порт), TCP и UDP.
-3. [Задать имя и карту](#3-имя-карта-и-места).
+1. [Скачать и запустить](#1-скачать-и-запустить).
+2. [Открыть порт](#2-открыть-порт) — TCP и UDP.
+3. [Задать имя, карту и число мест](#3-имя-карта-и-места).
 4. [Попасть в список](#4-попасть-в-список) с ключом сервера.
-5. [Зайти на сервер](#5-зайти-на-сервер) из лаунчера.
-6. [Добавить чат и другие ресурсы](#6-добавить-чат-и-другие-ресурсы).
-
-Основные понятия:
-- **Директория**: Сервис `https://api.nodemp.com`, ведущий общий список публичных серверов.
-- **Ключ сервера**: Host ID и Host secret из личного кабинета NodeMP для авторизации сервера в списке.
-- **Прямое подключение**: Вход напрямую по `IP:порт` без использования общего браузера серверов.
-
-Остальные термины собраны в [глоссарии](/ru/reference/glossary/#хостам).
+5. [Зайти](#5-зайти) из лаунчера.
 
 ## Что понадобится
 
-- Доступный из интернета порт **30814** (TCP и UDP). Если машина за домашним роутером, пробросьте оба протокола на неё. С директорией сервер общается по исходящему HTTPS.
-- Linux x64 или Windows x64. Сборка для Linux собрана на Ubuntu 24.04 и требует glibc не старше; на более старых дистрибутивах используйте Docker.
-- Чтобы появиться в списке серверов: аккаунт NodeMP на [nodemp.com](https://nodemp.com) с **подтверждённой почтой** и **привязанным Discord**. Без ключа сервер работает так же, но войти можно только через прямое подключение.
-- Опционально (для `VerifyGame = "strict"`): ПК с Windows и чистой копией BeamNG.drive для генерации эталонного манифеста ([Строгая проверка](/ru/hosting/strict-verification/)).
+- Машина, до которой игроки могут достучаться по одному порту, TCP и UDP (`30814`, если не
+  выберете другой). Дома это значит пробросить порт на роутере.
+- Windows x64 или Linux x64 не старше Ubuntu 24.04 (серверу нужны glibc 2.38 и библиотека C++ из
+  GCC 13). На более старом Linux используйте образ Docker.
+- Чтобы попасть в список — аккаунт NodeMP на [nodemp.com](https://nodemp.com). Серверу вне списка
+  аккаунт вообще не нужен; на него заходят по адресу.
 
 ## 1. Скачать и запустить
 
+Сервер публикуется в [релизах на GitHub](https://github.com/NodeMP-BeamNG/releases) под тегом
+`server-v1.7.0`: `Node-Server-1.7.0-windows-x64.zip`, `Node-Server-1.7.0-linux-x64.tar.gz` и образ
+Docker `nodemp-server-v1.7.0-image.tar`, у каждого есть файл `.sha256` для проверки загрузки.
+
 <Tabs>
-<TabItem label="Бинарник">
+<TabItem label="Windows">
 
-Архивы релиза приложены к тегу `server-v1.5.0` на
-[github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases):
-`Node-Server-1.5.0-linux-x64.tar.gz` и `Node-Server-1.5.0-windows-x64.zip`, к каждому — файл
-`.sha256`.
-
-**Linux**
-
-```bash
-sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
-cd /opt/nodemp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.5.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.5.0-linux-x64.tar.gz
-sudo apt install -y lua5.1
-export NODE_LUA=/usr/bin/lua5.1
-./Node-Server
-```
-
-**Windows** (PowerShell)
+В PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip -OutFile Node-Server-1.5.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip.sha256 -OutFile Node-Server-1.5.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.5.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.5.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.5.0-windows-x64.zip -DestinationPath .
+$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0"
+Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip" -OutFile Node-Server-1.7.0-windows-x64.zip
+Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip.sha256" -OutFile Node-Server-1.7.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.7.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.7.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
-Строка сравнения печатает `True`, если архив скачался целым.
+Строка сравнения выводит `True`, если архив скачался целым. Не закрывайте окно, пока сервер
+работает: оно же служит [консолью сервера](/ru/hosting/administration/#консоль).
 
-<details>
-<summary>Что лежит в архиве</summary>
+</TabItem>
+<TabItem label="Linux">
 
-- Исполняемый файл, `Node-Server` или `Node-Server.exe`.
-- `tools/` — **Prometheus**, Lua-программа, которая обфусцирует *клиентские скрипты* плагинов перед
-  отправкой игрокам. С системой мониторинга с тем же названием не связана, настройки не требует и
-  поставляется полным деревом исходников (`tools\prometheus\` с `web/`, `tests/` и `Dockerfile`
-  внутри — так и должно быть). В архиве для Windows есть нужный ей интерпретатор Lua 5.1
-  (`tools\lua515\lua5.1.exe`); на Linux установите пакет `lua5.1` и укажите его в `NODE_LUA`, как
-  выше. Без интерпретатора сервер всё равно запустится, но отдаст клиентские скрипты открытым текстом.
-- `examples/` — примеры ресурсов с `README.txt`, который говорит, что делает каждый, их `LICENSE` и
-  файлом `EXAMPLES_COMMIT` рядом с исполняемым файлом — коммитом, из которого они взяты.
-- Только Windows: `cacert.pem` — набор публичных корневых сертификатов от Mozilla с его
-  `cacert.LICENSE`, им проверяется директория ([шаг 4](#4-попасть-в-список)).
-
-</details>
-
-Первый запуск записывает `server.toml` со всеми ключами по умолчанию, создаёт TLS-сертификат
-`node_cert.pem` и ключ `node_key.pem` рядом с исполняемым файлом, папки `content/` (с пустым кэшем
-хешей `content/mods.json`), `logs/` и `.obfcache/` — и работает. После баннера с версией, именем,
-портом, картой и числом игроков важны эти строки:
-
-```
-No config file found! Generating one...
-generated a new self-signed TLS certificate (node_cert.pem)
-TLS 1.3 enabled — certificate fingerprint (SHA-256): …
-client obfuscation ready · runner lua5.1 · Prometheus (cache .obfcache)
-0 resources · 0 modules loaded
-server is ready
+```bash
+sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
+cd /opt/nodemp
+base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0
+curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz"
+curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.7.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.7.0-linux-x64.tar.gz
+sudo apt install -y lua5.1
+NODE_LUA=/usr/bin/lua5.1 ./Node-Server
 ```
 
-На Windows строка интерпретатора — `runner lua5.1.exe`. Ещё две строки нормальны, это не
-предупреждения: `state relay interest management OFF (StateRelayRadius <= 0: every position relayed to everyone)`
-описывает значение `[Network] StateRelayRadius` по умолчанию, а `listening on [::]:30814 (tcp, tls 1.3)`
-вместе с двойником `(udp)` значит, что сервер принимает IPv6 и IPv4 на этом порту. Остановите его
-по Ctrl+C.
+`lua5.1` нужен серверу, чтобы запутывать скрипты, которые плагины отправляют игрокам; без него
+сервер всё равно работает и отправляет эти скрипты как обычный текст.
 
 </TabItem>
 <TabItem label="Docker">
 
-Образ `ghcr.io/nodemp-beamng/server:v1.5.0` запускает тот же бинарник на Ubuntu 24.04 с Lua 5.1
-(`latest` следует за свежей сборкой основной ветки и может опережать релиз — закрепляйте тег
-версии). В нём нет `server.toml`: образ задаёт `NODE_PROVIDER_DISABLE_CONFIG=true`, так что каждая
-настройка — переменная окружения: `NODE_NAME` для `[General] Name` и так далее, список — в
-[Конфигурации](/ru/hosting/configuration/). Процесс работает от пользователя с id 10001, рабочий
-каталог — `/data`; там живут `resources/`, `content/`, `storage/`, `tls/`, `.obfcache/`, `logs/` и
-`bans.json`.
+Образ лежит в релизе файлом. Загрузите его один раз:
 
-:::caution[Пока не публичный]
-Пока пакет не сделали публичным, `docker pull` работает только у аккаунтов, которым организация
-NodeMP-BeamNG дала доступ. До тех пор используйте бинарник.
-:::
+```bash
+docker load -i nodemp-server-v1.7.0-image.tar
+```
+
+Docker ответит `Loaded image: nodemp-server:1.7.0-0c9c284` — этот тег и запускайте. В образе
+сервер берёт настройки только из переменных окружения (`NODE_NAME` для `[General] Name` и так
+далее) и всё, что пишет, хранит в `/data`, от имени пользователя с id 10001:
 
 ```bash
 mkdir -p data && sudo chown 10001:10001 data
@@ -130,44 +90,63 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  ghcr.io/nodemp-beamng/server:v1.5.0
+  nodemp-server:1.7.0-0c9c284
 docker logs -f nodemp-server
 ```
 
-Две строки важнее, чем кажутся:
+Две строки здесь важнее, чем кажутся:
 
-- Папка данных должна принадлежать пользователю 10001 до первого запуска: контейнер создаёт в ней
-  свои папки и не запускается, если не может.
-- `NODE_TLS_CERT` и `NODE_TLS_KEY` должны указывать внутрь `/data`: относительный путь разрешается
-  рядом с исполняемым файлом, который внутри образа только для чтения, и сервер останавливается с
-  `TLS: failed to write /opt/node/node_key.pem`.
+- папка `data/` должна принадлежать пользователю 10001 ещё до первого запуска, иначе сервер не
+  сможет писать свои файлы;
+- `NODE_TLS_CERT` и `NODE_TLS_KEY` должны указывать внутрь `/data`. По умолчанию сертификат
+  ложится рядом с исполняемым файлом, а там в образе только чтение, и сервер останавливается при
+  запуске с `TLS: cannot write /opt/node/node_key.pem (…)`.
 
-Чтобы изменить настройку, удалите контейнер (`docker rm -f nodemp-server`) и запустите заново с
-новыми переменными; всё в `data/` сохранится. На странице [Запуск сервера](/ru/hosting/running/) —
-то же самое в виде Compose-файла.
+Чтобы поменять настройку, удалите контейнер (`docker rm -f nodemp-server`) и запустите заново с
+новыми переменными; всё в `data/` останется. В разделе
+[Чтобы сервер работал постоянно](/ru/hosting/running/#docker-compose) то же самое — файлом Compose.
 
 </TabItem>
 </Tabs>
 
+При первом запуске сервер записывает `server.toml` со всеми настройками по умолчанию, делает себе
+TLS-сертификат, создаёт `content/` и `logs/` и стартует. После заставки с версией, именем, портом и
+картой смотрите на эти строки:
+
+```
+no config file server.toml yet; writing one with every default
+generated a new self-signed TLS certificate (node_cert.pem)
+TLS 1.3 enabled — certificate fingerprint (SHA-256): …
+listening on [::]:30814 (tcp, tls 1.3, dual-stack: IPv4 + IPv6)
+client obfuscation ready · runner lua5.1.exe · Prometheus (cache .obfcache)
+0 resources · 1 module loaded
+server is ready
+```
+
+Предупреждение о том, что база данных не настроена, — это нормально: модуль базы идёт вместе с
+сервером и ждёт, пока он понадобится какому-нибудь плагину. Остановить сервер — Ctrl+C или команда
+`stop` в его окне.
+
 ## 2. Открыть порт
 
-Откройте 30814 TCP и UDP в файрволе и пробросьте оба на роутере, если машина за ним. На Windows
-команды нужно выполнять в PowerShell, открытом **от имени администратора**; всё остальное на этой
-странице — в обычном.
-
-```bash
-sudo ufw allow 30814/tcp
-sudo ufw allow 30814/udp
-```
+Разрешите порт 30814, TCP и UDP, в файрволе и пробросьте оба на роутере, если машина за ним. В
+Windows выполните это в PowerShell, открытом **от имени администратора**:
 
 ```powershell
 New-NetFirewallRule -DisplayName "Node-Server TCP" -Direction Inbound -Protocol TCP -LocalPort 30814 -Action Allow
 New-NetFirewallRule -DisplayName "Node-Server UDP" -Direction Inbound -Protocol UDP -LocalPort 30814 -Action Allow
 ```
 
+В Linux с `ufw`:
+
+```bash
+sudo ufw allow 30814/tcp
+sudo ufw allow 30814/udp
+```
+
 ## 3. Имя, карта и места
 
-Отредактируйте `server.toml` (в Docker — переменные `-e` выше). Ключи, которые меняют чаще всего:
+Откройте `server.toml` (в Docker — переменные `-e` выше). Большинство серверов меняют только это:
 
 ```toml
 [General]
@@ -177,55 +156,42 @@ MaxPlayers = 16
 MaxCars = 2
 ```
 
-Настройки читаются при запуске, поэтому запустите сервер снова. Все ключи — в
-[Конфигурации](/ru/hosting/configuration/).
+Сервер читает файл при запуске, так что после изменения перезапустите его. Этот файл сервер пишет
+один раз и ваши правки никогда не перезаписывает. Всё остальное — на странице
+[server.toml](/ru/hosting/configuration/).
 
 ## 4. Попасть в список
 
-Сервер появляется в списке лаунчера, когда заявляет о себе директории с **ключом сервера**.
-Создайте его на [nodemp.com/account/servers](https://nodemp.com/account/servers) — по шагам это разобрано на странице
-[Регистрация сервера](/ru/hosting/registering/) — и передайте серверу:
+Сервер появляется в списке лаунчера, когда представляется NodeMP с **ключом сервера**. Создайте его
+в своём аккаунте на [nodemp.com/account/servers](https://nodemp.com/account/servers) (по шагам — на
+странице [Попасть в список](/ru/hosting/registering/)), затем:
 
-- **Бинарник:** в `server.toml` уже есть таблица `[Directory]` (её записал первый запуск, все ключи
-  пустые). Задайте трём её ключам `Url`, `HostId` и `HostSecret` значения с сайта.
-- **Docker:** добавьте в строку `docker run` `-e NODE_DIRECTORY_URL=https://api.nodemp.com`,
+- **Windows и Linux:** в `server.toml` уже есть таблица `[Directory]` с пустыми значениями. Впишите
+  туда `Url`, `HostId` и `HostSecret`.
+- **Docker:** добавьте `-e NODE_DIRECTORY_URL=https://api.nodemp.com`,
   `-e NODE_DIRECTORY_HOST_ID=…` и `-e NODE_DIRECTORY_HOST_SECRET=…`.
 
-:::caution[Не вставляйте второй блок [Directory]]
-TOML не допускает одну таблицу дважды, и при следующем запуске сервер завершится с
-`Error parsing config file value: server.toml, line …: the table [Directory] appears twice. Put the keys into the existing [Directory] table …`.
-Заполните существующую таблицу.
+:::caution[Не вставляйте вторую таблицу [Directory]]
+TOML не разрешает одну и ту же таблицу дважды, и сервер тогда откажется запускаться с
+`the table [Directory] appears twice. Put the keys into the existing [Directory] table …`.
+Заполните ту таблицу, что уже есть.
 :::
 
-Перезапустите сервер. В логе появится `announcing this server to https://api.nodemp.com`, а когда
-директория примет ключ — `listed in the server browser`. Если вторая строка так и не появилась,
-ключ неверный или директория недоступна; сообщения разобраны в
-[таблице неполадок](/ru/hosting/registering/#устранение-неполадок). На Windows сервер проверяет сертификат
-директории по хранилищу сертификатов Windows и `cacert.pem` из архива, настраивать ничего не нужно;
-хост, который ещё на 1.2.0 или 1.1.0, вместо этого видит
-`Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)`,
-и таблица говорит, что делать до обновления.
+Перезапустите. В логе появится `announcing this server to https://api.nodemp.com`, а когда NodeMP
+примет ключ — `listed in the server browser`. Если вторая строка так и не появилась, сообщения
+разобраны в разделе [Попасть в список → Если не получается](/ru/hosting/registering/#если-не-получается).
 
-## 5. Зайти на сервер
+## 5. Зайти
 
-Запустите лаунчер, откройте **Серверы** и найдите сервер по имени — или используйте **Прямое
-подключение** с вашим публичным адресом, `203.0.113.10:30814`. Прямое подключение работает и для
-сервера без ключа.
-
-Первый вход идёт дольше: лаунчер проверяет файлы игры игрока (`VerifyGame`) и скачивает контент,
-который вы положили в `content/`. Проверка по умолчанию, `size`, сравнивает размеры файлов со списком
-самой игры; `scripts` и `full` хешируют больше; `strict` сравнивает всю установку и папку
-пользователя игрока с эталоном чистой игры, который вы сначала генерируете, —
-шаги на странице [Строгая проверка](/ru/hosting/strict-verification/).
-
-## 6. Добавить чат и другие ресурсы
- 
-По умолчанию Node-Server отвечает только за транспорт и ретрансляцию состояния машин. Чат и команды `/` реализуются ресурсами-плагинами. В папке `examples/` лежат готовые примеры (`chat`, `demo-numbers`, `vehicle-cleanup` и др.; описание — в `examples/README.txt`). Чтобы установить ресурс, скопируйте его папку в `resources/` и перезапустите сервер. Начните с `examples/chat` → `resources/chat`: он включает чат и команды `/` ([Ресурсы и контент](/ru/hosting/resources/#установка-ресурса)). Самый простой собственный ресурс — `hello` из раздела [Первые шаги](/ru/plugins/getting-started/).
+Запустите лаунчер, откройте **Серверы** и найдите свой сервер по имени — или нажмите **Прямое
+подключение** и введите публичный адрес и порт, например `203.0.113.10:30814`. Прямое подключение
+работает и для сервера без ключа.
 
 ## Дальше
 
-- [Конфигурация](/ru/hosting/configuration/) — каждый ключ `server.toml`, его значение по умолчанию и
-  переменная `NODE_*`.
-- [Запуск сервера](/ru/hosting/running/) — unit для systemd, Compose-файл, логи, резервные копии.
-- [Регистрация сервера](/ru/hosting/registering/) — ключи сервера и параметры списка.
-- [Ресурсы и контент](/ru/hosting/resources/) — ресурсы и клиентские моды.
+- [Моды и ресурсы](/ru/hosting/resources/) — добавить свою карту или машину и плагины. Чат работает
+  сразу.
+- [Чтобы сервер работал постоянно](/ru/hosting/running/) — службой в Linux, при старте Windows, в
+  Docker Compose.
+- [Консоль, кики и баны](/ru/hosting/administration/).
+- [server.toml](/ru/hosting/configuration/) — все настройки.

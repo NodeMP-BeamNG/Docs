@@ -85,7 +85,8 @@ says so itself: `the table [Directory] appears twice. Put the keys into the exis
 ### My Docker server ignores `server.toml`.
 
 That's on purpose: the image reads its settings from environment variables (`NODE_PORT`,
-`NODE_NAME`, …), which keep secrets out of files. → [Run a server → Docker](/hosting/quick-start/#docker)
+`NODE_NAME`, …), which keep secrets out of files. If you prefer a file, set
+`NODE_PROVIDER_DISABLE_CONFIG=false`. → [Hosting troubleshooting](/hosting/troubleshooting/#docker-other-surprises)
 
 ### My Docker server stops right after start with a TLS error.
 

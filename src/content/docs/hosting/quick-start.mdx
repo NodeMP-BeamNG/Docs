@@ -1,123 +1,84 @@
 ---
-title: Quick start
-description: Run Node-Server 1.5.0 from the release archive or the Docker image, open port 30814, set a name and a map, and get into the launcher's list.
+title: Run a server
+description: Get Node-Server 1.7.0 running on Windows, Linux or Docker, open its port, give it a name and a map, and put it into the launcher's list.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-`Node-Server` is the dedicated game server that players connect to via the launcher. Follow these six steps to get your server running and publicly listed:
+`Node-Server` is the program players connect to. Getting one running and into the launcher's list
+takes five steps:
 
-1. [Download and start](#1-download-and-start) the server.
-2. [Open port 30814](#2-open-the-port), TCP and UDP.
-3. [Set a name and a map](#3-name-map-and-slots).
-4. [Get listed](#4-get-listed) with a server key.
+1. [Download and start it](#1-download-and-start).
+2. [Open the port](#2-open-the-port), TCP and UDP.
+3. [Give it a name, a map and slots](#3-name-map-and-slots).
+4. [Get it listed](#4-get-listed) with a server key.
 5. [Join it](#5-join-it) from the launcher.
-6. [Add chat and other resources](#6-add-chat-and-other-resources).
-
-Core concepts:
-- **Directory**: The master server service at `https://api.nodemp.com` that maintains the public server browser.
-- **Server key**: Host ID and Host secret from your NodeMP account, used to authenticate your server to the directory.
-- **Direct Connect**: Joining directly by `IP:port` without using the server browser.
-
-More terms are in the [glossary](/reference/glossary/#for-hosts).
 
 ## What you need
 
-- A host reachable on port **30814** (TCP and UDP). If running behind a home router, forward both protocols. The server connects to the directory via outbound HTTPS.
-- Linux x64 or Windows x64. The Linux binary requires glibc 2.39+ (built on Ubuntu 24.04); use the Docker image on older distributions.
-- To appear in the server browser: a NodeMP account at [nodemp.com](https://nodemp.com) with a **verified email** and **linked Discord**. Unlisted servers do not require an account or key; players can join via Direct Connect.
-- Optional (for `VerifyGame = "strict"`): a Windows PC with a clean BeamNG.drive installation to generate a reference manifest ([Strict verification](/hosting/strict-verification/)).
+- A machine players can reach on one port, TCP and UDP (`30814` unless you pick another). At home,
+  that means forwarding the port on your router.
+- Windows x64, or a Linux x64 as new as Ubuntu 24.04 (the binary needs glibc 2.38 and the C++
+  library of GCC 13). On an older Linux, use the Docker image.
+- To be listed: a NodeMP account at [nodemp.com](https://nodemp.com). An unlisted server needs no
+  account at all; players join it by address.
 
 ## 1. Download and start
 
+The server is published on [GitHub releases](https://github.com/NodeMP-BeamNG/releases) under the
+tag `server-v1.7.0`: `Node-Server-1.7.0-windows-x64.zip`, `Node-Server-1.7.0-linux-x64.tar.gz` and
+the Docker image `nodemp-server-v1.7.0-image.tar`, each with a `.sha256` file to check the download
+against.
+
 <Tabs>
-<TabItem label="Binary">
+<TabItem label="Windows">
 
-The release archives are attached to tag `server-v1.5.0` at
-[github.com/NodeMP-BeamNG/releases](https://github.com/NodeMP-BeamNG/releases):
-`Node-Server-1.5.0-linux-x64.tar.gz` and `Node-Server-1.5.0-windows-x64.zip`, each with a
-`.sha256` file.
-
-**Linux**
-
-```bash
-sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
-cd /opt/nodemp
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz
-curl -LO https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-linux-x64.tar.gz.sha256
-sha256sum -c Node-Server-1.5.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.5.0-linux-x64.tar.gz
-sudo apt install -y lua5.1
-export NODE_LUA=/usr/bin/lua5.1
-./Node-Server
-```
-
-**Windows** (PowerShell)
+In PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force C:\NodeMP | Out-Null
 Set-Location C:\NodeMP
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip -OutFile Node-Server-1.5.0-windows-x64.zip
-Invoke-WebRequest https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.5.0/Node-Server-1.5.0-windows-x64.zip.sha256 -OutFile Node-Server-1.5.0-windows-x64.zip.sha256
-(Get-FileHash Node-Server-1.5.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.5.0-windows-x64.zip.sha256).Split(' ')[0]
-Expand-Archive Node-Server-1.5.0-windows-x64.zip -DestinationPath .
+$base = "https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0"
+Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip" -OutFile Node-Server-1.7.0-windows-x64.zip
+Invoke-WebRequest "$base/Node-Server-1.7.0-windows-x64.zip.sha256" -OutFile Node-Server-1.7.0-windows-x64.zip.sha256
+(Get-FileHash Node-Server-1.7.0-windows-x64.zip).Hash.ToLower() -eq (Get-Content Node-Server-1.7.0-windows-x64.zip.sha256).Split(' ')[0]
+Expand-Archive Node-Server-1.7.0-windows-x64.zip -DestinationPath .
 .\Node-Server.exe
 ```
 
-The comparison line prints `True` when the download is intact.
+The comparison line prints `True` when the download is intact. Leave the window open while the
+server runs; it doubles as the [server console](/hosting/administration/#the-console).
 
-<details>
-<summary>What is in the archive</summary>
+</TabItem>
+<TabItem label="Linux">
 
-- The executable, `Node-Server` or `Node-Server.exe`.
-- `tools/` — **Prometheus**, a Lua program that obfuscates the *client scripts* plugins stream to
-  players before they leave the server. It has nothing to do with the monitoring system of the same
-  name, needs no configuration and ships as its full source tree (`tools\prometheus\` with `web/`,
-  `tests/` and a `Dockerfile` inside is expected). The Windows archive bundles the Lua 5.1 runner it
-  needs (`tools\lua515\lua5.1.exe`); on Linux install the distribution's `lua5.1` and point
-  `NODE_LUA` at it, as above. Without a runner the server starts anyway and sends client scripts as
-  plain source.
-- `examples/` — the example resources, with a `README.txt` that says what each one does, their
-  `LICENSE`, and `EXAMPLES_COMMIT` next to the executable naming the commit they came from.
-- Windows only: `cacert.pem` — Mozilla's bundle of public root certificates, with its
-  `cacert.LICENSE`, used to verify the directory ([step 4](#4-get-listed)).
-
-</details>
-
-The first start writes `server.toml` with every key at its default, generates the TLS certificate
-`node_cert.pem` and its key `node_key.pem` next to the executable, creates `content/` (with an empty
-hash cache `content/mods.json`), `logs/` and `.obfcache/`, and runs. After a banner with the
-version, name, port, map and player count, these are the lines that matter:
-
-```
-No config file found! Generating one...
-generated a new self-signed TLS certificate (node_cert.pem)
-TLS 1.3 enabled — certificate fingerprint (SHA-256): …
-client obfuscation ready · runner lua5.1 · Prometheus (cache .obfcache)
-0 resources · 0 modules loaded
-server is ready
+```bash
+sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
+cd /opt/nodemp
+base=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.7.0
+curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz"
+curl -LO "$base/Node-Server-1.7.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.7.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.7.0-linux-x64.tar.gz
+sudo apt install -y lua5.1
+NODE_LUA=/usr/bin/lua5.1 ./Node-Server
 ```
 
-On Windows the runner line reads `runner lua5.1.exe`. Two more lines are normal, not warnings:
-`state relay interest management OFF (StateRelayRadius <= 0: every position relayed to everyone)`
-describes the default of `[Network] StateRelayRadius`, and `listening on [::]:30814 (tcp, tls 1.3)`
-with its `(udp)` twin says the server accepts IPv6 and IPv4 on that port. Stop it with Ctrl+C.
+`lua5.1` is what the server uses to scramble the scripts plugins send to players; without it the
+server still runs and sends those scripts as plain text.
 
 </TabItem>
 <TabItem label="Docker">
 
-The image `ghcr.io/nodemp-beamng/server:v1.5.0` runs the same binary on Ubuntu 24.04 with Lua 5.1
-installed (`latest` follows the newest main-branch build, which may be ahead of the latest release —
-pin a version tag). It has no `server.toml`: the image sets `NODE_PROVIDER_DISABLE_CONFIG=true`, so
-every setting is an environment variable — `NODE_NAME` for `[General] Name` and so on, listed in
-[Configuration](/hosting/configuration/). The process runs as user id 10001 with `/data` as its
-working directory; `resources/`, `content/`, `storage/`, `tls/`, `.obfcache/`, `logs/` and
-`bans.json` live there.
+The release has the image as a file. Load it once:
 
-:::caution[Not public yet]
-Until the package is made public, only accounts granted access by the NodeMP-BeamNG organisation can
-`docker pull` it. Use the binary meanwhile.
-:::
+```bash
+docker load -i nodemp-server-v1.7.0-image.tar
+```
+
+Docker answers `Loaded image: nodemp-server:1.7.0-0c9c284`; that tag is what you run. In the image
+the server takes its settings from environment variables only (`NODE_NAME` for `[General] Name`,
+and so on) and keeps everything it writes in `/data`, as user id 10001:
 
 ```bash
 mkdir -p data && sudo chown 10001:10001 data
@@ -130,44 +91,61 @@ docker run -d --name nodemp-server --restart unless-stopped \
   -e NODE_MAX_CARS=2 \
   -e NODE_TLS_CERT=/data/tls/node_cert.pem \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
-  ghcr.io/nodemp-beamng/server:v1.5.0
+  nodemp-server:1.7.0-0c9c284
 docker logs -f nodemp-server
 ```
 
-Two lines matter more than they look:
+Two lines in there matter more than they look:
 
-- The data folder must belong to user 10001 before the first start: the container creates its state
-  folders in it and refuses to run when it cannot.
-- `NODE_TLS_CERT` and `NODE_TLS_KEY` must point into `/data`: a relative path resolves next to the
-  executable, which is read-only inside the image, and the server then stops with
-  `TLS: failed to write /opt/node/node_key.pem`.
+- `data/` has to belong to user 10001 before the first start, or the server can't write its files.
+- `NODE_TLS_CERT` and `NODE_TLS_KEY` must point into `/data`. By default the certificate goes next
+  to the executable, which is read-only in the image, and the server stops at start with
+  `TLS: cannot write /opt/node/node_key.pem (…)`.
 
-To change a setting, remove the container (`docker rm -f nodemp-server`) and run it again with the
-new variables; everything in `data/` stays. [Running the server](/hosting/running/) has the same
-setup as a Compose file.
+To change a setting, remove the container (`docker rm -f nodemp-server`) and run it again with new
+variables; everything in `data/` stays. [Keeping it running](/hosting/running/#docker-compose) has
+the same setup as a Compose file.
 
 </TabItem>
 </Tabs>
 
+On the first start the server writes `server.toml` with every setting at its default, makes itself
+a TLS certificate, creates `content/` and `logs/`, and starts. After a banner with its version,
+name, port and map, these lines are the ones to look for:
+
+```
+no config file server.toml yet; writing one with every default
+generated a new self-signed TLS certificate (node_cert.pem)
+TLS 1.3 enabled — certificate fingerprint (SHA-256): …
+listening on [::]:30814 (tcp, tls 1.3, dual-stack: IPv4 + IPv6)
+client obfuscation ready · runner lua5.1.exe · Prometheus (cache .obfcache)
+0 resources · 1 module loaded
+server is ready
+```
+
+A warning that no database is configured is normal: the database module ships with the server and
+waits until a plugin needs it. Stop the server with Ctrl+C, or type `stop` in its window.
+
 ## 2. Open the port
 
-Open 30814 TCP and UDP in the firewall, and forward both on your router if the machine is behind
-one. On Windows the commands need a PowerShell opened **as Administrator**; everything else on this
-page runs in a normal one.
-
-```bash
-sudo ufw allow 30814/tcp
-sudo ufw allow 30814/udp
-```
+Allow port 30814, TCP and UDP, in the firewall, and forward both on your router if the machine is
+behind one. On Windows, run this in a PowerShell opened **as administrator**:
 
 ```powershell
 New-NetFirewallRule -DisplayName "Node-Server TCP" -Direction Inbound -Protocol TCP -LocalPort 30814 -Action Allow
 New-NetFirewallRule -DisplayName "Node-Server UDP" -Direction Inbound -Protocol UDP -LocalPort 30814 -Action Allow
 ```
 
+On Linux with `ufw`:
+
+```bash
+sudo ufw allow 30814/tcp
+sudo ufw allow 30814/udp
+```
+
 ## 3. Name, map and slots
 
-Edit `server.toml` (Docker: the `-e` variables above). The keys most servers change:
+Open `server.toml` (in Docker: the `-e` variables above). Most servers change only these:
 
 ```toml
 [General]
@@ -177,54 +155,41 @@ MaxPlayers = 16
 MaxCars = 2
 ```
 
-Settings are read at start, so start the server again. Every key is in
-[Configuration](/hosting/configuration/).
+The server reads the file at start, so restart it after a change. The server writes this file only
+once and never overwrites your edits. Everything else is on [server.toml](/hosting/configuration/).
 
 ## 4. Get listed
 
-A server appears in the launcher's list once it announces itself to the directory with a **server
-key**. Create one at [nodemp.com/account/servers](https://nodemp.com/account/servers) —
-[Registering your server](/hosting/registering/) walks through it — and give it to the server:
+A server shows up in the launcher's list once it introduces itself to NodeMP with a **server key**.
+Create one in your account at [nodemp.com/account/servers](https://nodemp.com/account/servers)
+([Get listed](/hosting/registering/) walks through it), then:
 
-- **Binary:** `server.toml` already has a `[Directory]` table (the first start wrote it, every key
-  empty). Set its three keys `Url`, `HostId` and `HostSecret` to what the site shows.
+- **Windows and Linux:** `server.toml` already has a `[Directory]` table with empty values. Fill in
+  `Url`, `HostId` and `HostSecret` there.
 - **Docker:** add `-e NODE_DIRECTORY_URL=https://api.nodemp.com`, `-e NODE_DIRECTORY_HOST_ID=…` and
-  `-e NODE_DIRECTORY_HOST_SECRET=…` to the `docker run` line.
+  `-e NODE_DIRECTORY_HOST_SECRET=…`.
 
-:::caution[Do not paste a second [Directory] block]
-TOML rejects a table defined twice, and the server exits at the next start with
-`Error parsing config file value: server.toml, line …: the table [Directory] appears twice. Put the keys into the existing [Directory] table …`.
-Fill in the existing table instead.
+:::caution[Don't paste a second [Directory] table]
+TOML doesn't allow the same table twice, and the server then refuses to start with
+`the table [Directory] appears twice. Put the keys into the existing [Directory] table …`. Fill in
+the table that is already there.
 :::
 
-Restart. The log says `announcing this server to https://api.nodemp.com` and, once the directory
-has accepted the key, `listed in the server browser`. If the second line never comes, the key is
-wrong or the directory cannot be reached; the
-[troubleshooting table](/hosting/registering/#troubleshooting) lists the messages. On Windows the
-server verifies the directory's certificate against the Windows certificate store and the
-`cacert.pem` from the archive, so nothing needs setting up; a host still on 1.2.0 or 1.1.0 sees
-`Could not reach the directory at https://api.nodemp.com: TLS handshake failed: certificate verify failed (SSL routines)`
-instead, and the table says what to do until the update.
+Restart. The log says `announcing this server to https://api.nodemp.com` and, once NodeMP accepted
+the key, `listed in the server browser`. If that second line never comes,
+[Get listed → Troubleshooting](/hosting/registering/#troubleshooting) has the messages.
 
 ## 5. Join it
 
-Start the launcher, open **Servers** and find the server by name — or use **Direct Connect** with
-your public address, `203.0.113.10:30814`. Direct Connect also works for a server without a key.
+Start the launcher, open **Servers** and find your server by name, or use **Direct Connect** with
+your public address and port, such as `203.0.113.10:30814`. Direct Connect also works for a server
+without a key.
 
-The first join takes longer while the launcher checks the player's game files (`VerifyGame`) and
-downloads any content you put into `content/`. The default `size` check compares file sizes with the
-game's own list; `scripts` and `full` hash more of it; `strict` compares the whole install and the
-player's user folder with a reference of a clean game that you generate first —
-[Strict verification](/hosting/strict-verification/) has the steps.
+## Next
 
-## 6. Add chat and other resources
- 
-By default, Node-Server only handles transport and vehicle state relaying. Chat and `/` commands are implemented via plugin resources. The release archive includes sample resources under `examples/` (`chat`, `demo-numbers`, `vehicle-cleanup`, etc.; see `examples/README.txt`). To install a resource, copy its folder into `resources/` and restart the server. Start with `examples/chat` → `resources/chat`: it provides chat and `/` commands ([Resources and content](/hosting/resources/#installing-a-resource)). The minimal custom resource is `hello` from [Getting started](/plugins/getting-started/).
-
-## Next steps
-
-- [Configuration](/hosting/configuration/) — every `server.toml` key, its default and its `NODE_*`
-  variable.
-- [Running the server](/hosting/running/) — systemd unit, Compose file, logs, backups.
-- [Registering your server](/hosting/registering/) — server keys and the listing options.
-- [Resources and content](/hosting/resources/) — add resources and client mods.
+- [Mods and resources](/hosting/resources/): add a custom map or car, and plugins. Chat works out of
+  the box.
+- [Keeping it running](/hosting/running/): as a service on Linux, at startup on Windows, with
+  Docker Compose.
+- [Console, kicks and bans](/hosting/administration/).
+- [server.toml](/hosting/configuration/): every setting.

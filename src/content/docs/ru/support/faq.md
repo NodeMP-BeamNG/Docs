@@ -86,7 +86,8 @@ PowerShell) с файлом `.sha256`, который лежит рядом с �
 ### Мой сервер в Docker не читает `server.toml`.
 
 Так и задумано: образ берёт настройки из переменных окружения (`NODE_PORT`, `NODE_NAME`, …),
-чтобы секреты не лежали в файлах. → [Запустить сервер → Docker](/ru/hosting/quick-start/#docker)
+чтобы секреты не лежали в файлах. Если удобнее файл, задайте
+`NODE_PROVIDER_DISABLE_CONFIG=false`. → [Неполадки на стороне хоста](/ru/hosting/troubleshooting/#docker-другие-сюрпризы)
 
 ### Мой сервер в Docker сразу падает с ошибкой TLS.
 

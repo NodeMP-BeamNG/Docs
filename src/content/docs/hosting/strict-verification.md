@@ -1,120 +1,71 @@
 ---
 title: Strict verification
-description: VerifyGame = strict - what the reference manifest covers and what it does not, --gen-integrity, where the file goes, what players see, plugin calls.
+description: VerifyGame = strict - what it checks and what it doesn't, making the reference manifest with --gen-integrity, where it goes, game updates, and the plugin calls.
 ---
 
-`[General] VerifyGame = "strict"` is the fourth level of the game install check, added with
-server 1.1.9, launcher 1.1.18 and wire protocol v23. The three lower levels compare a player's
-BeamNG install with the game's own file list, `integrity.json` — a list the player can edit
-along with the files it names. `strict` compares against a **reference manifest**: a
-description of a clean install that you generate once per game version and put on the server.
-The launcher fetches it, caches it, and checks the whole install and the game's user folder
-against it before every join and again during the session.
+`[General] VerifyGame = "strict"` is the strongest game file check. The lighter levels compare a
+player's install with the game's own file list, a list the player could edit together with the
+files. `strict` compares it with a **reference manifest** instead: a description of a clean
+install that you make once per game version and put on the server. The player's launcher fetches
+it once, caches it, and checks the whole install and the game's user folder against it before
+every join and again during the session.
 
-This page says what the check covers and what it does not, how to generate and place the
-manifest, and what players and plugin authors see. The key itself is described in
-[Configuration](/hosting/configuration/#general).
+It's meant for races and tournaments where everyone should drive the same game. For a freeroam
+server the default `size` check is usually enough.
 
-## What strict checks
+## What it checks
 
-The check runs in the player's launcher, against the reference manifest the server named.
-A player passes when every item below agrees; the counts of what did not are the `problems`
-in the refusal.
+The check runs in the player's launcher; the server judges the report. A player passes when all of
+this agrees:
 
-- **Every file the reference lists** — its length. `lua/` and `ui/` (the game's code and
-  interface), everything under `Bin64/` and `BinLinux/`, and the `*.exe` files in the game
-  root are also hashed with SHA-256 against the reference's digests, so a same-length edit is
-  caught there. Every other loose file (`art/`, `campaigns/`, `gameplay/`, …) is compared by
-  size only. Findings: `missing`, `size`, `hash`.
-- **Every archive** (`*.zip`) — its table of contents. The vehicles and levels live inside
-  multi-gigabyte zips that cannot be hashed before a join, but each zip ends with a list of its
-  entries with their uncompressed sizes and CRC-32s, and the reference holds that list for
-  every archive of the clean install. Entry by entry: `missing`, `extra`, `duplicate`, `size`,
-  `crc`; a zip whose table cannot be read at all is `unreadable`. A finding names the entry as
-  `/content/vehicles/pickup.zip!vehicles/pickup/pickup.jbeam`.
-- **The whole game folder** — any file the reference does not list is `unlisted`, wherever it
-  sits, unless it matches one of the manifest's *volatile* patterns (`integrity.json`, `*.log`,
-  `temp/`, `startup.ini`, `Bin64/*.pdb`, `shadercache/`, `desktop.ini`, `Thumbs.db`). A `.dll`
-  under `Bin64/` or a `.so` under `BinLinux/` is never excused by a pattern. When the launcher
-  itself is installed inside the game folder, its own files (the executable, `Launcher.cfg`,
-  `logs/`, `cache/`) are left out and the report says so (`excluded=`).
-- **The game's user folder** (`current/`) — the folder where the game mounts loose files over
-  the packed content, so a `vehicles/pickup/pickup.jbeam` there replaces the packed one. Only
-  what a player legitimately keeps there is allowed: the trees `settings/`, `screenshots/`,
-  `replays/`, `cache/`, `temp/`, `saves/`, `mods/` (the client mod's own `mods/multiplayer/`
-  included), `art/nodemp/`, `trackEditor/`, `flowgraphEditor/`, `roadArchitect/`; `*.log`
-  anywhere; saved vehicle configurations and their previews, `vehicles/<model>/<name>.pc`,
-  `.png`, `.jpg`, at exactly that depth; the `main.materials.json` placeholders the engine
-  writes anywhere under `vehicles/` and `art/`; `desktop.ini` and `Thumbs.db`. Any other file
-  under `vehicles/`, `levels/`, `lua/`, `ui/`, `art/`, `scripts/`, `gameplay/`, or under a
-  top-level folder that also exists in the game folder (`campaigns/`, …), is an `overlay`,
-  named as `userfolder:vehicles/pickup/pickup.jbeam`. Files in other top-level folders
-  (`multiplayer/`, …) and loose files directly in `current/` overlay nothing and are ignored.
-  A folder in one of those trees that the launcher cannot read is a finding too
-  (`unreadable`), and a user folder that does not exist fails the check by name.
+- **Every file the manifest lists**, by length. The game's code (`lua/`, `ui/`), everything under
+  `Bin64/` and `BinLinux/`, and the `.exe` files in the game folder are also checked by SHA-256,
+  so an edit that keeps the length is caught. Other loose files are compared by size. Problems:
+  `missing`, `size`, `hash`.
+- **Every game archive** (`.zip`), by its table of contents: each entry's name, size and CRC-32,
+  against the clean install. Problems: `missing`, `extra`, `duplicate`, `size`, `crc`, and
+  `unreadable` for a damaged zip.
+- **The whole game folder.** A file the manifest doesn't list is `unlisted`, except logs, caches
+  and a few files the game or Windows write on their own (`integrity.json`, `*.log`, `temp/`,
+  `startup.ini`, `shadercache/`, `desktop.ini`, …). A `.dll` in `Bin64/` is never excused. If the
+  launcher is installed inside the game folder, its own files are left out.
+- **The game's user folder** (`…\BeamNG.drive\current`), where the game lays loose files over the
+  packed content. Only what players legitimately keep there is allowed: settings, screenshots,
+  replays, saves, caches, mods in `mods/`, saved vehicle configurations
+  (`vehicles/<model>/<name>.pc` with their pictures) and the editors' folders. Anything else under
+  `vehicles/`, `levels/`, `lua/`, `ui/`, `art/`, `scripts/` or `gameplay/` is an `overlay`.
 
-Which user folder is judged is the one the game uses: `--user-path` when the launcher was
-given one, else `startup.ini` beside the game (`[filesystem] UserPath`; a relative value is
-anchored at the folder holding the ini), else `BeamNG.Drive.ini` under `%LOCALAPPDATA%\BeamNG`
-(`userFolder`), else `%LOCALAPPDATA%\BeamNG\BeamNG.drive` — always with `current` appended. The
-launcher logs it at every join: `user folder judged by the strict check: …`.
+On BeamNG 0.39.4.0, with the files already in the system's cache, the whole check takes about a
+second (14 193 files, 173 archives, 7 203 files hashed). The first check after a reboot reads it
+all from disk and takes tens of seconds.
 
-The report the launcher sends names the manifest it checked against (`manifest=<id>;`), what it
-left out as its own (`excluded=1:NodeMP/cache/;`), how many folders it could not read
-(`skipped=1;`) and up to three examples, `path (reason)`. The server compares the id with the
-manifest it served: a report against another manifest — a stale cache, another server's file —
-is judged as a mismatch whatever its outcome.
+## What it doesn't check
 
-Measured on BeamNG 0.39.4.0 with the install already in the file cache, the whole check takes
-about a second: 14 193 files in the game folder, 173 archive tables, 7 203 files hashed
-(about 1.9 GB), and the user folder walked. The first check after a reboot reads that from disk
-and takes tens of seconds.
+The check keeps honest players on a clean game; it isn't a security boundary.
 
-## What strict does not check
+- **Inside the archives**, only the table of contents is compared. CRC-32 can be forged by someone
+  who edits an archive on purpose and pads it back; hashing every archive would mean reading about
+  50 GB per join. Your plugin's own rules on the server are the second line.
+- **The launcher itself** runs on the player's machine, which the player controls.
+- **Loose files outside the code and binaries** are compared by size only.
+- **Checks during the session** (after files change, and on a timer) skip hashing the binaries; a
+  library the running game already loaded can't change anything before the next start, which runs
+  the full check again. A check a plugin asks for with `player:verify("strict")` hashes everything.
+- **The manifest is only as clean as the install it was made from.**
 
-The check is a check on an honest client, not a security boundary. Where it stops:
+## Making the manifest
 
-- **Archive contents.** An archive is described by its table of contents only — entry name,
-  uncompressed size, CRC-32 — and CRC-32 is forgeable: a member can be edited and padded back
-  to its CRC with four bytes. Hashing every archive's content would read about 50 GB per join,
-  which is not a check anyone would run. Strict therefore holds against an install that has
-  changed the way installs change — mods, user-folder overlays, stray or edited loose files, a
-  repacked zip — not against a player who edits a game archive's member and tunes its CRC on
-  purpose. This is an accepted residual; the server-side rules of your resource remain the
-  second layer.
-- **The launcher itself.** The whole check runs on the player's machine, in a launcher the
-  player could patch. The server judges reports; it cannot observe the install.
-- **Loose files outside the code and the binaries** are compared by size only (their SHA-256
-  is in the manifest, but hashing another 2 GB before every join is not affordable).
-- **Re-checks during the session** — the folder watcher's and the scheduled ones — leave the
-  binaries unhashed: a library the running game has loaded cannot change what the game does
-  until the next start, and the next start re-runs the full check at the door. A request from a
-  resource (`player:verify("strict")`) hashes everything.
-- **The reference is as good as the install it came from.** A manifest generated over a
-  modified install ships that modification as clean. Generate on a clean install.
-- The user-folder allowlist is a list: a file the engine writes somewhere not on it would be
-  reported as an `overlay`. The diagnostic on [Troubleshooting](/support/strict-servers/)
-  is how such a case is found.
-
-## Generating the manifest
-
-The generator is built into the server binary. Run it on a Windows machine with a **clean**
-BeamNG.drive install of the version your players run (verify the files in Steam first, and
-make sure nothing is installed into the game folder), using the Windows build of `Node-Server`
-from the release archive. The game has to be installed on the machine that runs the generator -
-a Linux or Docker server has no game to read, so a host on Linux generates the file on a Windows
-PC (the players' game is a Windows program anyway) and copies the one file to the server; the
-manifest is portable and does not depend on where it was made:
+The generator is part of the server. Run it on a PC with a **clean** BeamNG.drive install of the
+version your players have (verify the files in Steam first, and keep tools and mods out of the game
+folder), with the Windows build of `Node-Server`:
 
 ```powershell
 .\Node-Server.exe --gen-integrity "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
 ```
 
-The argument is the game's root folder — the one with `integrity.json` in it. The tool reads
-that file for the game version and build number only; it does not copy its list, because the
-game's own list omits some shipped files, and any omission would make a clean install fail
-strict. Instead it walks the whole install, hashes every loose file with SHA-256, reads every
-archive's table of contents, drops the volatile paths, and writes one zstd-compressed JSON file:
+The argument is the game's main folder, the one with `integrity.json` in it. A Linux or Docker
+server has no game to read, so make the file on a Windows PC and copy it over; it doesn't matter
+where it was made. The output:
 
 ```
 reading the game install at C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive (every file is hashed; a few GB take about a minute) ...
@@ -128,120 +79,64 @@ integrity manifest written
 Put the file in the server's [General] IntegrityDir (default "integrity") and set VerifyGame = "strict".
 ```
 
-The numbers are those of 0.39.4.0; the run took about 12 seconds on a desktop with an NVMe
-disk. The `hash` line is the **manifest id**: the SHA-256 of the file's bytes, 64 lowercase hex
-digits — the digest `Get-FileHash -Algorithm SHA256` prints for the file, in lower case. Everything on the
-wire names the manifest by this id, and the launcher caches it under that name. Two runs over
-the same install produce byte-identical files with the same id, because the `generated`
-timestamp inside is taken from `integrity.json`'s modification time, not from the clock.
+The `hash` is the manifest's id; everything refers to the manifest by it, and launchers cache it
+under that name. Two runs over the same install give the same file and the same id.
+`--out <file>` writes it somewhere else, `--game-version <x.y.z.w>` overrides the version read from
+`integrity.json`. If something goes wrong, the tool writes nothing and says
+`integrity manifest NOT written: …`.
 
-Options: `--out <file>` writes elsewhere than `integrity/<game-version>.manifest` under the
-working directory; `--game-version <x.y.z.w>` overrides the version read from `integrity.json`.
-Both accept the `--flag=value` spelling too. The tool refuses to write anything when the folder
-has no readable `integrity.json` (`no readable integrity.json in … (is this the game's root
-folder?)`), when a file cannot be read, when an archive is malformed, or when the output cannot
-be written: `integrity manifest NOT written: …`, exit code 1.
+## Putting it on the server
 
-The file is **format 2**: the `format` key inside is `2`, every id and digest is SHA-256. An
-earlier draft used XXH64 (format 1); the server refuses such a file at start with
-`integrity manifest integrity/0.39.4.0.manifest skipped: format 1 is not supported (this server reads format 2, SHA-256 ids and digests); regenerate with --gen-integrity`.
-
-## Placing the manifest
-
-Copy the file into the `integrity/` folder of the server's working directory — the folder you
-start `Node-Server` in, `/opt/nodemp/integrity/` or `C:\NodeMP\integrity\` in the
-[quick start](/hosting/quick-start/) layout — or into the folder `[General] IntegrityDir`
-names. Under Docker the working directory is `/data`, so the file goes to `/data/integrity/`
-on the host's data volume. Then set `VerifyGame = "strict"` (`NODE_VERIFY_GAME=strict`) and
-restart: both the setting and the manifests are read at start.
-
-Keep **exactly one** `.manifest` in the folder. The handshake does not carry the player's game
-version, so the server cannot pick between manifests; with two files every join is refused with
-`This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. Ask the host to keep exactly one manifest in the server's integrity folder.`,
-and with none with
-`` This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. Ask the host to run `Node-Server --gen-integrity <gamedir>` and put the file in the server's integrity folder. ``
-Both cases are also errors in the start-up log. A healthy start logs one line per manifest,
+Copy the file into `integrity/` in the server's working directory (`/data/integrity/` in Docker),
+or the folder `[General] IntegrityDir` names. Set `VerifyGame = "strict"` (`NODE_VERIFY_GAME=strict`)
+and restart; both are read at start. A healthy start logs:
 
 ```
 integrity manifest for game 0.39.4.0 (build 20972): 173 archives, 59594 entries, 14193 root files, 1.2 MB (38 chunks), hash e326499d…
 strict game verification ON: reference manifest for game 0.39.4.0 (e326499d…)
 ```
 
-A server on another level still loads the folder (`1 integrity manifest loaded from "integrity"
-(available to Player:verify("strict"))`): a resource can then run a strict audit on demand
-without refusing anyone at the door.
+Keep **exactly one** `.manifest` in the folder. The launcher doesn't tell the server which game
+version it has, so with two files the server can't choose and refuses every join with
+`This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. …`;
+with none, with ``This server requires a strict check of your BeamNG install but has no integrity manifest to check it against. Ask the host to run `Node-Server --gen-integrity <gamedir>` and put the file in the server's integrity folder.``
+
+A server on another level still loads the folder
+(`1 integrity manifest loaded from "integrity" (available to Player:verify("strict"))`), so a plugin
+can run a strict check when it wants without refusing anyone at the door.
 
 ## After a game update
 
-The manifest describes one game version. When BeamNG updates, a player's updated install differs
-from the old reference in the binaries, the code and the archives, and is refused with
-`Game files do not match this server's reference (N problems). …`. Generate a new manifest
-from the updated clean install, replace the old file (one file in the folder), restart.
-Launchers notice the new id, fetch the new manifest on their next
-join and cache it. A player who has **not** updated the game yet is then refused the same way,
-with examples such as `/Bin64/BeamNG.drive.x64.exe (hash)`; updating the game in Steam fixes it.
+A manifest describes one game version. When BeamNG updates, players with the new version are
+refused against the old manifest. Make a new manifest from the updated clean install, replace the
+old file (still one file in the folder) and restart. Launchers notice the new id and fetch it on
+their next join. Players who haven't updated the game yet are then refused instead, with examples
+like `/Bin64/BeamNG.drive.x64.exe (hash)`; updating the game in Steam fixes that.
 
 ## What players see
 
-On a strict server the join has two extra steps in the launcher: `Downloading the server's
-integrity manifest` — once per manifest, about 1.2 MB in 32 KiB chunks, then cached as
-`%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\integrity\<id>.manifest` — and
-`Checking game files`. A clean install then joins as on any other server; its log says
-`game files verified: 14193 files checked in 0.9s (strict), 7203 hashed`. The server refuses a
-mismatch with
-`Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`;
-launcher 1.1.18 shows that in its own words under *The server refused the join*, as
-`Your game files do not match this server's reference (3 problems) · vehicles/pickup/pickup.jbeam`,
-with the first problem explained, advice and the diagnostic command. If the check fails later
-in the session the server ends it with
-`Game files changed while you were playing and no longer match this server's reference (1 problem). …`,
-shown under *Session ended* as
-`Your game files changed while you were playing and no longer match this server's reference (1 problem)`.
+A strict join has two extra steps: fetching the manifest (once; about 1.2 MB) and checking against
+it. A clean install then joins as anywhere else. A mismatch is refused with
+`Game files do not match this server's reference (3 problems). userfolder:vehicles/pickup/pickup.jbeam (overlay), …`,
+which the launcher explains in plain words with a command that lists every problem. The player's
+side of it is [Strict servers](/support/strict-servers/).
 
-During the session the launcher checks again: on Windows when files change under the install's
-`content/`, `scripts/`, `lua/`, `ui/` or the user folder's `vehicles/`, `levels/`, `lua/`, `ui/`,
-`art/` (at most once a minute), and on a schedule every `StrictRecheckMin` minutes of its
-`Launcher.cfg` (default 10; see [Settings](/players/settings/#advanced-launchercfg)).
-A re-check that finds nothing is not reported; one that finds a change is, and the server ends
-the session with the text above. The refusal texts and the diagnostic a refused player can run
-are on [Troubleshooting](/support/strict-servers/) and in
-[Error codes](/support/error-codes/#server-refusals-and-kick-reasons).
+During the session the launcher checks again when files change in the game or user folder, and
+every 10 minutes. A check that finds a change ends the session with
+`Game files changed while you were playing and no longer match this server's reference (1 problem). …`.
 
 ## For plugin authors
 
-Three additions to the server API belong to strict (they arrived in the last 1.x ABI and are
-part of 2.0):
-
-- [`player:verify(level)`](/plugins/api/lua/#playerverifylevel---boolean-string) asks the
-  player's launcher to run the check again, now, at `"size"`, `"scripts"`, `"full"` or
-  `"strict"`. It returns `true` when the request went out, or `nil` and `"unknown player"`,
-  `"unsupported"` (a level not on offer — `"strict"` on a server without exactly one loaded
-  manifest) or `"pending"` (one request per player per 60 s; the check every join runs does not
-  count, so a call from `playerJoined` goes out at once). A strict request from a resource hashes
-  the binaries, unlike the launcher's own re-checks.
-- [`playerVerifyReported`](/plugins/api/events/#playerverifyreported) fires for every report —
-  the one at the door and every mid-session one — **after** the server's verdict, with
-  `{ level, outcome, problems, detail, manifest }`: `outcome` is what the server decided
-  (`"clean"`, `"differs"`, `"failed"`), `manifest` the id the launcher named (`""` below
-  strict). A `differs` or `failed` report has already kicked the player when `VerifyGame` is
-  not `off`; on an `off` server the event is the only consequence, which is how an audit
-  without refusals is built.
-- [`player:setStrict(on)`](/plugins/api/lua/#playersetstricton---boolean-string) marks the
-  session strict on the server side, which changes one relay rule: a `Vehicle::Camera` frame
-  from that player targeting a vehicle it does not drive, ride in or own as its walking avatar
-  is not relayed, so a strict client cannot follow other players' cars with its camera. The
-  refused report still fires `playerCameraChanged`, and `player:camera()` then carries
-  `denied = true`. It tells the client nothing: the client-side rules are switched on with the
-  `strict` table of `session:config`, described on
-  [Client scripting](/plugins/client-scripting/#strict-sessions-sessionconfigstrict).
-
-Native modules have the same three as `player_verify`, `player_set_strict` and the
-`playerVerifyReported` notification in the
-[C ABI](/plugins/api/c/#strict-session-install-verification-and-the-camera-rule).
-
-## Next
-
-- [Configuration](/hosting/configuration/) — `VerifyGame`, `IntegrityDir`, the `--help` text.
-- [Troubleshooting](/support/strict-servers/) — what a refused player does.
-- [Wire protocol](/plugins/protocol/) — the v18 frames that carry the manifest and the report.
-- [Client scripting](/plugins/client-scripting/#strict-sessions-sessionconfigstrict) — the client half of a strict session.
+- [`player:verify(level)`](/plugins/api/lua/#playerverifylevel---boolean-string) asks the player's
+  launcher to check again now, at `"size"`, `"scripts"`, `"full"` or `"strict"`. It returns `true`
+  when the request went out, or `nil` and a reason: `"unknown player"`, `"unsupported"` (for
+  example `"strict"` without exactly one manifest loaded) or `"pending"` (one request per player
+  per 60 seconds; the check at the door doesn't count).
+- [`playerVerifyReported`](/plugins/api/events/#playerverifyreported) fires for every report,
+  after the server has decided, with `{ level, outcome, problems, detail, manifest }`. On a server
+  with `VerifyGame = "off"` the event is the only consequence, which is how you build an audit
+  that refuses nobody.
+- [`player:setStrict(on)`](/plugins/api/lua/#playersetstricton---boolean-string) makes the server
+  stop relaying camera reports in which that player follows a car they aren't in. It says nothing
+  to the client; the client-side rules of a strict session are switched on by `session:config`
+  ([Client scripts](/plugins/client-scripting/#strict-sessions)).

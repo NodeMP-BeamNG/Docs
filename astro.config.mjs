@@ -59,6 +59,10 @@ export default defineConfig({
     '/ru/support/launcher/': '/ru/support/troubleshooting/',
     '/support/logs/': '/support/troubleshooting/',
     '/ru/support/logs/': '/ru/support/troubleshooting/',
+    '/hosting/command-line/': '/hosting/configuration/',
+    '/ru/hosting/command-line/': '/ru/hosting/configuration/',
+    '/hosting/startup-messages/': '/hosting/troubleshooting/',
+    '/ru/hosting/startup-messages/': '/ru/hosting/troubleshooting/',
   },
   integrations: [
     starlight({
@@ -139,19 +143,16 @@ export default defineConfig({
         ]},
         { label: 'Server hosting', translations: { ru: 'Хостинг сервера' }, items: [
           { slug: 'hosting/quick-start' },
-          { label: 'Running', translations: { ru: 'Запуск и работа' }, items: [
+          { slug: 'hosting/configuration' },
+          { slug: 'hosting/registering' },
+          { slug: 'hosting/resources' },
+          { label: 'Day to day', translations: { ru: 'Каждый день' }, items: [
             { slug: 'hosting/running' },
             { slug: 'hosting/administration' },
             { slug: 'hosting/updating' },
-            { slug: 'hosting/startup-messages' },
+            { slug: 'hosting/troubleshooting' },
           ]},
-          { label: 'Configuration', translations: { ru: 'Настройка' }, items: [
-            { slug: 'hosting/configuration' },
-            { slug: 'hosting/command-line' },
-            { slug: 'hosting/registering' },
-            { slug: 'hosting/strict-verification' },
-          ]},
-          { slug: 'hosting/resources' },
+          { slug: 'hosting/strict-verification' },
         ]},
         { label: 'Plugin development', translations: { ru: 'Разработка плагинов' }, items: [
           { label: 'Start here', translations: { ru: 'С чего начать' }, items: [
