@@ -13,7 +13,7 @@ certificate, resources, mods, storage, bans.
 ./Node-Server --version
 ```
 
-It prints, for example, `Node-Server v1.8.0`. The start-up banner shows the same version.
+It prints, for example, `Node-Server v1.9.0`. The start-up banner shows the same version.
 
 ## Where releases are
 
@@ -32,7 +32,7 @@ update.
 From PowerShell, unpacking with replacement looks like this:
 
 ```powershell
-$zip = "$HOME\Downloads\Node-Server-1.8.0-windows-x64.zip"
+$zip = "$HOME\Downloads\Node-Server-1.9.0-windows-x64.zip"
 Expand-Archive $zip -DestinationPath C:\NodeMP -Force
 ```
 
@@ -44,17 +44,17 @@ With the service from [Server on Linux](/hosting/linux/#a-systemd-service):
 
 ```bash
 cd /tmp
-url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.8.0
-curl -LO "$url/Node-Server-1.8.0-linux-x64.tar.gz"
-curl -LO "$url/Node-Server-1.8.0-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.8.0-linux-x64.tar.gz.sha256
+url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.9.0
+curl -LO "$url/Node-Server-1.9.0-linux-x64.tar.gz"
+curl -LO "$url/Node-Server-1.9.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.9.0-linux-x64.tar.gz.sha256
 ```
 
 Then stop the service, unpack the archive over the old files and start it again:
 
 ```bash
 sudo systemctl stop nodemp
-sudo tar -xzf Node-Server-1.8.0-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.9.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp
 ```
@@ -67,7 +67,7 @@ copies of the examples, isn't in the archive and isn't touched.
 Load the new image and use its tag:
 
 ```bash
-docker load -i nodemp-server-v1.8.0-image.tar
+docker load -i nodemp-server-v1.9.0-image.tar
 ```
 
 In `compose.yaml`, change the `image:` line to the new tag and run `docker compose up -d`. With
@@ -76,9 +76,9 @@ In `compose.yaml`, change the `image:` line to the new tag and run `docker compo
 
 ## What survives an update
 
-- **`server.toml`** stays as it is. If the new version has settings your file lacks, the server adds
-  just those, with their defaults, and names them in the log. In Docker there's no file: a new
-  setting takes its default until you set its variable.
+- **`server.toml`** stays as it is. A setting the new version brings takes its default until you
+  add it to the file; the server doesn't add it for you. In Docker there's no file: a new setting
+  takes its default until you set its variable. The one exception is the move to 1.9.0, below.
 - **`node_cert.pem` and `node_key.pem`** aren't in the archive and are only made when missing. Keep
   them: players who joined by address remember the certificate and won't connect to a server with a
   different one.
@@ -94,9 +94,86 @@ Since server 1.8.0 the server has no chat commands of its own; resources add the
 called `node.commands` stops at that line with `attempt to index a nil value (field 'commands')`.
 Update it, or start from `examples/chat-commands` ([Chat and commands](/plugins/chat/)).
 
+## Settings since 1.9.0
+
+In server 1.9.0 `server.toml` got a new layout: lower-case keys in tables named for what they set.
+You don't have to redo the file by hand.
+
+- On the first start of 1.9.0 the server rewrites a file in the old layout with the same settings
+  and keeps the old one next to it as `server.toml.old`. The log says
+  `server.toml was in the legacy layout: rewritten in the new one with the same settings`.
+- The new file has `[server]` and `[listing]`, like a fresh one, plus every other setting whose
+  value wasn't the default. A key the server doesn't read isn't carried over, and the log names it.
+- The `NODE_*` variables are the same as before, so a server set up through them, the Docker image
+  included, notices nothing.
+- If the server can't write the new file, it says so in the log and reads the old one as it is.
+
+Old guides still show the old names. Write the new ones: a table with an old name in the new file
+works, but the server then converts the file again, drops the comments you wrote in it and replaces
+`server.toml.old`. Where each key went:
+
+| Before 1.9.0 | Since 1.9.0 |
+|---|---|
+| `[General] Name` | `[server] name` |
+| `[General] Port` | `[server] port` |
+| `[General] MaxPlayers` | `[server] max_players` |
+| `[General] MaxCars` | `[server] cars_per_player` |
+| `[General] Map` | `[server] map` |
+| `[Content] Folder` | `[server] mods` |
+| `[General] IP` | `[server] address` |
+| `[General] Console` | `[server] console` |
+| `[Directory] Url` | `[listing] url` |
+| `[Directory] HostId` | `[listing] host_id` |
+| `[Directory] HostSecret` | `[listing] host_secret` |
+| `[Directory] Description` | `[listing] description` |
+| `[Directory] Mode` | `[listing] mode` |
+| `[Directory] Tags` | `[listing] tags` |
+| `[Directory] Preview` | `[listing] preview` |
+| `[Directory] Public` | `[listing] public` |
+| `[Directory] TestDrive` | `[listing] guests` |
+| `[Directory] Fingerprint` | `[listing] fingerprint` |
+| `[Directory] CaFile` | `[listing] ca_file` |
+| `[Directory] RedeemFailOpen` | `[listing] admit_when_down` |
+| `[Directory] AllowInsecure` | `[listing] allow_http` |
+| `[General] VerifyGame` | `[integrity] verify` |
+| `[General] IntegrityDir` | `[integrity] manifests` |
+| `[Network] TlsCert` | `[network] tls_cert` |
+| `[Network] TlsKey` | `[network] tls_key` |
+| `[Network] StateRelayRadius` | `[network] relay_radius` |
+| `[Network] LagGraceSec` | `[network] lag_grace_sec` |
+| `[Network] AuthTakeoverSec` | `[network] seat_takeover_sec` |
+| `[Network] AuthReleaseSec` | `[network] seat_release_sec` |
+| `[Network] DisconnectSec` | `[network] disconnect_sec` |
+| `[Network] SendQueueBudgetMB` | `[network] send_queue_budget_mb` |
+| `[Network] MaxConnectionsPerIp` | `[network] max_connections_per_ip` |
+| `[Network] MaxConnections` | `[network] max_connections` |
+| `[Network] ConnectionLimitExempt` | `[network] connection_limit_exempt` |
+| `[Network] HandshakeTimeoutSec` | `[network] handshake_timeout_sec` |
+| `[Network] DownloadStallSec` | `[network] download_stall_sec` |
+| `[Chat] MaxLength` | `[chat] max_length` |
+| `[Chat] RatePerSec` | `[chat] rate_per_sec` |
+| `[Chat] Burst` | `[chat] burst` |
+| `[Chat] LogToConsole` | `[chat] log` |
+| `[Chat] LogHiddenCommands` | `[chat] masked_commands` |
+| `[General] Debug` | `[logs] debug` |
+| `[Log] MaxSizeMB` | `[logs] max_size_mb` |
+| `[Log] Keep` | `[logs] keep` |
+| `[Log] Date` | `[logs] date` |
+| `[Network] StatsIntervalSec` | `[logs] netstats_sec` |
+| `[Sync] Variant` | `[sync] variant` |
+| `[Sync] HoldTight` | `[sync] hold_tight` |
+| `[Sync] SteerLead` | `[sync] steer_lead` |
+| `[Sync] VerboseTrace` | `[sync] verbose_trace` |
+| `[Sync] TraceRate` | `[sync] trace_rate` |
+| `[Http] CaFile` | `[http] ca_file` |
+| `[Http] Insecure` | `[http] insecure` |
+| `[Http] AllowPrivateNetworks` | `[http] allow_private_networks` |
+| `[Resources] Obfuscate` | `[resources] obfuscate` |
+| `[Experimental] NodeGrab` | `[experimental] node_grab` |
+
 ## When players need a new launcher
 
-The launcher and the server speak a versioned protocol. Server 1.8.0 speaks v23, like the releases
+The launcher and the server speak a versioned protocol. Server 1.9.0 speaks v23, like the releases
 before it: launchers from version 1.1.23 and client mods from version 1.6.25 join it as before. When
 a release changes the protocol, its description says so prominently, and an old launcher is refused
 with a request to update. The launcher offers **Update now** by itself, and the client mod is updated
