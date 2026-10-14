@@ -74,14 +74,14 @@ arrives at the player's client files as an ordinary wire event.
 `NodeApi` is positional: a module reads each capability at an offset fixed when it was compiled.
 Against a reordered struct it would not fail, it would call whatever now sits at that offset - so
 the layout is a contract, with a version. The header carries `NODE_ABI_VERSION_MAJOR` `2` and
-`NODE_ABI_VERSION_MINOR` `0`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`. Major 2 is
+`NODE_ABI_VERSION_MINOR` `5`, packed into `NODE_ABI_VERSION` as `major << 16 | minor`. Major 2 is
 the first break: the `pg_*` entries left the struct when the database moved out of the core into
 the `db` module, so every module built against a 1.x header must be rebuilt against this one.
 Nothing else about the layout changed.
 
 - The loader calls `node_plugin_abi()` **first**, before `node_plugin_init` and before touching any
   field. A module whose major differs is refused:
-  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.3 -- refusing to load it. Rebuild the module.`
+  `module 'x.dll' was built against SDK ABI 1.12, this server speaks 2.5 -- refusing to load it. Rebuild the module.`
   A module without the symbol at all is refused too:
   `module 'x.dll' does not export node_plugin_abi -- it was built against a pre-versioning SDK. Rebuild it against the current sdk/node.h.`
 - A module built against a **newer minor** loads with a warning
@@ -101,9 +101,27 @@ Nothing else about the layout changed.
 A module that returns nonzero from `node_plugin_init` is unloaded with
 `module 'x.dll' failed to initialize (returned -1), skipping`; the server starts without it.
 
+## Added in ABI 2.5
+
+Server 1.8.0 appended these to `NodeApi`; a module built for 2.0 to 2.4 loads unchanged, and one that
+wants them checks `struct_size` first, as above.
+
+| Entry | What it does |
+|---|---|
+| `ban_player_until`, `ban_ip_until`, `ban_account_until` | A ban that ends at a Unix time; the server lifts it by itself. |
+| `shutdown_server(reason, delay_ms)` | Stops the server like Ctrl+C, now or after a delay; a negative delay cancels a scheduled stop. |
+| `teleport_vehicle(global_id, transform_json)` | Moves a car without repairing it. |
+| `freeze_player(player_id, on)` | Holds a player in place; the server stops relaying their car and refuses their spawns, edits and seat changes. |
+
+The player's session record also gained `locale`, `overCapacity` and `frozen`, and there are three
+new events: `playerJoining`, `playerFrozenChanged` and `serverShutdownScheduled`. Two decisions stay
+with Lua: a C verdict callback can't let a player in past the player limit (its `0` is a plain
+allow), and it can refuse a chat line but not take it as a command. A module that needs either
+leaves that part to a small Lua resource and talks to it over the [bus](/plugins/bus/).
+
 ## Building plugin-example
 
-`examples/plugin-example` is the reference module: a tour of the whole `NodeApi` surface - a
+`plugin-example` is the reference module, in the examples' source rather than the release archive: a tour of the whole `NodeApi` surface - a
 coloured console tag, a log sink that suppresses marked lines, builtin and cancellable
 events, timers, client events (`cpp_ping` is answered with `cpp_pong`), storage, HTTP, the module
 channel, a relay filter, and a background thread with its own UDP socket. Its `CMakeLists.txt` is
@@ -300,13 +318,11 @@ The same four event kinds a resource sees, by registration function:
   names; return nonzero to deny and write a reason into the buffer you are given. Every handler
   runs; one veto denies. `vehicleNodeGrabRequest` is fail-closed: registering a handler that
   returns `0` is how a module opts the grabber in.
-- Event names cross the C ABI as strings, and the spellings servers before 1.2.0 used
-  (`"playerJoin"`, `"onPlayerConnectRequest"`, `"onVehicleSpawnRequest"`, ...) are accepted by every
-  `register_*_event` / `unregister_*_event` entry as deprecated aliases: the server maps them to
-  the canonical name and logs one warning per module per old name, for the life of the server
-  process (`[deprecated] event "playerJoin" is now "playerJoined" (module my_module.dll)` - the
-  module is the one whose `node_plugin_init` is running). A module built against an older SDK keeps
-  working; rebuild with the new names when you next touch it - the aliases go away in 2.0. See
+- Event names cross the C ABI as strings. The spellings servers before 1.2.0 used
+  (`"playerJoin"`, `"onPlayerConnectRequest"`, `"onVehicleSpawnRequest"`, ...) are refused by every
+  `register_*_event` entry: nothing is registered, and the server logs
+  `event "playerJoin" was renamed to "playerJoined"` with the module's name, once per module and old
+  name. A module that still uses them must be changed to the new names. See
   [Events → Naming](/plugins/events/#naming).
 - `register_module_channel(channel, cb, user)` and `send_module(player_id, channel, data, len)` -
   the binary channel; `player_id` `-1` broadcasts to every synced client, through the relay filter.

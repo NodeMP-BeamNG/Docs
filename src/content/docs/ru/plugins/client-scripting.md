@@ -112,7 +112,7 @@ return M
   собственное расширение `ge` и выключайте встроенный клиентский модуль манифестом модулей -
   серверный ресурс отвечает на сетевое событие мода `modules:request` вызовом
   `player:send("modules:manifest", { modules = { nametags = { enabled = false } } })` (в клиентском
-  моде 1.6.19 в нём регистрируются модули `nametags` и `damage`; `NodeMP.modules.list()` на клиенте
+  моде 1.7.4 в нём регистрируются модули `nametags`, `damage` и `settings`; `NodeMP.modules.list()` на клиенте
   перечисляет их). Тот же манифест может задать вид ников: `nametags = { config = { style = "plain" |
   "plate", hideBehindObjects = true, maxDistance = 40, fadeStart = 25, showDistance = false } }` — текст
   без плашки, скрытие за стенами и машинами, исчезновение дальше `maxDistance` метров и растворение от
@@ -183,7 +183,7 @@ cannot be cleanly unloaded and are best shipped as content mods`. Прислуш
 клиентский мод публикует одну стабильную глобальную таблицу, `NodeMP`, в обоих Lua-состояниях -
 игрового движка и каждой машины. Каждая функция находит свою цель в момент вызова, так что мод,
 который выполняется до старта клиентского мода или пока никто не в сессии, получает `nil`, `false`
-или пустую таблицу вместо ошибки. `NodeMP.VERSION` - версия мода, `1.6.19`. Клиентские файлы могут
+или пустую таблицу вместо ошибки. `NodeMP.VERSION` - версия мода, `1.7.4`. Клиентские файлы могут
 вызывать ту же таблицу; [пример выше](#события-и-полезные-нагрузки) использует `NodeMP.ui.notify`.
 
 ### Пространства имён
@@ -194,7 +194,7 @@ cannot be cleanly unloaded and are best shipped as content mods`. Прислуш
 | `NodeMP.account` | что сервер установил по билету на подключение: `get` (`verified`, `loggedIn`, `guest`, `username`, `accountId`, `roles`), `isLoggedIn`, `getUsername`, `getRole`, `getId`. `login` и `logout` существуют для старых модов и ничего не делают: вход - дело лаунчера. |
 | `NodeMP.players` | список игроков: `get`, `getByName`, `getAll`, `ids`, `count`, `max`, `getLocalId`, `getLocal`, `isLocal`, `getRoleInfo` |
 | `NodeMP.vehicles` | модель мира с ключами по глобальному `vehicleId` и локальному `gameId`: `getAll`, `getOwn`, `isOwn`, `getServerId`, `getGameId`, `getByServerId`, `getByGameId`, `getNicknameMap`, `getOwner`, `getDriver`, `getSyncOwner`, `count`, `forEach`, `isSynced` |
-| `NodeMP.chat` | `send` (сетевое событие `chat:send` ресурсу `chat`), `add`, `system`, `clear`, `toggle`, `getHistory` |
+| `NodeMP.chat` | `send` (строка от игрока, как будто он её набрал; её обрабатывает чат сервера), `add`, `system`, `clear`, `toggle`, `getHistory` |
 | `NodeMP.events` | `on`, `once`, `off`, `triggerServer`, `triggerLocal` и имена событий жизненного цикла в `NAMES` |
 | `NodeMP.keys` | `onPressed`, `onReleased`, `getState` - пробрасываются в Lua-состояние каждой машины |
 | `NodeMP.ui` | `notify`, `dialog`, `bringToFront`, `refreshPlayerList` |
@@ -267,7 +267,7 @@ NodeMP.events.off("race:start")                                             -- y
 
 ## Строгие сессии: `session:config.strict`
 
-Клиентский мод 1.6.19 умеет вести сессию игрока по **строгим** правилам - клиентская половина
+Клиентский мод умеет вести сессию игрока по **строгим** правилам - клиентская половина
 того, что [Строгая проверка](/ru/hosting/strict-verification/) описывает для сервера: ни свободной
 камеры, ни пересадки в машины, в которые сервер игрока не сажал, ни консоли, редактора, паузы,
 масштаба времени и действий телепорта, node grabber только пешком и от первого лица, строки

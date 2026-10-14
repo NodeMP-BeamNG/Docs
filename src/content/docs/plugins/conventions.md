@@ -20,10 +20,10 @@ machinery - it is the shape of what the other pages describe, collected in one p
   `<subject><Action>Request` (`vehicleSpawnRequest`, `relayRequest`) - no `on` prefix, `node.on`
   already says it. Two spellings, two kinds - a reader can tell a network message from a server
   hook at a glance. The spellings servers before 1.2.0 used (`playerJoin`, `onVehicleSpawnRequest`,
-  `canRelay`) are deprecated aliases that still work and warn once per resource; see
-  [Events → Naming](/plugins/events/#naming).
-- **Bus messages** between resources follow the wire rule: `chat:say`, `chat:command`,
-  `dimensions:changed`.
+  `canRelay`) are refused: `node.on` subscribes nothing and logs the new name once
+  ([Events → Naming](/plugins/events/#naming)).
+- **Bus messages** between resources follow the wire rule: `race:finished`, `dimensions:changed`;
+  `chat:say` is the server's own ([Between resources](/plugins/bus/)).
 - **Resource names** use letters, digits, `_`, `-` and `.`, starting with a letter or digit. The
   name is the folder, the log tag, the `node.storage` store (`storage/<name>.json`, at most 64
   characters) and the name the client mod files the streamed scripts under (at most 128).
@@ -69,13 +69,12 @@ The Lua reference marks each shape in the signature; these are the shapes it use
 | `status, body, headers` | one coroutine HTTP call | `node.http.fetch`: `0, "request not queued", {}` when it could not start; `-1` and the error text in `body` when the transport failed |
 | callback arguments | asynchronous forms | `cb(status, body, headers)` for HTTP, `cb(ok)` for `node.fs.writeAsync`, `doneFn(result, err)` for `node.job` |
 | a default | `node.storage.get(key, default)` | returns `default` when the key is absent |
-| an error (throws) | misuse, not runtime failure | `node.on` with a non-string name or a non-function handler, `node.commands.add` with a bad signature, `node.sleep` outside `node.async` |
+| an error (throws) | misuse, not runtime failure | `node.on` with a non-string name or a non-function handler, `player:verify` with an unknown level, `node.sleep` outside `node.async` |
 
 Nothing in `node` returns an error object: a failed action is `false`, a missing thing is `nil`, a
 programming mistake throws. `node.on(name, fn)` with the same `fn` twice is one subscription: the
 second call replaces the first, the handler runs once per event, and `node.off(name, fn)` removes
-it and returns `1` ([Events → Naming](/plugins/events/#naming) says the same for the deprecated
-spellings). Two different functions are two handlers. Subscribe at load; a reload starts from a
+it and returns `1`. Two different functions are two handlers. Subscribe at load; a reload starts from a
 clean state.
 
 In C the shapes are integers: an action returns `0` on success and `-1` on failure, a question
@@ -101,10 +100,10 @@ has the buffer loop.
 | Surface | Version | What is promised |
 |---|---|---|
 | Wire protocol | `v23` (`Wire::ProtoVersion`) | Exact match. Launcher, client mod and server ship together; a mismatch is refused at the handshake with `Protocol version mismatch: launcher speaks v22, server speaks v23 - update the outdated side`. |
-| C ABI | `2.3` (`NODE_ABI_VERSION_MAJOR` `2`, `MINOR` `3`) | The major is the layout: nothing moves within it, new entries are appended and bump the minor, a retired entry becomes a stub that keeps its slot. A module built against an older `2.x` keeps working; a different major is refused by the loader -- major 2 is the first such break (the `pg_*` entries left with the database), so a module built against a `1.x` header must be rebuilt. |
-| Lua `node` and `node.raw` | server `1.5.0` | Generated from one schema, `sdk/api.toml`, together with `node.h` and the reference pages; `apigen.py docs --check` fails when they drift, so the [reference](/plugins/api/) says what the server does. `node.raw` is the one-to-one mirror of the C entries. |
-| Client `node` table | client mod `1.6.19` | The ten functions on [Client scripting](/plugins/client-scripting/). |
-| `NodeMP.*` | client mod `1.6.19` (`NodeMP.VERSION`) | One stable global; the original flat helpers stay as aliases of the namespaced calls. `NodeMP.internal` and the dotted module names underneath may move between versions. |
+| C ABI | `2.5` (`NODE_ABI_VERSION_MAJOR` `2`, `MINOR` `5`) | The major is the layout: nothing moves within it, new entries are appended and bump the minor, a retired entry becomes a stub that keeps its slot. A module built against an older `2.x` keeps working; a different major is refused by the loader -- major 2 is the first such break (the `pg_*` entries left with the database), so a module built against a `1.x` header must be rebuilt. |
+| Lua `node` and `node.raw` | server `1.8.0` | The same promise as the C ABI, with one removal so far: `node.commands`, in 1.8.0. Generated from one schema, `sdk/api.toml`, together with `node.h` and the reference pages; `apigen.py docs --check` fails when they drift, so the [reference](/plugins/api/) says what the server does. `node.raw` is the one-to-one mirror of the C entries. |
+| Client `node` table | client mod `1.7.4` | The ten functions on [Client scripting](/plugins/client-scripting/). |
+| `NodeMP.*` | client mod `1.7.4` (`NodeMP.VERSION`) | One stable global; the original flat helpers stay as aliases of the namespaced calls. `NodeMP.internal` and the dotted module names underneath may move between versions. |
 
 The wire changelog lives in `server/include/net/Protocol.h`, and the ABI history in the entry
 docs of `sdk/node.h` (`ABI 1.8`, `ABI 1.9`, ...). Neither is duplicated here.
