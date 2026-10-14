@@ -77,7 +77,7 @@ channel (4444).
 | `Ping` | L→S, T and U | Liveness and round-trip probe, with an optional stamp the `Pong` echoes. A `Ping` as the first frame of a fresh connection is answered and closed. |
 | `Pong` | S→L, T and U | The answer to `Ping`, echoing its body. |
 | `UdpToken` | S→L, T | The 64-byte per-session key for the UDP channel, delivered once over TLS. |
-| `UdpHello` | L→S, U | Binds the client's UDP endpoint: a nonce and an HMAC-SHA256 over the token, the client id and the nonce. Server 1.5.0 accepts it only from the address the TLS session came from; from the next release a valid MAC binds from any address (a VPN split tunnel, a dual-stack host), and a counter Hello (MAC label `NODE-UDP-HELLO-CTR`) must count past every one accepted, so a replayed Hello moves nothing. |
+| `UdpHello` | L→S, U | Binds the client's UDP endpoint: a nonce and an HMAC-SHA256 over the token, the client id and the nonce. A valid MAC binds from any address (a VPN split tunnel, a dual-stack host). A counter Hello (MAC label `NODE-UDP-HELLO-CTR`) must count past every one accepted, so a replayed Hello moves nothing; once a launcher has sent one, plain Hellos from it are refused. |
 | `MapInfo` | S→L, T | The level the game must load. |
 | `JoinWorld` | L→S, T | The map is loaded; stream the world. |
 | `VerifyRequest` | S→L, T | How strictly the game install must be checked (`[General] VerifyGame`): `u8 level` - off, size, scripts, full or, since v18, strict (`VerifyLevel::Strict = 4`) - followed by `tail:str manifest_hash`, the id of the reference manifest to judge against (SHA-256 of the manifest file, 64 lowercase hex digits), empty for every level but strict. Sent on every join, and since v18 also mid-session when a resource calls `player:verify`. |
@@ -86,7 +86,7 @@ channel (4444).
 | `IntegrityManifestRequest` | L→S, T | `0x0C` (v18). `tail:str hash`: the launcher has no cached reference manifest with the id the `VerifyRequest` named and asks for its body. An id the server does not serve - or a string that is not an id - is answered with `Kick` (`Unknown integrity manifest requested`); more than four transfers in one session too (`Too many integrity manifest requests`). |
 | `IntegrityManifestChunk` | S→L, T | `0x0D` (v18). `u32 index, u32 total, tail:bytes part`: one slice of the zstd-compressed manifest, at most `IntegrityChunkBytes` (32 KiB), sent in order, `index` from `0` to `total - 1`. An empty manifest is one empty chunk. TCP only, never cached; the one handshake body that outgrows the 4 KB cap. |
 | `IntegrityManifestDone` | S→L, T | `0x0E` (v18). `tail:str hash`: every chunk was sent; the SHA-256 of the reassembled compressed bytes, which the launcher recomputes and compares before it caches the file under that id (`cache/integrity/<id>.manifest`) and runs the check. |
-| `Resume` | L→S, T | `0x0F`. `u32 client_id, u8[32] resume_token`: sent after `Hello` **instead of** `Identity` on a new connection, within `[Network] DisconnectSec` of the old one breaking; answered with a new `Welcome` (fresh token), `UdpToken` and `MapInfo`, or `Kick` (`Resume rejected`). Launchers send it since 1.1.13; servers answer it from the next release on - server 1.5.0 refuses the frame. |
+| `Resume` | L→S, T | `0x0F`. `u32 client_id, u8[32] resume_token`: sent after `Hello` **instead of** `Identity` on a new connection, within `[Network] DisconnectSec` of the old one breaking; answered with a new `Welcome` (fresh token), `UdpToken` and `MapInfo`, or `Kick` (`Resume rejected`). Launchers send it since 1.1.13. |
 | `UdpHelloAck` | S→L, U | `0x10`, from the next server release. `u8[16] nonce, u8[16] mac`: the accepted `UdpHello`'s nonce and HMAC-SHA256(key, `NODE-UDP-HELLO-ACK` ‖ `u32` client id LE ‖ nonce) truncated to 16 bytes, sent to the bound endpoint for each Hello that binds, moves or re-confirms it. A server that sends it says so in `Welcome`'s capability bits; older launchers ignore both. |
 
 ### Session (10)
@@ -109,9 +109,9 @@ channel (4444).
 | Subtype | Direction | Purpose |
 |---|---|---|
 | `ModsRequest` | L→S, T | Ask for the server's content list. |
-| `ModsInfo` | S→L, T | The content list as JSON, plus the session key when `[Content] Encrypt` is on. |
+| `ModsInfo` | S→L, T | The content list as JSON. |
 | `FileRequest` | L→S, T | Ask for one content file by name. |
-| `FileBegin` | S→L, T | The file follows: its size and, when encrypted, the nonce; then the raw bytes, unframed, inside TLS. |
+| `FileBegin` | S→L, T | The file follows: its size, then the raw bytes, unframed, inside TLS. |
 | `FileDeny` | S→L, T | No file: unknown, protected, or unreadable. |
 | `SyncDone` | L→S, T | The helper has every file it needs. |
 | `ResourceChunk` | S→G, T and R | One part of one resource's client files, as JSON. |
@@ -200,10 +200,10 @@ All but `Inputs` and `HeadPose` are cached per (vehicle, subtype) and replayed t
 | `PromptAnswer` | G→L, CC | The player's yes or no. |
 | `Auth` | G→L, CC and R | The loopback token; must be the first frame on both channels. |
 | `Server` | L→G, CC | Which server the session is on - the mirror of `Connect`, for a session the launcher started itself. |
-| `ClockPing` | G→L, CC | `u64 t_game_us`: the game's clock, once a second; the launcher answers at once. (launcher 1.1.18) |
+| `ClockPing` | G→L, CC | `u64 t_game_us`: the game's clock, once a second; the launcher answers at once. (Added in launcher 1.1.18.) |
 | `ClockPong` | L→G, CC | `u64 t_game_us, u64 t_launcher_us`: the difference is the offset between the two clocks to a fraction of a millisecond, whatever frame the game reads it in. |
 | `ArrivalStamp` | L→G, R | `u64 t_launcher_us`, immediately before the frame it stamps: when that datagram reached the launcher's UDP socket. Lets the position pipeline build a remote car's time base from the arrival rather than the graphics frame that read it (setting `nodempSyncArrivalStamp`, off by default). |
-| `ServerName` | L→G, CC | `tail:str name`, right after `Server`: the server's name as the server list shows it, for the game's server panel. Only for the server the launcher was started for, never one the game connected to itself. (launcher 1.1.21) |
+| `ServerName` | L→G, CC | `tail:str name`, right after `Server`: the server's name as the server list shows it, for the game's server panel. Only for the server the launcher was started for, never one the game connected to itself. (Added in launcher 1.1.21.) |
 
 `Command` packets never leave the machine.
 
@@ -258,10 +258,9 @@ what you see on the console.
 Two deliveries happen on a join, over the reliable channel, in this order.
 
 **Content files** (the mod zips under `content/`), between `Welcome` and `UdpToken`: the helper sends
-`ModsRequest`; the server answers `ModsInfo` with the list as JSON and, when `[Content] Encrypt` is
-on, the 32-byte session key as a raw field inside TLS. For each file it does not already have, the
-helper sends `FileRequest` and receives `FileBegin` - the exact size and, when encrypted, the nonce -
-followed by that many raw bytes, unframed; or `FileDeny` with a reason. When the helper is done it
+`ModsRequest`; the server answers `ModsInfo` with the list as JSON. For each file it does not already have, the
+helper sends `FileRequest` and receives `FileBegin` with the exact size, followed by that many raw
+bytes, unframed; or `FileDeny` with a reason. When the helper is done it
 sends `SyncDone`. A `VerifyReport` may arrive at any point during this phase and is judged at once,
 and so may an `IntegrityManifestRequest`, which is served in place.
 
