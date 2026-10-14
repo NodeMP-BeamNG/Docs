@@ -23,6 +23,10 @@ function foldBetweenBars(overviews) {
     if (overview(new URL(from).pathname) !== overview(location.pathname)) e.viewTransition.types.add('nmp-fold');
   });
 }
+// Every redirect in each locale: '/a/' -> '/b/' also gives '/ru/a/' -> '/ru/b/'.
+const withLocales = (map) => Object.fromEntries(Object.entries(map).flatMap(([from, to]) =>
+  Object.keys(locales).map((code) => (code === 'root' ? [from, to] : [`/${code}${from}`, `/${code}${to}`]))));
+
 const overviews = Object.keys(locales).map((code) => (code === 'root' ? '/' : `/${code}/`));
 
 export default defineConfig({
@@ -30,42 +34,30 @@ export default defineConfig({
   // The styles ride in each page instead of a second request: the first paint then waits
   // for the page alone, so arriving from nodemp.com shows no empty frame between the sites.
   build: { inlineStylesheets: 'always' },
-  // Slugs removed by the phase-4 rewrite. Astro emits a meta-refresh page for each.
-  redirects: {
+  // Removed slugs and where they live now, the same in every locale. Astro writes a
+  // meta-refresh page for each.
+  redirects: withLocales({
     '/introduction/beammp-compatibility/': '/introduction/differences-from-beammp/',
-    '/ru/introduction/beammp-compatibility/': '/ru/introduction/differences-from-beammp/',
+    '/framework/overview/': '/introduction/how-it-works/',
+    '/framework/sync/': '/introduction/how-it-works/',
     '/plugins/server-api/': '/plugins/api/lua/',
-    '/ru/plugins/server-api/': '/ru/plugins/api/lua/',
     '/plugins/client-api/': '/plugins/client-scripting/',
-    '/ru/plugins/client-api/': '/ru/plugins/client-scripting/',
     // The section root has no page of its own; readers type it.
     '/plugins/': '/plugins/overview/',
-    '/ru/plugins/': '/ru/plugins/overview/',
-    // The 2026-10 restructure: support pages moved out of players/ and reference/.
-    '/players/troubleshooting/': '/support/troubleshooting/',
-    '/ru/players/troubleshooting/': '/ru/support/troubleshooting/',
-    '/reference/error-codes/': '/support/error-codes/',
-    '/ru/reference/error-codes/': '/ru/support/error-codes/',
-    '/reference/faq/': '/support/faq/',
-    '/ru/reference/faq/': '/ru/support/faq/',
-    '/support/': '/support/troubleshooting/',
-    '/ru/support/': '/ru/support/troubleshooting/',
-    // The 2026-10 rewrite for server 1.7.0: merged and moved pages.
-    '/framework/overview/': '/introduction/how-it-works/',
-    '/ru/framework/overview/': '/ru/introduction/how-it-works/',
-    '/framework/sync/': '/introduction/how-it-works/',
-    '/ru/framework/sync/': '/ru/introduction/how-it-works/',
-    '/support/launcher/': '/support/troubleshooting/',
-    '/ru/support/launcher/': '/ru/support/troubleshooting/',
-    '/support/logs/': '/support/troubleshooting/',
-    '/ru/support/logs/': '/ru/support/troubleshooting/',
+    '/plugins/protocol/': '/reference/protocol/',
+    '/players/vpn/': '/players/connection/',
+    '/support/': '/players/troubleshooting/',
+    '/support/troubleshooting/': '/players/troubleshooting/',
+    '/support/joining/': '/players/troubleshooting/',
+    '/support/strict-servers/': '/players/troubleshooting/',
+    '/support/launcher/': '/players/troubleshooting/',
+    '/support/logs/': '/players/troubleshooting/',
+    '/support/error-codes/': '/reference/error-codes/',
+    '/support/faq/': '/reference/faq/',
     '/hosting/command-line/': '/hosting/configuration/',
-    '/ru/hosting/command-line/': '/ru/hosting/configuration/',
     '/hosting/startup-messages/': '/hosting/troubleshooting/',
-    '/ru/hosting/startup-messages/': '/ru/hosting/troubleshooting/',
     '/hosting/running/': '/hosting/quick-start/',
-    '/ru/hosting/running/': '/ru/hosting/quick-start/',
-  },
+  }),
   integrations: [
     starlight({
       title: 'NodeMP',
@@ -134,14 +126,8 @@ export default defineConfig({
           { slug: 'players/sign-in' },
           { slug: 'players/join' },
           { slug: 'players/settings' },
-          { slug: 'players/vpn' },
-        ]},
-        { label: 'Help', translations: { ru: 'Помощь' }, items: [
-          { slug: 'support/troubleshooting' },
-          { slug: 'support/joining' },
-          { slug: 'support/strict-servers' },
-          { slug: 'support/error-codes' },
-          { slug: 'support/faq' },
+          { slug: 'players/connection' },
+          { slug: 'players/troubleshooting' },
         ]},
         { label: 'Hosting a server', translations: { ru: 'Свой сервер' }, items: [
           { slug: 'hosting/quick-start' },
@@ -176,7 +162,6 @@ export default defineConfig({
             { slug: 'plugins/storage' },
             { slug: 'plugins/database' },
             { slug: 'plugins/http' },
-            { slug: 'plugins/protocol' },
           ]},
           { label: 'Client and native code', translations: { ru: 'Клиент и нативный код' }, items: [
             { slug: 'plugins/client-scripting' },
@@ -192,7 +177,10 @@ export default defineConfig({
           { label: 'API reference', translations: { ru: 'Справочник API' }, collapsed: true, items: [{ autogenerate: { directory: 'plugins/api' } }] },
         ]},
         { label: 'Reference', translations: { ru: 'Справочник' }, items: [
+          { slug: 'reference/error-codes' },
+          { slug: 'reference/faq' },
           { slug: 'reference/glossary' },
+          { slug: 'reference/protocol' },
         ]},
       ],
     }),
