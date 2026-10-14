@@ -1,191 +1,175 @@
 ---
 title: Migrating BeamMP plugins
-description: Port a BeamMP server plugin to NodeMP - folder and manifest, the MP.* to node.* mapping, what has no equivalent, a chat plugin ported step by step.
+description: Run a BeamMP server plugin with the compatibility module, or port it to the node API - the folder, the MP.* to node.* mapping, and a chat plugin ported.
 ---
 
-BeamMP plugins do not run on NodeMP unmodified. The `MP`, `Util`, `FS` and `Http` globals do not
-exist, `Resources/Server/<plugin>/` is not scanned, `ServerConfig.toml` is not read, and the
-event model is different: a handler receives `Player` and `Vehicle` objects, a request is refused
-with `false, reason` instead of `return 1`, and one entry file replaces a folder of numbered
-scripts. What carries over is the shape of the plugin - the events it reacts to and the calls it
-makes - and this page maps each of those to its NodeMP form. Every target name below is in the
+A BeamMP server plugin can come to NodeMP in two ways:
+
+- **Run it as it is** with the compatibility module `beammp-compat`. It gives the plugin its `MP`,
+  `Util` and `FS` tables, so an unmodified plugin folder loads. Good for trying a plugin out or for
+  one you don't want to touch.
+- **Port it** to the `node` API. More work, but the result is an ordinary resource: it gets objects
+  instead of ids, refuses with a reason the player sees, waits without blocking, and can use
+  everything on these pages.
+
+## Running a plugin with the compatibility module
+
+`beammp-compat` is a native module that runs resources marked `type = "beammp"`. It isn't in the
+release archive: it's built from source and the file goes into `modules/` next to the server
+executable. The server loads modules before resources, so the plugin finds it in place.
+
+Put the plugin's files into a resource folder and add a two-line manifest:
+
+```
+resources/
+└── my-plugin/
+    ├── resource.toml      # name = "my-plugin", type = "beammp", [server] main = "main.lua"
+    ├── main.lua           # the plugin's files, as they were in Resources/Server/my-plugin/
+    ├── commands.lua
+    └── client/            # optional: the client mod's files, unpacked from its zip
+        └── lua/ge/extensions/...
+```
+
+```toml
+name = "my-plugin"
+type = "beammp"
+
+[server]
+main = "main.lua"
+```
+
+The file named in `[server] main` runs first, then every other `.lua` in the folder, in alphabetical
+order, then `onInit`. All files of one plugin share one Lua state, as the plugin expects. **Name a
+`main` file** whenever the plugin has no `client/` folder: without either, the server doesn't count
+the folder as a resource and skips it.
+
+What to expect from it:
+
+- **Events** fire with the arguments the plugin knows: `onPlayerAuth`, `onPlayerConnecting`,
+  `onPlayerJoining`, `onPlayerJoin`, `onPlayerDisconnect`, `onChatMessage`, `onVehicleSpawn`,
+  `onVehicleEdited`, `onVehicleDeleted`, `onVehicleReset`, `onVehiclePaintChanged`, `onShutdown`.
+- **A cancelled chat line disappears quietly.** When `onChatMessage` cancels a line, nobody sees it
+  and the sender isn't told it was refused, which is how a plugin's own `/command` stays out of the
+  chat.
+- **Vehicle ids are the server's global ids**, unique on the server, rather than a number per
+  player. `onVehicleSpawn` gets `0` for a new car, because the id is given after the decision;
+  `postVehicleSpawn` has the real one.
+- **`MP.SendChatMessage`** shows as a line from **System**.
+- **`MP.Sleep` blocks every resource**, not only this plugin, because all resources share one
+  worker thread. Replace it when you can.
+- **Not available:** `Http.CreateConnection` (use [`node.http`](/plugins/http/) from a Lua resource),
+  `onConsoleInput` and `onFileChanged` (they never fire), `Util.JsonDiff` and `Util.JsonDiffApply`,
+  `MP.ConfirmationDialog`, and stopping the server with `exit()`.
+
+Most of these log a warning the first time a plugin uses them, so the server log tells you what to
+fix. A client script written for BeamMP finds its usual globals too
+([below](#client-scripts)).
+
+## Porting by hand
+
+What carries over is the shape of the plugin: the events it reacts to and the calls it makes. The
+tables below map each one to its NodeMP form; every name on the right is in the
 [Lua API reference](/plugins/api/lua/) and the [events reference](/plugins/api/events/).
 
-## Folder and manifest
+### Folder and manifest
 
 | BeamMP | NodeMP |
 |---|---|
-| `Resources/Server/<plugin>/` with every top-level `.lua` loaded into one Lua state | `resources/<name>/` with one entry point, `server/main.lua`, and an optional `resource.toml` |
-| `Resources/Client/<mod>.zip`, sent to players | `content/<mod>.zip`, downloaded by the launcher before the join; streamed Lua goes in `resources/<name>/client/` instead |
-| `ServerConfig.toml`, `[General]` with `AuthKey` | `server.toml`, eight sections: `[General]`, `[Resources]`, `[Content]`, `[Network]`, `[Chat]`, `[Experimental]`, `[Directory]`, `[Http]` (`[Chat]` from the next server release) - see [Configuration](/hosting/configuration/); the server key is `[Directory] HostId` and `HostSecret` |
-| a `plugin.lua` or `main.lua` plus helper files loaded by name order | `server/main.lua`; further files with `require` after putting the folder on `package.path` ([Resources](/plugins/resources/#layout)) |
-
-The smallest manifest names the resource and its entry point; a folder without one is a Lua
-resource named after the folder with `server/main.lua` as its entry point:
-
-```toml
-name = "greeter"
-version = "1.0"
-
-[server]
-main = "server/main.lua"
-```
-
-The resource name is the log tag, the `node.storage` store and the name the client mod files the
-streamed scripts under; keep it to letters, digits, `_`, `-` and `.`.
-
-## The API, side by side
-
-`MP.RegisterEvent(name, "handlerName")` becomes `node.on(name, fn)`; the handler is a function,
-not a global's name, and the event name decides what it receives.
+| `Resources/Server/<plugin>/`, every `.lua` loaded into one Lua state | `resources/<name>/` with one entry point, `server/main.lua`, and an optional `resource.toml` ([Resources](/plugins/resources/)) |
+| helper files loaded in folder order | `require` from `server/`, after putting the folder on `package.path` ([Resources → Several server files](/plugins/resources/#several-server-files)) |
+| `Resources/Client/<mod>.zip` | `content/<mod>.zip`, downloaded by the launcher before the join; Lua for the game can also go in `resources/<name>/client/`, sent with the join ([Client scripts](/plugins/client-scripting/)) |
+| `ServerConfig.toml` | `server.toml` ([Configuration](/hosting/configuration/)); your plugin's own settings go in the `[config]` table of its `resource.toml` and arrive as `node.config` |
 
 ### Events
 
-NodeMP names follow two rules: a notification is `<subject><Verb-ed>` (`playerJoined`), a request
-a handler can deny is `<subject><Action>Request` (`vehicleSpawnRequest`) - there is no `on` prefix,
-`node.on(...)` already says it. The last column is the spelling servers before 1.2.0 used; it still
-works as a deprecated alias (one warning per resource per old name, removed in 2.0), so a resource
-ported against an older server keeps running - but write the new name.
+`MP.RegisterEvent(name, "handlerName")` becomes `node.on(name, fn)`: the handler is the function
+itself. NodeMP names have no `on` prefix; something that happened reads `playerJoined`, something a
+handler can refuse reads `vehicleSpawnRequest`.
 
-| BeamMP | NodeMP | Before 1.2.0 |
-|---|---|---|
-| `onInit` | The top-level code of `server/main.lua`; it runs once at load and again on each reload. | |
-| `onShutdown` | `node.on("serverShutdown", function() ... end)` | `onShutdown` |
-| `onPlayerAuth(name, role, isGuest, identifiers)` - `return 1` or a string refuses | `node.on("playerConnectRequest", function(player, name) return false, "reason" end)`; read `player.guest`, `player.verified`, `player.accountRoles`, `player.identifiers`. Bans are checked before it fires. | `onPlayerConnectRequest` |
-| `onPlayerConnecting(pid)` | `node.on("playerAuthenticated", function(player) ... end)` | `playerConnecting` |
-| `onPlayerJoining(pid)` | No equivalent - nothing fires between `playerAuthenticated` and `playerJoined`. | |
-| `onPlayerJoin(pid)` | `node.on("playerJoined", function(player) ... end)` | `playerJoin` |
-| `onPlayerDisconnect(pid)` | `node.on("playerLeft", function(player) ... end)`; `player.name` is still known. | |
-| `onChatMessage(pid, name, message)` - `return 1` blocks | `node.on("chat:send", function(player, data) ... end)` with `data` as JSON text `{ scope, text }`. The `chat` resource owns delivery; see the [walkthrough](#walkthrough-porting-a-chat-plugin). | |
-| `onVehicleSpawn(pid, vid, data)` - `return 1` refuses | `node.on("vehicleSpawnRequest", function(player, requestedId, config) return false, "reason" end)`; `vehicleSpawned(vehicle)` fires after the fact. | `onVehicleSpawnRequest` |
-| `onVehicleEdited(pid, vid, data)` - `return 1` refuses | `vehicleEditRequest(player, vehicle, config)` returning `false, reason`; `vehicleEdited(player, vehicle, config)` after. | `onVehicleEditRequest` |
-| `onVehicleDeleted(pid, vid)` | `vehicleDeleted(vehicle)` - the record is gone; only `vehicle.id` is meaningful. | |
-| `onVehicleReset(pid, vid, data)` | `vehicleReset(player, vehicle, posRot)` - observe only, it cannot be denied. | |
-| `onVehiclePaintChanged(pid, vid, data)` | `vehiclePaintRequest(player, vehicle, paints)` to decide, `vehiclePainted` to observe. | `onVehiclePaintRequest` |
-| `onFileChanged(path)` | No equivalent; poll with a timer ([Events → No file-watch event](/plugins/events/#no-file-watch-event)). | |
-| `onConsoleInput(cmd)` | No equivalent: the server has no console input. Use chat commands (`node.commands.add`). | |
+| BeamMP | NodeMP |
+|---|---|
+| `onInit` | the top-level code of `server/main.lua`, which runs at load and on each reload |
+| `onShutdown` | `serverShutdown` |
+| `onPlayerAuth` (refuses with `1` or a string) | `playerConnectRequest(player, name)`, refusing with `return false, "reason"`; read `player.guest`, `player.accountId`, `player.accountRoles`, `player.identifiers` |
+| `onPlayerConnecting` | `playerAuthenticated(player)` |
+| `onPlayerJoining` | `playerJoining(player)` |
+| `onPlayerJoin` | `playerJoined(player)` |
+| `onPlayerDisconnect` | `playerLeft(player, reason)`; `player.name` is still readable |
+| `onChatMessage` (cancels with `1`) | `chatMessageRequest(player, msg)`: `return false, "reason"` refuses, `{ handled = true }` takes the line as a command ([Chat](/plugins/chat/)) |
+| `onVehicleSpawn` (refuses with `1`) | `vehicleSpawnRequest(player, requestedId, config)` to decide, `vehicleSpawned(vehicle)` after |
+| `onVehicleEdited` | `vehicleEditRequest(player, vehicle, config)` to decide, `vehicleEdited` after |
+| `onVehicleDeleted` | `vehicleDeleted(vehicle, cause)`; only `vehicle.id` still means anything |
+| `onVehicleReset` | `vehicleReset(player, vehicle, posRot)`, observe only |
+| `onVehiclePaintChanged` | `vehiclePaintRequest(player, vehicle, paints)` to decide, `vehiclePainted` after |
+| `onFileChanged` | `node.fs.watch(path, fn)` for a file in the resource folder ([Storage and files](/plugins/storage/#watching-a-file)) |
+| `onConsoleInput` | none: the console has its own fixed commands ([Administration](/hosting/administration/#the-console)); give admins chat commands instead |
 
-Every cancellable handler runs even after one has denied, and an erroring handler never denies.
-The other kinds a BeamMP plugin never had - seat changes, coupler and trigger requests
-(`vehicleEnterRequest`, `vehicleExitRequest`, `vehicleCouplerRequest`, `vehicleTriggerRequest`),
-the position and electrics streams, the fail-closed node grabber (`vehicleNodeGrabRequest`), the
-relay filter (`relayRequest`, formerly `canRelay`) - are on [Events](/plugins/events/), with the
-[full list of renamed events](/plugins/api/events/#renamed-events) in the reference.
+A request handler that returns nothing allows. Events BeamMP never had, such as seat changes, door
+and trigger requests, position streams and the relay filter, are on [Events](/plugins/events/).
 
 ### Players
 
 | BeamMP | NodeMP |
 |---|---|
-| `MP.GetPlayerName(pid)` | `player.name`, or `node.players.get(id).name` |
-| `MP.GetPlayerIDByName(name)` | `node.players.find(name)` returns the `Player`; its `.id` is the number |
-| `MP.GetPlayers()` (a table of id to name) | `node.players.all()` (an array of `Player`), `node.players.ids()` |
+| `MP.GetPlayerName(pid)` | `player.name` |
+| `MP.GetPlayerIDByName(name)` | `node.players.find(name)` returns the `Player` |
+| `MP.GetPlayers()` | `node.players.all()` (an array of `Player`), `node.players.ids()` |
 | `MP.GetPlayerCount()` | `node.players.count()` |
 | `MP.IsPlayerConnected(pid)` | `player:isConnected()` |
 | `MP.IsPlayerGuest(pid)` | `player.guest` |
-| `MP.GetPlayerIdentifiers(pid)` (`{ ip, beammp }`) | `player.identifiers` - an array of `"nodemp:<id>"`, `"discord:<id>"`, `"ip:<addr>"` as the directory lists them, empty when unverified - plus `player.ip` and `player.accountId`. There is no `beammp` identifier. |
-| the `role` argument of `onPlayerAuth` | `player.accountRoles` (the directory's roles, comma-separated tags such as `"USER,ADM"`; `ADM` is a directory admin); `player:setRole(role)` and `player.role` are this server's own per-session label |
+| `MP.GetPlayerIdentifiers(pid)` | `player.identifiers` (`"nodemp:<id>"`, `"discord:<id>"`, `"ip:<addr>"`), `player.accountId`, `player.ip` |
+| the role from `onPlayerAuth` | `player.accountRoles` (the NodeMP website's roles); `player.role` is this server's own, given with `player:setRole` |
 | `MP.DropPlayer(pid, reason)` | `player:kick(reason)` |
-| - | `player:ban(reason)`, `node.bans.add(who, reason)`, `node.bans.remove`, `node.bans.has`, `node.bans.all()` - persisted in `bans.json` |
+| bans kept by the plugin | `player:ban(reason, untilUnix)`, `node.bans.add`, `node.bans.remove`, kept by the server in `bans.json` ([Players and vehicles](/plugins/players-and-vehicles/#kicking-and-banning)) |
 
 ### Vehicles
 
 | BeamMP | NodeMP |
 |---|---|
-| `MP.GetPlayerVehicles(pid)` (`{ [vid] = "pid-vid:{...}" }`) | `player:vehicles()` (an array of `Vehicle`); `vehicle:config()` is the config as a table |
-| `MP.GetPositionRaw(pid, vid)` (`{ pos, rot }`) | `vehicle:transform()` (`pos`, `rot`, `vel`, `angVel`, all `{x, y, z}` or `{x, y, z, w}`), or `player:position()` |
+| the `(pid, vid)` pair | one id per car, `vehicle.id`, unique on the server; `vehicle.spawner`, `vehicle.driver` and `vehicle.authority` are the players around it |
+| `MP.GetPlayerVehicles(pid)` | `player:vehicles()`; `vehicle:config()` is the configuration as a table |
+| `MP.GetPositionRaw(pid, vid)` | `vehicle:transform()` (`pos`, `rot`, `vel`, `angVel`), or `player:position()` |
 | `MP.RemoveVehicle(pid, vid)` | `vehicle:delete()` |
-| the `(pid, vid)` pair | one global id, `vehicle.id`, unique for the life of the server; `vehicle.spawner`, `vehicle.driver` and `vehicle.authority` are the players around it |
-| - | `vehicle:seat`, `vehicle:lock`, `vehicle:setTag`, `vehicle:setCoupler`, `vehicle:trigger`, `vehicle:resync`, `node.vehicles.spawn` - server-driven actions BeamMP had no API for |
+| none | `vehicle:teleport`, `vehicle:reset`, `vehicle:lock`, `vehicle:setTag`, `player:seat`, `player:spawnVehicle`, `player:freeze`: things the server can do to cars and players |
 
 ### Chat and events to clients
 
 | BeamMP | NodeMP |
 |---|---|
-| `MP.SendChatMessage(pid, message)`; `pid = -1` for everyone | `player:tell(text, ...)` or `node.chat.tell(target, text, ...)`; `node.chat.say(text, ...)` for everyone. All three speak through the `chat` resource and are silent without it. |
-| `MP.TriggerClientEvent(pid, name, data)`; `pid = -1` for everyone | `player:send(name, data)` or `node.send(target, name, data)`; `node.broadcast(name, data)` for everyone, `node.broadcast(name, data, except)` for everyone but one |
-| `MP.TriggerClientEventJson(pid, name, table)` | `player:send(name, table)` - a table is JSON-encoded for you |
-| `MP.TriggerGlobalEvent(name, ...)` (every plugin's handlers, with a future for the results) | `node.bus.emit(name, data)` and `node.bus.on(name, function(source, data) ... end)` - asynchronous, a string payload, no return values |
-| `MP.TriggerLocalEvent(name, ...)` | Call the function. The bus also delivers to the sender when you want one path for both. |
+| `MP.SendChatMessage(pid, text)`, `-1` for everyone | `player:tell(text, ...)`; `node.chat.say(text, ...)` for everyone |
+| `MP.TriggerClientEvent(pid, name, data)`, `-1` for everyone | `player:send(name, data)`; `node.broadcast(name, data)` for everyone |
+| `MP.TriggerClientEventJson(pid, name, table)` | `player:send(name, table)`: a table is sent as JSON |
+| `MP.TriggerGlobalEvent(name, ...)` | `node.bus.emit(name, data)` and `node.bus.on(name, fn)`; answers are a second message ([Between resources](/plugins/bus/)) |
+| `MP.TriggerLocalEvent(name, ...)` | call the function |
 
-### Timers
-
-| BeamMP | NodeMP |
-|---|---|
-| `MP.CreateEventTimer(name, ms)` plus `MP.RegisterEvent(name, handler)` | `node.every(ms, fn)` - returns a timer id |
-| `MP.CancelEventTimer(name)` | `node.cancel(id)` |
-| - | `node.after(ms, fn)` for one shot, `node.defer(fn)` for after the current handlers |
-| `MP.Sleep(ms)` (blocks the whole Lua state) | `node.sleep(ms)` inside `node.async(fn)` - suspends only that coroutine |
-| `MP.GetTimeMS()`, `MP.GetTimeS()` | `node.server.time()` (unix, fractional), `node.server.unixTime()`, `node.server.uptime()` |
-
-### HTTP
+### Timers, HTTP, files and the rest
 
 | BeamMP | NodeMP |
 |---|---|
-| `Http.Get(host, port, target)` (synchronous, returns the body) | `node.http.get(url, headers?, cb)` with `cb(status, body, headers)` on the worker; or `node.http.fetch(url)` inside `node.async`, which returns `status, body, headers` |
-| `Http.Post(host, port, target, body, contentType)` | `node.http.post(url, body, headers?, cb)`; put the content type in `headers` (`{ ["Content-Type"] = "application/json" }`) |
+| `MP.CreateEventTimer(name, ms)` | `node.every(ms, fn)`, which returns an id for `node.cancel(id)`; `node.after(ms, fn)` runs once |
+| `MP.Sleep(ms)` | `node.sleep(ms)` inside `node.async(fn)`: only that coroutine waits ([Timers and coroutines](/plugins/concurrency/)) |
+| `MP.GetTimeMS()` | `node.server.time()` (seconds with a fraction), `node.server.uptime()` |
+| HTTP that waits for the answer | `node.http.get(url, headers, cb)` and friends with a callback, or `node.http.fetch(url)` inside `node.async` ([HTTP](/plugins/http/)) |
+| state in files of your own | `node.storage.get(key, default)` and `node.storage.set(key, value)`, safe on disk before `set` returns ([Storage and files](/plugins/storage/)) |
+| `FS.Exists`, `FS.CreateDirectory`, `FS.Copy`, `FS.Rename`, `FS.Remove`, `FS.ListFiles` | `node.fs.exists`, `node.fs.mkdir`, `node.fs.copy`, `node.fs.rename`, `node.fs.remove`, `node.fs.list`, inside the resource folder |
+| `FS.ConcatPaths`, `FS.GetFilename`, `FS.GetExtension`, `FS.GetParentFolder` | `node.fs.join`, `node.fs.basename`, `node.fs.extension`, `node.fs.dirname` |
+| `Util.JsonEncode`, `Util.JsonDecode`, `Util.JsonPrettify` | `node.json.encode(value)`, `node.json.decode(text)`, `node.json.encode(value, { pretty = true })` |
+| `Util.JsonFlatten`, `Util.JsonDiff`, `Util.JsonDiffApply` | `node.json.flatten`, `node.json.diff`, `node.json.patch` |
+| `print`, `Util.LogInfo`, `Util.LogWarn`, `Util.LogError` | `node.log(text, ...)`, `node.log.warn`, `node.log.error` |
+| `MP.Get`, `MP.Set` with `MP.Settings` | `node.server.name()`, `map()`, `maxPlayers()`, `maxCars()`; `node.server.setName`, `setMaxPlayers`, `setMaxCars` |
+| `Util.RandomIntRange(a, b)` | `math.random(a, b)`; `node.crypto.randomHex(n)` for a token |
 
-A failed request calls back with status `-1` and the error text in `body`. Nothing in NodeMP
-blocks the worker for a network round trip.
+## A chat plugin, ported
 
-### Storage and files
-
-| BeamMP | NodeMP |
-|---|---|
-| state in files of your own (`FS.*`, `io`) | `node.storage.get(key, default)`, `node.storage.set(key, value)`, `node.storage.delete(key)` - a JSON store per resource under `storage/<name>.json` + `.log`, durable before `set` returns |
-| `FS.Exists`, `FS.IsFile`, `FS.IsDirectory`, `FS.ListFiles`, `FS.ListDirectories` | `node.fs.list(path?)` (`name`, `dir`, `size` per entry) - an `exists` is a lookup in it ([Resources → What node.fs does not have](/plugins/resources/#what-nodefs-does-not-have)); `node.fs.read(path)` is `nil` when the file is missing |
-| reading and writing files anywhere | `node.fs.read`, `node.fs.write`, `node.fs.writeAsync` - inside the resource folder only |
-| `FS.CreateDirectory`, `FS.Copy` | `node.fs.write` creates parent folders and, given `node.fs.read(from)`, copies; an empty folder cannot be created |
-| `FS.Remove`, `FS.Rename` | No `node` equivalent; the standard `os.remove` and `os.rename` are open and work with an absolute path built from the resource folder |
-| `FS.ConcatPaths`, `FS.GetFilename`, `FS.GetExtension`, `FS.GetParentFolder` | No equivalent; join with `/`, which the server accepts on Windows and Linux, and take a path apart with `string.match` |
-
-### Utilities
-
-| BeamMP | NodeMP |
-|---|---|
-| `Util.JsonEncode`, `Util.JsonDecode` | `node.json.encode`, `node.json.decode` (`nil` on a parse error) |
-| `Util.JsonPrettify`, `Util.JsonMinify`, `Util.JsonFlatten`, `Util.JsonUnflatten`, `Util.JsonDiff`, `Util.JsonDiffApply` | No equivalent: `node.json.encode` writes compact JSON and takes no options ([Conventions → The Lua environment](/plugins/conventions/#the-lua-environment)) |
-| `print`, `Util.LogInfo`, `Util.LogWarn`, `Util.LogError`, `Util.LogDebug` | `node.log(msg, ...)`, `node.log.warn`, `node.log.error` - `string.format` arguments, tagged with the resource name |
-| `MP.GetServerVersion()` | `node.server.version()` |
-| `MP.Settings.*`, `MP.Get`, `MP.Set` | `node.server.name()`, `map()`, `maxPlayers()`, `maxCars()`, `port()`; `node.server.setName`, `setMaxPlayers`, `setMaxCars` |
-| `MP.GetStateMemoryUsage` | `collectgarbage("count") * 1024` - the bytes of this resource's Lua state |
-| `MP.GetOSName`, `MP.GetLuaMemoryUsage` | No equivalent: neither the OS name nor a total over every Lua state is exposed; `node.server.metrics()` is the live metrics table (counts, not bytes) |
-| `Util.Random`, `Util.RandomIntRange`, `Util.RandomRange` | `math.random()`, `math.random(a, b)`, `a + (b - a) * math.random()`; `node.crypto.randomHex(n)` for a token |
-| `Util.DebugExecutionTime`, `MP.CreateTimer` | No equivalent; `node.server.uptime()` before and after times a section, and the server logs every handler over 250 ms itself |
-
-## What has no equivalent
-
-- **Console input.** `onConsoleInput` and console replies: the server reads nothing from its
-  console. Administration is chat commands (`node.commands.add`, gated by `player.role`), the
-  bus, or a client half.
-- **Blocking calls.** `MP.Sleep`, synchronous `Http.*`: every waiting form in NodeMP is a callback
-  or a coroutine, because all resources share one worker thread ([Concurrency](/plugins/concurrency/)).
-- **Cross-plugin calls with results.** `MP.TriggerGlobalEvent` futures: the bus is one-way. Ask
-  and answer with two bus messages, as `chat` and `dimensions` do.
-- **Vetoing another resource's behaviour.** A BeamMP plugin blocked chat with `return 1` in
-  `onChatMessage`; in NodeMP the `chat` resource decides what it broadcasts, and another resource
-  can only observe `chat:send`. To filter chat, change `chat` - it is a resource, not part of the
-  server.
-- **Files outside the resource folder** through `node.fs`; `onFileChanged`; the JSON utilities
-  beyond encode and decode (`Util.JsonPrettify`, `JsonFlatten`, `JsonDiff`, `JsonDiffApply`);
-  `MP.GetOSName`, `MP.GetLuaMemoryUsage`, `Util.DebugExecutionTime`.
-- **The `beammp` identifier.** Accounts are NodeMP accounts: `player.accountId` and
-  `player.identifiers`, verified through the directory. A Test Drive guest has no account id.
-- **`MP.Settings` beyond the five values** `node.server` exposes; their counterparts `Public`,
-  `Description`, `Tags` belong to `[Directory]` in `server.toml` and have no runtime API.
-- **`ServerConfig.toml` mirroring.** Nothing writes a `[General]` section for plugins to read;
-  settings a resource needs go in its own `[config]` table and arrive as `node.config`.
-
-## Walkthrough: porting a chat plugin
-
-A BeamMP plugin that answers `!online` and announces joins:
+A BeamMP plugin that answers `/online` and announces joins:
 
 <!-- doctest: skip BeamMP's MP.* API, shown for comparison; a NodeMP server has no MP table -->
 ```lua
 -- Resources/Server/Greeter/main.lua (BeamMP)
 function onChatMessage(pid, name, message)
-    if message == "!online" then
+    if message == "/online" then
         MP.SendChatMessage(pid, "Online: " .. MP.GetPlayerCount())
-        return 1 -- swallow the line
+        return 1
     end
 end
 MP.RegisterEvent("onChatMessage", "onChatMessage")
@@ -196,23 +180,14 @@ end
 MP.RegisterEvent("onPlayerJoin", "onPlayerJoin")
 ```
 
-The same plugin as a NodeMP resource. It needs the `chat` example resource installed beside it
-(`examples/chat` in the release archive), because chat is not part of the server:
-
-```toml
-# resources/greeter/resource.toml
-name = "greeter"
-version = "1.0"
-
-[server]
-main = "server/main.lua"
-```
+The same plugin as a NodeMP resource, `resources/greeter/server/main.lua`:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
--- resources/greeter/server/main.lua (NodeMP)
-node.commands.add("online", function(player, args, raw)
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text ~= "/online" then return end
     player:tell("Online: %d", node.players.count())
+    return { handled = true }
 end)
 
 node.on("playerJoined", function(player)
@@ -223,54 +198,30 @@ end)
 -- expect-client: Alice chat:msg .*Online: 1
 ```
 
-What changed, line by line:
+What changed:
 
-1. The command prefix is `/`, not `!`, and the `chat` resource never broadcasts a `/` line - it
-   publishes it on the bus as `chat:command` and `node.commands.add` receives it. There is nothing
-   to swallow, so `return 1` has no counterpart.
-2. The handler receives a `Player`, so `MP.GetPlayerName(pid)` is `player.name` and
-   `MP.SendChatMessage(pid, ...)` is `player:tell(...)`, with `string.format` arguments built in.
-3. `MP.SendChatMessage(-1, ...)` is `node.chat.say(...)`. Both `tell` and `say` reach the screen
-   through the `chat` resource's `chat:say` bus message; without `chat` they are silent.
-4. `MP.RegisterEvent` is gone: `node.on` takes the function itself.
+1. `MP.RegisterEvent` is gone: `node.on` takes the function itself.
+2. The handler gets a `Player`, so `MP.GetPlayerName(pid)` is `player.name` and
+   `MP.SendChatMessage(pid, ...)` is `player:tell(...)`, with `string.format` built in.
+3. `return 1` becomes `return { handled = true }`: the line goes no further, and the player sees
+   only the answer.
+4. `MP.SendChatMessage(-1, ...)` is `node.chat.say(...)`.
 
-A plugin that watched every line - a logger, a filter - subscribes to the wire event the client
-sends, `chat:send`, whose `data` is JSON text `{ "scope": "global", "text": "..." }`:
-
-<!-- doctest: server+client {"emit": [["chat:send", {"scope": "global", "text": "hello from BeamMP land"}]]} -->
-```lua
-node.on("chat:send", function(player, data)
-    local msg = node.json.decode(data)
-    if type(msg) == "table" and type(msg.text) == "string" then
-        node.log("%s: %s", player.name, msg.text)
-    end
-end)
-
--- expect: Alice: hello from BeamMP land
-```
-
-It sees the line; it does not decide whether `chat` relays it. Start the server and the console
-prints `greeter v1.0 loaded — lua · server 1 file · 0 client files` between the other resources'
-load lines.
+No manifest is needed: a folder with `server/main.lua` is a resource named after the folder.
 
 ## Client scripts
 
-A BeamMP client script - a Lua file inside a client zip - reaches the game with the same globals it
-used before. The client mod keeps `TriggerServerEvent`, `TriggerClientEvent`, `AddEventHandler`,
-`RemoveEventHandler`, `onKeyPressed`, `onKeyReleased`, `getKeyState` and `MPTranslate` for exactly
-this purpose: they exist to ease porting client scripts, and new code should use their `NodeMP.*`
-equivalents - `NodeMP.events.triggerServer`, `NodeMP.events.triggerLocal`, `NodeMP.events.on`,
-`NodeMP.events.off`, `NodeMP.keys.onPressed`, `NodeMP.keys.onReleased`, `NodeMP.keys.getState`,
-`NodeMP.util.translate`. A `TriggerServerEvent(name, data)` arrives at the server as a wire event,
-`node.on(name, function(player, data) ... end)`, with a table JSON-encoded for you. The BeamMP
-module globals (`MPVehicleGE`, `positionVE` and the like) do not exist; a script that reached for
-them uses `NodeMP.*` instead. On the server, a ported client script still ships as a zip under
-`content/`, while a client half written for NodeMP is streamed from `resources/<name>/client/` -
-[Client scripting](/plugins/client-scripting/) compares the two.
+A client script written for BeamMP finds the globals it used: `TriggerServerEvent`,
+`TriggerClientEvent`, `AddEventHandler`, `RemoveEventHandler`, the key helpers, and the module
+tables `MPGameNetwork`, `MPCoreNetwork`, `MPConfig`, `MPVehicleGE` and `UI`. The client mod keeps
+them so such scripts run with few changes. BeamMP's per-stream modules (`positionGE`,
+`MPInputsGE`, `MPElectricsGE` and the like) aren't there; a script that needs them is rewritten
+against the NodeMP client API ([Client scripts](/plugins/client-scripting/)). A
+`TriggerServerEvent(name, data)` arrives on the server as a wire event, `node.on(name, fn)` with
+`(player, data)`.
 
 ## Next
 
-- [Getting started](/plugins/getting-started/) - a first NodeMP resource from an empty folder.
-- [Events](/plugins/events/) - the four kinds and how a request is denied.
-- [Differences from BeamMP](/introduction/differences-from-beammp/) - the wider comparison, beyond plugins.
-- [Configuration](/hosting/configuration/) - `server.toml` for the host.
+- [Your first resource](/plugins/getting-started/): a NodeMP resource from an empty folder.
+- [Differences from BeamMP](/introduction/differences-from-beammp/): the wider comparison, beyond
+  plugins.
