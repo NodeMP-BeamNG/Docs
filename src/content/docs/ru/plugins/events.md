@@ -18,7 +18,9 @@ description: Вход игрока по шагам, четыре вида соб
 2. **Место и имя.** Игрок получает номер и отображаемое имя. Если на сервере уже есть игрок с таким
    именем, новичок получает `Имя#<номер>`.
 3. **`playerConnectRequest(player, name)`.** Ваш шанс отказать — с причиной, которую игрок увидит.
-   Имя, IP и поля аккаунта уже читаются; ничего ещё не скачано.
+   Имя, IP и поля аккаунта уже читаются; ничего ещё не скачано. На полном сервере его тоже
+   спрашивают, с `player.overCapacity`, так что можно пустить человека на резервное место
+   ([Игроки и машины → Резервные места](/ru/plugins/players-and-vehicles/#резервные-места)).
 4. **`playerAuthenticated(player)`.** Игрока впустили. Хорошее место, чтобы загрузить то, что вы о
    нём храните.
 5. **Проверка файлов игры.** Лаунчер проверяет файлы игры на том уровне, который просит сервер.
@@ -26,7 +28,9 @@ description: Вход игрока по шагам, четыре вида соб
 6. **Моды.** Игрок скачивает то, чего у него нет. События нет; это может занять минуты.
 7. **Карта и клиентские скрипты.** Имя карты и клиентские файлы всех ресурсов уходят вместе, чтобы
    игра подготовила их, пока грузится карта.
-8. **`playerJoined(player)`.** Игрок в мире и получил все машины. Обычное место, чтобы
+8. **`playerJoining(player)`.** Игра игрока сейчас грузит карту. Машин у него ещё нет. Удобный
+   момент, чтобы сказать остальным «Alice загружается» или запустить таймер, сколько длится вход.
+9. **`playerJoined(player)`.** Игрок в мире и получил все машины. Обычное место, чтобы
    поздороваться, выдать роль и вернуть его состояние.
 
 Во время игры **`playerLagging(player, silentSec)`** срабатывает, когда от игрока несколько секунд
@@ -56,6 +60,10 @@ node.on("playerConnectRequest", function(player, name)
     node.log("%s may join", name)
 end)
 
+node.on("playerJoining", function(player)
+    node.log("%s is loading the map", player.name)
+end)
+
 node.on("playerJoined", function(player)
     player:tell("Welcome, %s. %d online.", player.name, node.players.count())
 end)
@@ -65,6 +73,7 @@ node.on("playerLeft", function(player, reason)
 end)
 
 -- expect: Alice may join
+-- expect: Alice is loading the map
 -- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
 -- expect: Alice left: .+
 ```
@@ -114,8 +123,9 @@ end)
 
 Срабатывают после того, как что-то случилось; возвращаемое значение игнорируется.
 
-- **Игроки.** `playerAuthenticated`, `playerJoined`, `playerLeft`, `playerPolicyChanged` (игрок
-  изменил, кто может пользоваться его машинами), `playerCameraChanged`.
+- **Игроки.** `playerAuthenticated`, `playerJoining`, `playerJoined`, `playerLeft`,
+  `playerPolicyChanged` (игрок изменил, кто может пользоваться его машинами), `playerCameraChanged`,
+  `playerFrozenChanged` (ресурс заморозил или отпустил игрока; смотрите `player.frozen`).
 - **Сервер и ресурс.** `serverTick` (каждые 100 мс, без аргумента; держите его лёгким),
   `serverShutdown` (сохраните нужное; таймеры больше не сработают), `resourceUnload(reason)`
   ([Ресурсы → Сохранить перед выгрузкой](/ru/plugins/resources/#сохранить-перед-выгрузкой)).
@@ -142,9 +152,10 @@ end)
 | `vehiclePainted` | `player, vehicle, paints` | Новая покраска. |
 | `playerSeatChanged` | `player, vehicle, role` | Сел, вышел или его пересадили. `vehicle` — `nil`, если пешком; `role` — `"driver"`, `"passenger"` или `"none"`. |
 | `vehicleCouplerChanged`, `vehicleControllerChanged` | `player, vehicle, call` | Прошёл вызов двери, сцепки или контроллера. |
-| `chatMessage` | `player, msg` | Судьба строки чата решена ([Чат](/ru/plugins/chat/#наблюдать-за-чатом)). |
+| `chatMessage` | `player, msg` | Судьба строки чата решена ([Чат](/ru/plugins/chat/#следить-за-чатом)). |
 | `playerVerifyReported` | `player, report` | Закончилась проверка файлов игры ([Клиентские скрипты → Строгие сессии](/ru/plugins/client-scripting/#строгие-сессии)). |
 | `playerLagging`, `playerRecovered` | `player, silentSec` | См. [вход](#вход-по-шагам). |
+| `serverShutdownScheduled` | `info` | Ресурс назначил остановку через `node.server.shutdown(reason, delayMs)`: `info.reason`, `info.at` (секунды Unix) и `info.by` (ресурс). Когда остановку отменили, `info.cancelled` равно `true`. [Рецепт](/ru/plugins/recipes/#перезапуск-с-обратным-отсчётом) ведёт отсчёт в чате. |
 
 <!-- doctest: server -->
 ```lua
@@ -160,6 +171,14 @@ end)
 
 node.on("vehicleDeleted", function(vehicle, cause)
     node.log("vehicle %d gone (%s)", vehicle.id, cause)
+end)
+
+node.on("serverShutdownScheduled", function(info)
+    if info.cancelled then
+        node.chat.say("The restart is off")
+    else
+        node.chat.say("Restart in %d seconds: %s", info.at - os.time(), info.reason)
+    end
 end)
 ```
 

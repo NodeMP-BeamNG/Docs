@@ -18,7 +18,9 @@ gets a say. Steps without an event are the server's own business.
 2. **A seat and a name.** The player gets an id and their display name. If someone on the server
    already has that name, the newcomer gets `Name#<id>`.
 3. **`playerConnectRequest(player, name)`.** Your chance to refuse, with a reason the player sees.
-   The player's name, IP and account fields are readable; nothing has been downloaded yet.
+   The player's name, IP and account fields are readable; nothing has been downloaded yet. On a full
+   server it's asked too, with `player.overCapacity` set, so you can let someone in on a reserved
+   slot ([Players and vehicles → Reserved slots](/plugins/players-and-vehicles/#reserved-slots)).
 4. **`playerAuthenticated(player)`.** Let in. Good for loading what you keep about this player.
 5. **The game-file check.** The launcher checks the player's game files at the level the server asks
    for. **`playerVerifyReported(player, report)`** reports the result, after the server applied its
@@ -26,7 +28,9 @@ gets a say. Steps without an event are the server's own business.
 6. **Mods.** The player downloads what they're missing. No event; this can take minutes.
 7. **Map and client scripts.** The map name and every resource's client files go out together, so
    the game can set them up while the map loads.
-8. **`playerJoined(player)`.** The player is in the world and has received every car. The usual
+8. **`playerJoining(player)`.** The player's game is loading the map now. They have no cars yet. A
+   good moment to tell the others "Alice is loading in" or to start a timer for how long joins take.
+9. **`playerJoined(player)`.** The player is in the world and has received every car. The usual
    place to greet them, give a role and restore their state.
 
 While they play, **`playerLagging(player, silentSec)`** fires when nothing has arrived from them for
@@ -56,6 +60,10 @@ node.on("playerConnectRequest", function(player, name)
     node.log("%s may join", name)
 end)
 
+node.on("playerJoining", function(player)
+    node.log("%s is loading the map", player.name)
+end)
+
 node.on("playerJoined", function(player)
     player:tell("Welcome, %s. %d online.", player.name, node.players.count())
 end)
@@ -65,6 +73,7 @@ node.on("playerLeft", function(player, reason)
 end)
 
 -- expect: Alice may join
+-- expect: Alice is loading the map
 -- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
 -- expect: Alice left: .+
 ```
@@ -114,8 +123,9 @@ you don't want objects built.
 
 Fired after something happened; return values are ignored.
 
-- **Players.** `playerAuthenticated`, `playerJoined`, `playerLeft`, `playerPolicyChanged` (the player
-  changed who may use their cars), `playerCameraChanged`.
+- **Players.** `playerAuthenticated`, `playerJoining`, `playerJoined`, `playerLeft`,
+  `playerPolicyChanged` (the player changed who may use their cars), `playerCameraChanged`,
+  `playerFrozenChanged` (a resource froze or thawed the player; read `player.frozen`).
 - **Server and resource.** `serverTick` (every 100 ms, no argument; keep it cheap),
   `serverShutdown` (save what you must; timers won't run again), `resourceUnload(reason)`
   ([Resources → Saving before the unload](/plugins/resources/#saving-before-the-unload)).
@@ -145,6 +155,7 @@ Fired after the server acted on something a player did. The payload is decoded w
 | `chatMessage` | `player, msg` | A chat line was decided ([Chat](/plugins/chat/#watching-the-chat)). |
 | `playerVerifyReported` | `player, report` | A game-file check finished ([Client scripts → Strict sessions](/plugins/client-scripting/#strict-sessions)). |
 | `playerLagging`, `playerRecovered` | `player, silentSec` | See [the join](#the-join-step-by-step). |
+| `serverShutdownScheduled` | `info` | A resource scheduled a stop with `node.server.shutdown(reason, delayMs)`: `info.reason`, `info.at` (Unix seconds) and `info.by` (the resource). When the stop is called off, `info.cancelled` is `true`. A [recipe](/plugins/recipes/#a-restart-with-a-countdown) counts down in chat. |
 
 <!-- doctest: server -->
 ```lua
@@ -160,6 +171,14 @@ end)
 
 node.on("vehicleDeleted", function(vehicle, cause)
     node.log("vehicle %d gone (%s)", vehicle.id, cause)
+end)
+
+node.on("serverShutdownScheduled", function(info)
+    if info.cancelled then
+        node.chat.say("The restart is off")
+    else
+        node.chat.say("Restart in %d seconds: %s", info.at - os.time(), info.reason)
+    end
 end)
 ```
 
