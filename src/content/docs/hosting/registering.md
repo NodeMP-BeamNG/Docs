@@ -150,7 +150,7 @@ working. Put the new `host_secret` in and restart. Do this whenever the secret m
 |---|---|---|
 | `The directory refused this server's credentials: …` | A wrong Host ID or secret, a rotated secret or a deleted key. | Compare with **My servers**. If unsure, rotate the secret and put in the new one. |
 | `This server is NOT announced to a directory: …` | `host_id` or `host_secret` is missing. | Fill in `url`, `host_id` and `host_secret` in `[listing]`. |
-| `server.toml has settings this server does not read: [listing] Url, …` | Server 1.9.0, with the keys under the names from before 1.9.0. | Write them as `url`, `host_id` and `host_secret`, or update the server to 1.9.1. |
+| `server.toml has settings this server does not read: [listing] Url, …` | The keys under the names from before 1.9.0, on a 1.9.0 server. | Write them as `url`, `host_id` and `host_secret`, or update the server to 1.9.1. |
 | `Could not reach the directory at https://api.nodemp.com: …` | No outgoing HTTPS, a DNS problem, or NodeMP is down. | Try `curl https://api.nodemp.com/healthz` on the server's machine. The server retries on its own. |
 | `listed in the server browser`, but the server isn't in the launcher | NodeMP can't reach the port from outside, or `public = false`. | Open and forward the port. The list updates within about 15 seconds. |
 | Players are refused with `The server could not verify your account with the directory (…)` | NodeMP couldn't be reached when they joined. | Wait. On a server that allows Test Drive you can turn on `admit_when_down`. |

@@ -32,7 +32,7 @@ launcher says what and why ([When something breaks](/players/troubleshooting/)).
 
 | Part | Version | Where to get it |
 |---|---|---|
-| Server (`Node-Server`) | 1.9.0 | [GitHub releases](https://github.com/NodeMP-BeamNG/releases/releases): Windows, Linux, Docker |
+| Server (`Node-Server`) | 1.9.1 | [GitHub releases](https://github.com/NodeMP-BeamNG/releases/releases): Windows, Linux, Docker |
 | Launcher | 1.1.25 | [nodemp.com/download](https://nodemp.com/download) |
 | Client mod (`NodeMP.zip`) | 1.7.6 | Installed by the launcher |
 

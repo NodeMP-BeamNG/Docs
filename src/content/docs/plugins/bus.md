@@ -80,7 +80,7 @@ end)
   past that `call` raises an error.
 - A native module subscribed to the name sees the question but can't answer it.
 
-`call` arrived in server 1.9.0. A handler that has to wait for something, a database or an HTTP
+`call` was added in server 1.9.0. A handler that has to wait for something, a database or an HTTP
 request, can't answer by returning. Then put the name to answer under into the question and answer
 later with `emit`:
 

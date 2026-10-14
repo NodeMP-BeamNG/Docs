@@ -96,7 +96,7 @@ Update it, or start from `examples/chat-commands` ([Chat and commands](/plugins/
 
 ## Settings since 1.9.0
 
-In server 1.9.0 `server.toml` got a new layout: lower-case keys in tables named for what they set.
+Since server 1.9.0, `server.toml` has a new layout: lower-case keys in tables named for what they set.
 You don't have to redo the file by hand.
 
 - On the first start of 1.9.0 the server rewrites a file in the old layout with the same settings
@@ -173,7 +173,7 @@ works, but the server then converts the file again, drops the comments you wrote
 
 ## When players need a new launcher
 
-The launcher and the server speak a versioned protocol. Server 1.9.0 speaks v23, like the releases
+The launcher and the server speak a versioned protocol. Server 1.9.1 speaks v23, like the releases
 before it: launchers from version 1.1.23 and client mods from version 1.6.25 join it as before. When
 a release changes the protocol, its description says so prominently, and an old launcher is refused
 with a request to update. The launcher offers **Update now** by itself, and the client mod is updated
