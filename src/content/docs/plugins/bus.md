@@ -1,122 +1,84 @@
 ---
-title: Between resources
-description: How resources talk to each other on the bus - publishing and subscribing, asking a question and waiting for the answer, and talking to native modules.
+title: The bus between resources
+description: How resources on one server send each other messages, naming them, decoding the data, asking and answering, and what else travels on the bus.
 ---
 
-Every resource runs in a Lua state of its own. One resource can't read another's variables, call its
-functions or open its `node.storage`. When two of them need to work together, say a race that pays
-winners through a wallet resource, they talk over the **bus**: one publishes a named message, and
-every resource subscribed to that name receives it.
+Resources don't share variables: each has its own Lua state. They talk over the **bus**, a
+publish-subscribe channel inside the server. One resource publishes a message under a name, and every
+resource subscribed to that name receives it.
 
-## Publishing and subscribing
+| Call | What it does |
+|---|---|
+| `node.bus.emit(name, data)` | Publishes `data` under `name`. A table is turned into JSON. |
+| `node.bus.on(name, fn)` | Calls `fn(source, data)` for every message under `name`. |
+| `node.bus.off(name, fn)` | Unsubscribes; without `fn`, every handler of this resource for `name`. |
+
+`source` is the name of the resource that sent the message; a native module shows as `"native"`.
+`data` arrives as a string: decode it with `node.json.decode`.
+
+## Sending and receiving
+
+A `scores` resource keeps the totals:
 
 <!-- doctest: server -->
 ```lua
--- in the race resource: tell whoever cares that a race ended
+local scores = {}
+
+node.bus.on("score:add", function(source, data)
+    local add = node.json.decode(data)
+    scores[add.name] = (scores[add.name] or 0) + add.points
+    node.log("%s: %s +%d = %d", source, add.name, add.points, scores[add.name])
+end)
+
+-- expect: \S+: Alice \+10 = 10
+```
+
+Any other resource adds points:
+
+<!-- doctest: server -->
+```lua
 node.after(500, function()
-    node.bus.emit("race:finished", { winner = 42, time = 64.9 })
+    node.bus.emit("score:add", { name = "Alice", points = 10 })
 end)
-
--- in any resource that cares (the sender gets its own messages too)
-node.bus.on("race:finished", function(source, data)
-    local result = node.json.decode(data)
-    node.log("%s says account %d won in %.1f s", source, result.winner, result.time)
-end)
-
--- expect: \S+ says account 42 won in 64\.9 s
 ```
 
-- `node.bus.emit(name, data)` publishes. A table is sent as JSON, a string as it is.
-- `node.bus.on(name, fn)` subscribes. `fn(source, data)` gets the name of the resource that sent the
-  message (`"native"` for a native module) and `data` as a string: decode JSON yourself.
-- `node.bus.off(name, fn)` unsubscribes one handler, or all of them for that name without `fn`.
+Messages are delivered on the worker after the current handler finishes, never in the middle of it,
+and they reach the sender too if it subscribed to the name. Name them `<resource>:<what>`, like wire
+events, so two resources don't collide.
 
-Delivery is asynchronous: `emit` returns at once, and the handlers run a moment later on the same
-worker thread as everything else. The sender receives its own messages, which makes a resource easy
-to test on its own.
+## Asking and answering
 
-Name messages `<resource>:<what happened>`, the same way as wire events: `race:finished`,
-`wallet:paid`. One name belongs to the server: `chat:say` with `{ text, pid? }` puts a line in the
-chat, and that's what `node.chat.say` and `player:tell` publish.
-
-## Things to know
-
-- **Messages aren't kept.** A resource that isn't subscribed when a message is delivered never sees
-  it. Don't count on the other resource having loaded before yours; when you need something from it,
-  ask (below), and have it announce changes as they happen.
-- **A reload drops the subscriptions** of the reloaded resource, like its other handlers. Its
-  `main.lua` subscribes again as it runs.
-- **Keep messages small and plain.** They are JSON text. Send ids and numbers, not whole objects:
-  a `Player` becomes a table with an `id`, and the receiver gets its own object with
-  `node.players.get(id)`.
-
-## Asking and waiting for the answer
-
-The bus has no replies built in, but a question and an answer are just two messages. The asker puts a
-random id in the question, the answering resource sends it back, and the asker matches them up.
-With `node.suspend` the asking side reads like an ordinary function call:
+The bus has no replies of its own. The usual way is to put the name to answer under into the
+question:
 
 <!-- doctest: server -->
 ```lua
--- in the wallet resource: answer questions about balances
-local balances = { [42] = 1250 }
-
-node.bus.on("wallet:ask", function(source, data)
-    local question = node.json.decode(data)
-    node.bus.emit("wallet:answer", { id = question.id, coins = balances[question.account] or 0 })
+node.bus.on("bank:ask", function(source, data)
+    local ask = node.json.decode(data)
+    node.bus.emit(ask.replyTo, { cents = 1500 })
 end)
-
--- in the asking resource
-local waiting = {} -- [question id] = function that wakes the asker
-
-node.bus.on("wallet:answer", function(source, data)
-    local answer = node.json.decode(data)
-    local wake = waiting[answer.id]
-    if wake then
-        waiting[answer.id] = nil
-        wake(answer.coins)
-    end
-end)
-
-local function balanceOf(account)
-    local id = node.crypto.randomHex(8)
-    return node.suspend(function(wake)
-        waiting[id] = wake
-        node.bus.emit("wallet:ask", { id = id, account = account })
-        node.after(2000, function() -- nobody answered: the wallet isn't loaded
-            if waiting[id] then
-                waiting[id] = nil
-                wake(nil, "no answer from the wallet")
-            end
-        end)
-    end)
-end
-
-node.async(function()
-    local coins, err = balanceOf(42)
-    node.log("account 42 has %s coins", coins or err)
-end)
-
--- expect: account 42 has 1250 coins
 ```
 
-`balanceOf` can only be called inside `node.async`, because it waits
-([Timers and coroutines](/plugins/concurrency/#waiting-without-blocking-nodeasync)). The random id
-keeps answers apart when several resources ask at once, and the timeout keeps a coroutine from
-waiting forever when the other resource isn't there.
+<!-- doctest: server -->
+```lua
+local me = node.resources.manifest().name
 
-## Native modules on the bus
+node.bus.on("bank:balance:" .. me, function(_, data)
+    node.log("balance: %d cents", node.json.decode(data).cents)
+end)
 
-Native modules publish and subscribe on the same bus (`emit_resource_event` and
-`register_resource_event` in C), so a resource talks to a module exactly as to another resource.
-The `dimensions` module from the examples is driven this way: a resource publishes
-`dimensions:setPlayer` with `"<player id>;<dimension>"`, and the module announces every move as
-`dimensions:changed`. A module's messages arrive with `source` set to `"native"`.
+node.after(500, function()
+    node.bus.emit("bank:ask", { replyTo = "bank:balance:" .. me })
+end)
 
-For raw bytes between a module and the players' game there is a separate channel, `node.modules.on`
-and `node.modules.send` ([Native modules](/plugins/native-modules/)).
+-- expect: balance: 1500 cents
+```
 
-## Next
+A name that includes the asking resource keeps answers apart. To wait for an answer in a coroutine,
+`node.suspend` turns a callback into a pause; the database module's `db.lua` is built that way.
 
-- [Events](/plugins/events/): everything a resource can react to.
-- [Timers and coroutines](/plugins/concurrency/): waiting without holding up the server.
+## What else travels on the bus
+
+- `player:tell` and `node.chat.say` publish `chat:say`, and the server shows it in the chat.
+- The [database module](/plugins/database/) answers resources over the bus.
+- Native modules send and receive bus messages too ([Native modules](/plugins/native-modules/)).
