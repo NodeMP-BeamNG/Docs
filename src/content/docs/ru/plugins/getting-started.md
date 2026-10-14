@@ -179,58 +179,69 @@ server greets Alice
   сервера.
 
 Ресурс может перезагрузить себя или другой ресурс через `node.resources.reload(name)`. Вот это в
-виде команды чата, доступной только игрокам, которым плагин выдал роль `admin`:
+виде команды чата `/reload` для игроков, которым плагин выдал роль `admin`:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/reload"}]]} -->
 ```lua
-node.commands.add("reload", function(player, args)
-    local name = args[1] or "hello"
-    if node.resources.reload(name) then
+node.on("chatMessageRequest", function(player, msg)
+    local name = msg.text:match("^/reload%s*(%S*)$")
+    if not name then return end -- some other line: not ours
+    if name == "" then name = "hello" end
+
+    if player.role ~= "admin" then
+        player:tell("Only admins can reload resources")
+    elseif node.resources.reload(name) then
         player:tell("reloading %s", name)
     else
         player:tell("no resource named %s", name)
     end
-end, { role = "admin" })
+    return { handled = true }
+end)
 
--- expect-client: Alice chat:msg .*You are not allowed to use /reload
+-- expect-client: Alice chat:msg .*Only admins can reload resources
 ```
 
-`role` пускает к команде только игроков с ролью `admin`; плагин выдаёт её через
-`player:setRole("admin")` ([Чат → Команды](/ru/plugins/chat/#команды)). У Alice роли нет, поэтому
-ей отвечают, что нельзя.
+Своих команд у сервера нет, поэтому команда — это строка чата, которую ваш ресурс ловит в
+`chatMessageRequest` и на которую отвечает `{ handled = true }`: дальше строка не идёт, а игрок
+видит только ваш ответ. У Alice роли пока нет, поэтому ей отвечают, что нельзя (вся история — в
+[Чате → Команды](/ru/plugins/chat/#команды)).
 
 ## Проверка без игры
 
-Серверной стороне игрок не нужен: каждый серверный вызов работает и с одним сервером. Команду чата
-можно проверить через шину — так сервер сам передаёт команды плагинам: опубликуйте строку, которую
-набрал бы игрок, как `chat:command`, и смотрите ответ в `chat:say`.
+Серверной стороне игрок не нужен: каждый серверный вызов работает и с одним сервером. Чтобы
+проверить команду, напишите её тело обычной функцией и вызовите с подставным игроком — таблицей с
+`name` и `tell`:
 
 <!-- doctest: server -->
 ```lua
--- the command under test
-node.commands.add("hello", function(player, args, raw)
-    player:tell("Hello, %s! You typed: %s", tostring(player.name), raw)
+-- the command under test, as a plain function
+local function hello(player, words)
+    player:tell("Hello, %s! You said: %s", player.name, table.concat(words, " "))
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local rest = msg.text:match("^/hello%s*(.*)$")
+    if not rest then return end
+    local words = {}
+    for word in rest:gmatch("%S+") do words[#words + 1] = word end
+    hello(player, words)
+    return { handled = true }
 end)
 
--- the test bench: watch what commands answer on the bus ...
-node.bus.on("chat:say", function(source, data)
-    local reply = node.json.decode(data)
-    node.log("%s says to pid %s: %s", source, tostring(reply.pid), reply.text)
-end)
+-- the test bench: a stand-in player whose tell writes to the console
+local tester = { name = "Tester" }
+function tester:tell(text, ...)
+    node.log("to %s: %s", self.name, string.format(text, ...))
+end
 
--- ... and, half a second in, pretend that player 0 typed "/hello world"
-node.after(500, function()
-    node.bus.emit("chat:command", { pid = 0, name = "hello", args = { "world" }, raw = "/hello world" })
-end)
+node.after(500, function() hello(tester, { "big", "world" }) end)
 
--- expect: \S+ says to pid 0: Hello, nil! You typed: /hello world
+-- expect: to Tester: Hello, Tester! You said: big world
 ```
 
-`name` — строчными: сервер переводит набранное игроком в нижний регистр, прежде чем опубликовать
-команду. Игрока 0 здесь нет, поэтому `player.name` равно `nil`, а ответ никуда не уходит;
-проверяете вы строку на шине. Таймеры, хранилище, база данных, HTTP, перезагрузка, `serverShutdown`
-и `resourceUnload` по Ctrl+C работают одинаково с игроками и без. Клиент нужен только сетевым
-событиям — их отправляет только клиентский мод, — а клиентские файлы вне игры не запускаются вовсе.
+Таймеры, хранилище, база данных, HTTP, перезагрузка, `serverShutdown` и `resourceUnload` по Ctrl+C
+работают одинаково с игроками и без. Клиент нужен только сетевым событиям — их отправляет только
+клиентский мод, — а клиентские файлы вне игры не запускаются вовсе.
 
 ## Где видны ошибки
 

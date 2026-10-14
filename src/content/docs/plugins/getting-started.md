@@ -175,58 +175,69 @@ know:
 - Client files are packed once, at start: a change under `client/` needs a server restart.
 
 A resource can reload itself or another one with `node.resources.reload(name)`. Here it is as a
-chat command, limited to players a plugin gave the `admin` role:
+`/reload` chat command for players a plugin gave the `admin` role:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/reload"}]]} -->
 ```lua
-node.commands.add("reload", function(player, args)
-    local name = args[1] or "hello"
-    if node.resources.reload(name) then
+node.on("chatMessageRequest", function(player, msg)
+    local name = msg.text:match("^/reload%s*(%S*)$")
+    if not name then return end -- some other line: not ours
+    if name == "" then name = "hello" end
+
+    if player.role ~= "admin" then
+        player:tell("Only admins can reload resources")
+    elseif node.resources.reload(name) then
         player:tell("reloading %s", name)
     else
         player:tell("no resource named %s", name)
     end
-end, { role = "admin" })
+    return { handled = true }
+end)
 
--- expect-client: Alice chat:msg .*You are not allowed to use /reload
+-- expect-client: Alice chat:msg .*Only admins can reload resources
 ```
 
-`role` lets only players whose role is `admin` use the command; a plugin gives that role with
-`player:setRole("admin")` ([Chat → Commands](/plugins/chat/#commands)). Alice has no role, so she
-is told she may not.
+The server has no commands of its own, so a command is a chat line your resource catches in
+`chatMessageRequest` and answers with `{ handled = true }`: the line goes no further, and the
+player sees only your reply. Alice has no role yet, so she is told she may not
+([Chat → Commands](/plugins/chat/#commands) has the whole story).
 
 ## Testing without the game
 
-Nothing on the server side needs a player: every server call works with the server alone. A chat
-command can be tested through the bus, the way the server itself delivers commands to plugins:
-publish the line a player would have typed as `chat:command` and watch the reply as `chat:say`.
+Nothing on the server side needs a player: every server call works with the server alone. To test
+a command, write its body as a plain function and call it with a stand-in player, a table with a
+`name` and a `tell`:
 
 <!-- doctest: server -->
 ```lua
--- the command under test
-node.commands.add("hello", function(player, args, raw)
-    player:tell("Hello, %s! You typed: %s", tostring(player.name), raw)
+-- the command under test, as a plain function
+local function hello(player, words)
+    player:tell("Hello, %s! You said: %s", player.name, table.concat(words, " "))
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local rest = msg.text:match("^/hello%s*(.*)$")
+    if not rest then return end
+    local words = {}
+    for word in rest:gmatch("%S+") do words[#words + 1] = word end
+    hello(player, words)
+    return { handled = true }
 end)
 
--- the test bench: watch what commands answer on the bus ...
-node.bus.on("chat:say", function(source, data)
-    local reply = node.json.decode(data)
-    node.log("%s says to pid %s: %s", source, tostring(reply.pid), reply.text)
-end)
+-- the test bench: a stand-in player whose tell writes to the console
+local tester = { name = "Tester" }
+function tester:tell(text, ...)
+    node.log("to %s: %s", self.name, string.format(text, ...))
+end
 
--- ... and, half a second in, pretend that player 0 typed "/hello world"
-node.after(500, function()
-    node.bus.emit("chat:command", { pid = 0, name = "hello", args = { "world" }, raw = "/hello world" })
-end)
+node.after(500, function() hello(tester, { "big", "world" }) end)
 
--- expect: \S+ says to pid 0: Hello, nil! You typed: /hello world
+-- expect: to Tester: Hello, Tester! You said: big world
 ```
 
-`name` is lowercase: the server lowercases what the player typed before it publishes the command.
-There is no player 0 here, so `player.name` is `nil` and the reply reaches nobody; the bus line is
-what you check. Timers, storage, the database, HTTP, a reload, `serverShutdown` and
-`resourceUnload` at Ctrl+C all work the same with or without players. Only wire events need a
-client, because only the client mod sends them, and client files can't run outside the game at all.
+Timers, storage, the database, HTTP, a reload, `serverShutdown` and `resourceUnload` at Ctrl+C all
+work the same with or without players. Only wire events need a client, because only the client mod
+sends them, and client files can't run outside the game at all.
 
 ## Where errors show
 

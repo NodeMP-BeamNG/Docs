@@ -1,6 +1,6 @@
 ---
 title: Players and vehicles
-description: Player and Vehicle objects - who a player is, roles, kicking and banning, tags and locks on cars, spawning for a player, and reading every car at once.
+description: Player and Vehicle objects - who a player is, roles, reserved slots, bans, teleporting and freezing, tags and locks, and reading every car at once.
 ---
 
 Your handlers receive `Player` and `Vehicle` objects. This page is what you can read from them and
@@ -32,6 +32,9 @@ Methods act by id, so they always reach the live player. The same goes for a `Ve
 | `player.role` | The role a plugin gave this session, `""` when none. |
 | `player.accountRoles` | The account's role on the NodeMP website (`"ADM"` for its admins, `""` for everyone else). Not the same as `role`. |
 | `player.vehicle`, `player.seatRole` | The car the player sits in (`nil` on foot) and `"driver"`, `"passenger"` or `"none"`. |
+| `player.locale` | The language the player's game runs in, such as `"ru_RU"`. Empty from a client mod older than 1.7.4 ([Chat → In the player's language](/plugins/chat/#in-the-players-language)). |
+| `player.overCapacity` | `true` when the player came in over the server's player limit ([below](#reserved-slots)). |
+| `player.frozen` | `true` while a resource holds the player frozen ([below](#freezing-a-player)). |
 
 <!-- doctest: server+client -->
 ```lua
@@ -54,9 +57,9 @@ To find players: `node.players.all()` (everyone, by id), `node.players.count()`,
 ## Roles
 
 A role is a word your resource gives a player for this session: `"admin"`, `"mod"`, `"vip"`,
-anything. Players see it as a tag beside the name. `node.commands.add` can limit a command to a role
-([Chat → Commands](/plugins/chat/#commands)). Roles are per session: give them again in
-`playerJoined`, usually from a list in your settings.
+anything. Players see it as a tag beside the name, and your commands can check it
+([Chat → Many commands, some for admins](/plugins/chat/#many-commands-some-for-admins)). Roles are
+per session: give them again in `playerJoined`, usually from a list in your settings.
 
 <!-- doctest: server+client {"config": {"admins": [42]}} -->
 ```lua
@@ -80,6 +83,38 @@ The host writes the account numbers in your `resource.toml`:
 admins = [42, 108]
 ```
 
+## Reserved slots
+
+When the server is full, it still asks your `playerConnectRequest` handler, with
+`player.overCapacity` set to `true` and the account already known. Return `true` and the player gets
+in past the limit; return nothing and the server refuses them with "Server full!" as usual. This is
+how you keep a place for admins, members or the people who pay for the server:
+
+<!-- doctest: server+client {"config": {"reserved": [42]}} -->
+```lua
+local reserved = {}
+for _, id in ipairs(node.config.reserved or {}) do reserved[id] = true end
+
+node.on("playerConnectRequest", function(player)
+    if not player.overCapacity then return end -- there is room: nothing to decide
+    if player.accountId and reserved[player.accountId] then
+        node.log("%s takes a reserved slot", player.name)
+        return true
+    end
+end)
+
+node.on("playerJoined", function(player)
+    node.log("%s joined, over the limit: %s", player.name, tostring(player.overCapacity))
+end)
+
+-- expect: Alice joined, over the limit: false
+```
+
+Only an explicit `true` lets someone in over the limit, and a `false` from any handler still
+refuses. Silence keeps the old behaviour, so a resource that doesn't know about reserved slots
+changes nothing. `player.overCapacity` stays `true` for the whole session, should you want to treat
+such players differently later.
+
 ## Kicking and banning
 
 - `player:kick(reason)` disconnects the player and shows them the reason (`"Kicked"` if you give
@@ -88,6 +123,29 @@ admins = [42, 108]
   (so it follows them to any network) and their IP always.
 - `node.bans.add(who, reason)` bans for the future without kicking: `who` is an IP string or an
   account number. `node.bans.remove(who)`, `node.bans.has(who)` and `node.bans.all()` do the rest.
+
+Both ban calls take an end time as a third argument, in Unix seconds. The server lifts such a ban by
+itself when the time comes, even across restarts, so you need no timer of your own:
+
+<!-- doctest: server -->
+```lua
+local HOUR = 60 * 60
+
+-- a two-hour ban for an address, without kicking anybody
+node.bans.add("203.0.113.9", "Spamming", os.time() + 2 * HOUR)
+
+for _, ban in ipairs(node.bans.all()) do
+    if ban.ip == "203.0.113.9" then
+        node.log("banned until %s", os.date("!%Y-%m-%d %H:%M UTC", ban["until"]))
+    end
+end
+node.bans.remove("203.0.113.9")
+
+-- expect: banned until \d{4}-\d\d-\d\d \d\d:\d\d UTC
+```
+
+With a player it's `player:ban("Spamming", os.time() + 2 * HOUR)`. `until` is a Lua keyword, which
+is why the field is read as `ban["until"]`; a ban for good has none.
 
 Bans are kept in `bans.json` next to `server.toml`, the same list the host manages
 ([Administration → Bans](/hosting/administration/#bans)). A complete `/kick` and
@@ -120,6 +178,60 @@ The config is the same shape the game spawns with: `jbm` is the model, `vcf` the
 and paint. On failure you get `nil` and `"not_joined"`, `"max_cars"` or `"bad_config"`. The
 server's car limit applies, and `vehicleSpawnRequest` isn't asked: the server doesn't refuse itself.
 
+### Teleporting
+
+`player:teleport(transform)` moves whatever the player is in, their car or their walking self, to
+another place. Nothing is repaired: damage, fuel and cargo stay as they were. That's the difference
+from `vehicle:reset(transform)`, which repairs the car as it moves it.
+
+<!-- doctest: server+client {"spawn": "coupe"} -->
+```lua
+local GARAGE = { pos = { x = -24.5, y = 610.0, z = 75.2 } }
+
+node.on("vehicleSpawned", function(vehicle)
+    local player = vehicle.spawner
+    if not player or vehicle.isUnicycle then return end
+    local ok, err = player:teleport(GARAGE)
+    node.log("%s to the garage: %s", player.name, ok and "done" or err)
+end)
+
+-- expect: Alice to the garage: done
+```
+
+`transform` is `{ pos = { x, y, z }, rot = { x, y, z, w } }`; without `rot` the car keeps facing
+the way it did. When it can't, you get `nil` and a reason: `"not_driver"` for a passenger (move the
+car instead, with `vehicle:teleport`), `"no_avatar"` when the player has nothing in the world yet,
+`"bad_transform"`. The `vehicleTeleported` event follows. Players on a client mod older than 1.7.4
+see the car repaired, as on a reset.
+
+### Freezing a player
+
+`player:freeze(true)` holds a player where they are, for a briefing, a race start or while an admin
+looks into something. The server stops passing on their car's movement, so to everyone else it
+stands still, and refuses their spawns, edits, resets and seat changes with
+"You are frozen by the server". The player's game (client mod 1.7.4 and later) holds the car too.
+`player:freeze(false)` lets go.
+
+<!-- doctest: server+client -->
+```lua
+node.on("playerFrozenChanged", function(player)
+    player:tell(player.frozen and "Hold on, you're frozen for the start" or "Go!")
+end)
+
+node.on("playerJoined", function(player)
+    player:freeze(true)
+    node.after(3000, function()
+        if player:isConnected() then player:freeze(false) end
+    end)
+end)
+
+-- expect-client: Alice chat:msg .*you're frozen for the start
+-- expect-client: Alice chat:msg .*Go!
+```
+
+Freezing is per session: a player who leaves and comes back is free. If you keep a list of frozen
+players, freeze them again in `playerJoined`.
+
 ## Vehicles
 
 | Field | What it is |
@@ -135,8 +247,9 @@ What changes every frame (`transform`, `controls`, `electrics`, `damage`, `confi
 because each call is a fresh read: `vehicle:transform().pos`, `vehicle:electrics().rpm`.
 
 `vehicle:delete()` removes it for everyone. `vehicle:reset(transform)` repairs it where it stands,
-or at the place you give. `vehicle:trigger(call)` presses a control on it. `vehicle:setCoupler(name, open)`
-opens or closes a door or coupler.
+or at the place you give; `vehicle:teleport(transform)` moves it without repairing anything.
+`vehicle:trigger(call)` presses a control on it. `vehicle:setCoupler(name, open)` opens or closes a
+door or coupler.
 
 ### Tags
 
