@@ -1,9 +1,9 @@
 ---
 title: Strict file check
-description: VerifyGame = strict - what it checks and what it doesn't, making the reference manifest, where it goes, and what to do after a game update.
+description: verify = "strict" - what it checks and what it doesn't, making the reference manifest, where it goes, and what to do after a game update.
 ---
 
-`[General] VerifyGame = "strict"` is the strongest game file check. The lighter levels compare a
+`[integrity] verify = "strict"` is the strongest game file check. The lighter levels compare a
 player's install with the file list that comes with the game, and a player can edit that list
 together with the files. The strict check compares the install with a **reference manifest**
 instead: a description of a clean install that you make once per game version.
@@ -67,7 +67,7 @@ file. If something goes wrong, nothing is written and the generator says
 
 1. Copy the file into `integrity/` in the server's working directory. In Docker that's
    `data/integrity/`.
-2. Set `VerifyGame = "strict"` (in Docker, `NODE_VERIFY_GAME=strict`).
+2. Set `verify = "strict"` in `[integrity]` (in Docker, `NODE_VERIFY_GAME=strict`).
 3. Restart the server.
 
 The log then says `strict game verification ON: reference manifest for game 0.39.4.0 (…)`.
@@ -100,7 +100,7 @@ finds a mismatch ends the session.
 
 - `player:verify(level)` asks the player's launcher to check the files right now.
 - The `playerVerifyReported` event comes with every check result. On a server with
-  `VerifyGame = "off"` that event is the only consequence, which is how you build a check that
+  `verify = "off"` that event is the only consequence, which is how you build a check that
   refuses nobody.
 
 The details are in the [API reference](/plugins/api/lua/) and the [events](/plugins/api/events/).

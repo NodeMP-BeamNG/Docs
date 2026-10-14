@@ -62,7 +62,7 @@ after a restart.
 
 ## Obfuscating client scripts
 
-The server scrambles the scripts a resource sends to players first (`[Resources] Obfuscate`, on by
+The server scrambles the scripts a resource sends to players first (`[resources] obfuscate`, on by
 default), so they're harder to copy. The tool is Prometheus, a Lua program in `tools/`; it has
 nothing to do with the monitoring system of the same name. It needs Lua 5.1:
 

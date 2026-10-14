@@ -96,7 +96,7 @@ journalctl -u nodemp -f
 without quotes. Environment variables win over `server.toml`, so the secret never ends up in a file
 you might paste into a support chat one day. [Get listed](/hosting/registering/) has an example.
 
-A service has no terminal, so the server's console is off. `[General] Console` makes it read
+A service has no terminal, so the server's console is off. `[server] console` makes it read
 standard input anyway, but a service rarely needs that.
 
 ## Next

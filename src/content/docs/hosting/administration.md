@@ -36,7 +36,7 @@ The console shows the chat as players write, with each player's id:
 
 A line that wasn't sent says why, and a line a resource took as its command is marked
 `[handled by a resource]`. The arguments of commands that take a password (`/login`, `/register` and
-the others in `[Chat] LogHiddenCommands`) show as `***`. `[Chat] LogToConsole = false` keeps the chat
+the others in `[chat] masked_commands`) show as `***`. `[chat] log = false` keeps the chat
 out of the console and the log.
 
 ## Kicks and bans
@@ -89,7 +89,7 @@ with a countdown in chat.
 
 Everything the server prints also goes to `logs/server.log`. A new file starts at every start and
 when the old one grows past 50 MB. Five old ones are kept as `server.1.log`, `server.2.log` and so on
-(`[Log] MaxSizeMB`, `Keep`).
+(`[logs] max_size_mb`, `keep`).
 
 Lines worth knowing:
 
@@ -110,6 +110,6 @@ The player usually sends you the launcher's message. Every message is on
 - `Connection refused` with nothing else: a resource turned the player away without a reason. Look
   for lines with that resource's name.
 - A ban: the entry is in `bans.json`, [see above](#bans).
-- Anything about game files: the `VerifyGame` level ([Strict file check](/hosting/strict-verification/)).
+- Anything about game files: the `[integrity] verify` level ([Strict file check](/hosting/strict-verification/)).
 - Several players from one place can't get in: see
   [When the server misbehaves](/hosting/troubleshooting/#players-are-refused-at-the-door).

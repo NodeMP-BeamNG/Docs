@@ -21,7 +21,7 @@ Docker answers `Loaded image: nodemp-server:1.9.0-7546fe7`. That tag is what you
 ## How the container works
 
 - **Settings are environment variables only.** The image doesn't read `server.toml`: each setting
-  has a variable of its own, `NODE_NAME` for `[General] Name` and so on. The full list is on
+  has a variable of its own, `NODE_NAME` for `[server] name` and so on. The full list is on
   [server.toml](/hosting/configuration/#every-setting).
 - **Everything the server writes lives in `/data`**: resources, mods, storage, bans, logs. The
   program's own folder is read-only.

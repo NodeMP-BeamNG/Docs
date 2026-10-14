@@ -30,8 +30,8 @@ a `.sha256` file next to it for checking the download.
 
 ## The first start
 
-On its first start the server writes `server.toml` with every setting at its default, makes a TLS
-certificate and creates the `content/` and `logs/` folders. When all went well, the console ends
+On its first start the server writes a short `server.toml` with the settings a host usually changes,
+makes a TLS certificate and creates the `content/` and `logs/` folders. When all went well, the console ends
 with:
 
 ```
@@ -47,23 +47,23 @@ To stop the server, press Ctrl+C or type `stop` in its window.
 
 ## Name, map and slots
 
-Open `server.toml` and change these lines in the `[General]` table:
+Open `server.toml` and change these lines in the `[server]` table:
 
 ```toml
-[General]
-Name = "Friday freeroam"
-Map = "/levels/west_coast_usa/info.json"
-MaxPlayers = 16
-MaxCars = 2
+[server]
+name = "Friday freeroam"
+map = "/levels/west_coast_usa/info.json"
+max_players = 16
+cars_per_player = 2
 ```
 
-- `Name` is the server's name in the list and in the game.
-- `Map` is the path to the map's `info.json`: `/levels/<map folder>/info.json`.
+- `name` is the server's name in the list and in the game.
+- `map` is the path to the map's `info.json`: `/levels/<map folder>/info.json`.
   [Mods and maps](/hosting/mods/) explains how to add a map of your own.
-- `MaxPlayers` is how many players can be on at once.
-- `MaxCars` is how many cars one player can have.
+- `max_players` is how many players can be on at once.
+- `cars_per_player` is how many cars one player can have.
 
-The server reads the file only when it starts, so restart it after a change. It never rewrites the
+The server reads the file only when it starts, so restart it after a change. It doesn't write to the
 file itself: your edits and comments stay. Every other setting is on
 [server.toml](/hosting/configuration/). In Docker there is no file; the same settings are
 environment variables there.
