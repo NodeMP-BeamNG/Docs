@@ -85,14 +85,28 @@ export function checkConfigExample(page, ref) {
 // headers, short of the complete example): every key it sets exists in that section.
 // The values are the page's to choose; tables that are not server.toml sections
 // (a resource.toml's [server], db.toml) are left alone.
+// A resource.toml (top-level name/version/type, or a [client]/[config] table) has a
+// [server] table of its own, with `main`; it is not a server.toml snippet.
+const isResourceManifest = (block) => {
+  const firstTable = block.lines.findIndex((l) => /^\s*\[/.test(l));
+  const top = firstTable < 0 ? block.lines : block.lines.slice(0, firstTable);
+  return top.some((l) => /^\s*(name|version|type)\s*=/.test(l)) || block.lines.some((l) => /^\s*\[(client|config)\]\s*$/.test(l));
+};
+
+const legacySections = (ref) => new Set([...(ref.legacy?.keys() ?? [])].map((k) => /^\[(\w+)\]/.exec(k)[1]));
+
 export function checkConfigSnippets(page, ref) {
   const out = [];
+  const old = legacySections(ref);
   for (const block of codeBlocks(page.text)) {
-    if (!/^toml/.test(block.info) || isCompleteExample(block, ref)) continue;
+    if (!/^toml/.test(block.info) || isCompleteExample(block, ref) || isResourceManifest(block)) continue;
     let section = null;
     block.lines.forEach((raw, i) => {
       const l = raw.trim();
       const sec = /^\[(\w+)\]$/.exec(l);
+      if (sec && !ref.sections.includes(sec[1]) && old.has(sec[1])) {
+        out.push(finding('config.snippet', page, block.start + 1 + i, `[${sec[1]}]`, 'a table of the current layout', 'a table of the old layout'));
+      }
       if (sec) { section = ref.sections.includes(sec[1]) ? sec[1] : null; return; }
       const kv = /^(\w+)\s*=/.exec(l);
       if (!kv || !section) return;
@@ -138,19 +152,36 @@ export function checkSectionClaims(page, ref) {
   return out;
 }
 
+// resource.toml keys whose table shares a name with a server.toml table.
+const RESOURCE_KEYS = new Set(['[server] main']);
+// A table whose header says it lists the old names ("Before 1.9.0", "До 1.9.0").
+const OLD_HEADER = /before|old|до |старо|прежн/i;
+
 // `[Section] Key` mentions of a server.toml section, and NODE_* names, on any page
 // must exist. A `[Section]` the server does not write belongs to another file
-// (BeamNG's startup.ini has `[filesystem] UserPath`) and is left alone; NODE_*
-// identifiers of the SDK header (NODE_EXPORT, NODE_ABI_VERSION) are known names too.
+// (BeamNG's startup.ini has `[filesystem] UserPath`) and is left alone, except a
+// name of the old layout (`[General] Map`), which is reported with its new name
+// unless it sits in a table column headed as the old one; NODE_* identifiers of the
+// SDK header (NODE_EXPORT, NODE_ABI_VERSION) are known names too.
 export function checkConfigMentions(page, ref, known) {
   const out = [];
   const lines = page.text.split(/\r?\n/);
+  const oldColumns = new Map(); // line -> cells under an old-names header
+  for (const t of tables(page.text)) {
+    const cols = t.header.map((h) => OLD_HEADER.test(h));
+    if (cols.some(Boolean)) for (const r of t.rows) oldColumns.set(r.line, r.cells.filter((_, c) => cols[c]).join(' '));
+  }
   lines.forEach((line, i) => {
     for (const span of inlineCode(line)) {
       const m = /^\[(\w+)\]\s+(\w+)$/.exec(span.text);
-      if (m && /^[A-Z]/.test(m[2]) && ref.sections.includes(m[1]) && !ref.entries.some((e) => e.section === m[1] && e.key === m[2])) {
-        const elsewhere = ref.entries.find((e) => e.key === m[2]);
-        out.push(finding('config.mention', page, i + 1, span.text, elsewhere ? `[${elsewhere.section}] ${m[2]}` : 'a key Config.cpp reads', 'no such key'));
+      if (!m) continue;
+      if (ref.sections.includes(m[1])) {
+        if (!RESOURCE_KEYS.has(span.text) && !ref.entries.some((e) => e.section === m[1] && e.key === m[2])) {
+          const elsewhere = ref.entries.find((e) => e.key === m[2]);
+          out.push(finding('config.mention', page, i + 1, span.text, elsewhere ? `[${elsewhere.section}] ${m[2]}` : 'a key Config.cpp reads', 'no such key'));
+        }
+      } else if (ref.legacy?.has(span.text) && !(oldColumns.get(i + 1) ?? '').includes(span.text)) {
+        out.push(finding('config.legacy', page, i + 1, span.text, `${ref.legacy.get(span.text)} (the old layout's name only in a column headed as the old one)`, span.text));
       }
     }
     for (const m of line.matchAll(/\bNODE_[A-Z][A-Z0-9_]*\b/g)) {

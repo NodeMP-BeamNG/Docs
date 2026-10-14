@@ -195,6 +195,26 @@ test('config snippets: keys must exist in their section; values and other tables
   assert.deepEqual(checkConfigExample(p, ref), [], 'a snippet is not the complete example');
 });
 
+const REF19 = {
+  sections: ['server', 'listing'],
+  entries: [
+    { section: 'server', key: 'name', type: 'string', default: '"Node Server"', env: 'NODE_NAME' },
+    { section: 'listing', key: 'guests', type: 'bool', default: 'true', env: 'NODE_DIRECTORY_TEST_DRIVE' },
+  ],
+  legacy: new Map([['[General] Name', '[server] name'], ['[Directory] TestDrive', '[listing] guests']]),
+};
+
+test('config 1.9.0 layout: lower-case keys, resource.toml blocks, old names', () => {
+  const m = checkConfigMentions(page('Set `[server] name`, not `[server] nmae`; `[server] main` is resource.toml\'s; `[General] Name` is gone.'), REF19, new Set());
+  assert.deepEqual(m.map((x) => [x.check, x.claim]), [['config.mention', '[server] nmae'], ['config.legacy', '[General] Name']]);
+  const table = page('| Before 1.9.0 | Since 1.9.0 |\n|---|---|\n| `[Directory] TestDrive` | `[listing] guests` |\n', 'hosting/updating.md');
+  assert.deepEqual(checkConfigMentions(table, REF19, new Set()), [], 'an old name under an old-names header is fine');
+  const manifest = page('```toml\nname = "race"\n\n[server]\nmain = "server/main.lua"\n```\n');
+  assert.deepEqual(checkConfigSnippets(manifest, REF19), [], 'a resource.toml is not a server.toml snippet');
+  const old = page('```toml\n[General]\nName = "x"\n```\n');
+  assert.deepEqual(checkConfigSnippets(old, REF19).map((x) => [x.check, x.claim]), [['config.snippet', '[General]']]);
+});
+
 // --- CLI ---------------------------------------------------------------------------
 
 test('cli: help text from main.cpp, block comparison, flag mentions', () => {

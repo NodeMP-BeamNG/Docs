@@ -147,9 +147,15 @@ export function parseConfigCpp(source) {
   for (const m of source.matchAll(/std::string_view\s+(\w+)\s*=\s*"([^"]*)"/g)) constants.set(m[1], m[2]);
   const writes = [];
   const reads = [];
+  const legacy = [];
   for (const m of source.matchAll(/\.Table\s*=\s*"(\w+)",\s*\.Name\s*=\s*"(\w+)",\s*\.Key\s*=\s*Settings::Key::(\w+),\s*\.Env\s*=\s*"(\w+)"/g)) {
     writes.push({ section: m[1], key: m[2], type: null, settingsKey: m[3] });
     reads.push({ section: m[1], key: m[2], env: m[4], settingsKey: m[3] });
+    // Since 1.9.0 each entry also names where the key lived in the old layout.
+    const rest = source.slice(m.index, source.indexOf('\n', m.index));
+    const lt = /\.LegacyTable\s*=\s*"(\w+)"/.exec(rest);
+    const ln = /\.LegacyName\s*=\s*"(\w+)"/.exec(rest);
+    if (lt && ln) legacy.push({ section: lt[1], key: ln[1], now: `[${m[1]}] ${m[2]}` });
   }
   const typeOf = { FileBool: 'bool', FileInt: 'int', FileString: 'string' };
   for (const m of source.matchAll(/data\["(\w+)"\]\[(\w+)\.data\(\)\]\s*=\s*(FileBool|FileInt|FileString)\(Settings::Key::(\w+)\)/g)) {
@@ -160,7 +166,7 @@ export function parseConfigCpp(source) {
     const env = constants.has(envExpr) ? constants.get(envExpr) : null; // provider-name lookups are not literals
     reads.push({ section: m[1], key: constants.get(m[2]) ?? m[2], env, settingsKey: m[4] });
   }
-  return { constants, writes, reads };
+  return { constants, writes, reads, legacy };
 }
 
 // The TOML type a rendered default stands for.
@@ -187,7 +193,7 @@ export function parseSettingsCpp(source) {
 // (Since 1.6.0 the written server.toml groups keys through a hash map, so its own
 // order differs between platforms; the declaration order is the stable one.)
 export function configReference(configCpp, settingsCpp) {
-  const { writes, reads } = parseConfigCpp(configCpp);
+  const { writes, reads, legacy } = parseConfigCpp(configCpp);
   const defaults = parseSettingsCpp(settingsCpp);
   const envOf = new Map(reads.filter((r) => r.env).map((r) => [r.settingsKey, r.env]));
   const entries = writes.map((w) => ({
@@ -198,7 +204,9 @@ export function configReference(configCpp, settingsCpp) {
     env: envOf.get(w.settingsKey) ?? null,
   }));
   const sections = [...new Set(entries.map((e) => e.section))];
-  return { entries, sections };
+  // `[General] Name` -> `[server] name`: the old layout's names, for spotting them on a page.
+  const legacyNames = new Map(legacy.map((l) => [`[${l.section}] ${l.key}`, l.now]));
+  return { entries, sections, legacy: legacyNames };
 }
 
 // main.cpp: the `--help` text (the raw string assigned to sCommandlineArguments
