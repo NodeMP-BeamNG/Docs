@@ -84,10 +84,13 @@ export function loadSources(dirs, versions) {
     }
     sources.serverMain = S.parseServerMain(read(join(d, 'src/core/main.cpp')));
     sources.wire = S.parseWireTaxonomy(read(join(d, 'run/wire_taxonomy.py')));
-    // Kick texts: arguments of ClientKick anywhere, plus Network.cpp's two indirections
-    // (the `Why` a refused VerifyRequest carries, the AccountRequired constant).
-    sources.kickTemplates = serverCpp.filter((t) => /ClientKick\(/.test(t.head)
-      || (/net\/Network\.cpp$/.test(t.file) && /\bWhy\s*=|AccountRequired\s*=/.test(t.head)));
+    // Kick texts: arguments of ClientKick (before 1.6.0) or Kick (since) anywhere, plus
+    // Network.cpp's two indirections (the `Why` a refused VerifyRequest carries -- the
+    // texts that start "This server" -- and the AccountRequired constant). The other
+    // `Why` there names a broken link in the log; nobody is shown it.
+    sources.kickTemplates = serverCpp.filter((t) => /(?:ClientKick|\bKick)\(/.test(t.head)
+      || (/net\/Network\.cpp$/.test(t.file) && (/AccountRequired\s*=/.test(t.head)
+        || (/\bWhy\s*=/.test(t.head) && /^This server/.test(t.text)))));
     sources.corpora = { server: serverCpp, launcher: [], ui: [] };
     sources.codeVersions.server = S.versionFrom('server', read(join(d, 'CMakeLists.txt')));
     sources.codeVersions.protocol = S.versionFrom('protocol', read(join(d, 'include/net/Protocol.h')));

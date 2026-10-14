@@ -26,6 +26,9 @@ export const RECOGNIZERS = [
   ['server', re(String.raw`${B}(?:server|сервер[а-яё]*)\s*\x60?\s*${V3}`)],
   ['server', re(String.raw`${B}server-v${V3}`)],
   ['server', re(String.raw`${B}Node-Server-${V3}-(?:linux|windows)`)],
+  // The release's Docker image: the tar and the tag `docker load` gives it.
+  ['server', re(String.raw`${B}nodemp-server-v${V3}-image`)],
+  ['server', re(String.raw`${B}nodemp-server:${V3}-`)],
   ['launcher', re(String.raw`${B}(?:launcher|helper|лаунчер[а-яё]*|хелпер[а-яё]*)\s*\x60?\s*${V3}`)],
   ['launcher', re(String.raw`${B}Node-Launcher\s+${V3}`)],
   ['launcher', re(String.raw`${B}launcher-v${V3}`)],

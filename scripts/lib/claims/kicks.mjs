@@ -1,6 +1,6 @@
 // Check 3: the texts a failed join shows, on the support pages (support/*.md,
-// the refusals table on support/error-codes.md) and hosting/startup-messages.md,
-// against the code that prints them:
+// the refusals table on support/error-codes.md), players/vpn.md and
+// hosting/troubleshooting.md, against the code that prints them:
 //   kick.text         a quoted server refusal (the Reason column, `Disconnected · X`,
 //                     `Session ended · X`) is a literal of the server (or, for the
 //                     helper's own session errors, of the launcher);
@@ -221,7 +221,7 @@ export function checkQuoted(page, corpora, already) {
 
 export function checkKicks(pages, sources) {
   const out = [];
-  const relevant = pages.filter((p) => /^(support\/[a-z-]+|hosting\/startup-messages)\.mdx?$/.test(p.slug));
+  const relevant = pages.filter((p) => /^(support\/[a-z-]+|players\/vpn|hosting\/troubleshooting)\.mdx?$/.test(p.slug));
   const perPage = relevant.map((p) => ({ page: p, texts: collectServerTexts(p) }));
   if (sources.describe) sources.describe.prefetch(perPage.flatMap((x) => x.texts.map((t) => sampled(t.text))));
   for (const { page, texts } of perPage) {

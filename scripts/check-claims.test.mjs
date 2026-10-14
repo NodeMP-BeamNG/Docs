@@ -10,7 +10,7 @@ import {
   W, cppTemplates, parseConfigCpp, parseSettingsCpp, configReference, parseServerMain, parseWireTaxonomy,
   parseApiEvents, launcherExitCodes, tsTemplates, rustTemplates, luaTemplates, versionFrom, envNames, snake, pascal,
 } from './lib/claims/sources.mjs';
-import { checkConfigTable, checkConfigExample, checkSectionClaims, checkConfigMentions } from './lib/claims/config.mjs';
+import { checkConfigTable, checkConfigExample, checkConfigSnippets, checkSectionClaims, checkConfigMentions } from './lib/claims/config.mjs';
 import { checkHelpBlock, checkFlagMentions } from './lib/claims/cli.mjs';
 import {
   compatible, docTemplate, matchesWhole, matchesPrefix, cellMessages, collectServerTexts, checkKickTexts, checkShown,
@@ -118,6 +118,30 @@ test('config: Config.cpp + Settings.cpp -> ordered reference with type, default 
   assert.equal(parseConfigCpp(config).reads.length, 3);
 });
 
+test('config reference from the 1.6 shape: one Entries table, types from the Defaults array', () => {
+  const config = `const ConfigEntry Entries[] = {
+    { .Table = "General", .Name = "Debug", .Key = Settings::Key::General_Debug, .Env = "NODE_DEBUG", .Comment = "x" },
+    { .Table = "General", .Name = "Port", .Key = Settings::Key::General_Port, .Env = "NODE_PORT", .Range = { 1, 65535 }, .ProviderEnv = "NODE_PROVIDER_PORT_ENV" },
+    { .Table = "Chat", .Name = "LogToConsole", .Key = Settings::Key::Chat_Log, .Env = "NODE_CHAT_LOG_TO_CONSOLE", .OldName = "Log", .OldEnv = "NODE_CHAT_LOG" },
+};`;
+  const settings = `Settings::Settings() {
+    const Default Defaults[] = {
+        { General_Port, 30814 },
+        // a comment { not_a_key, 1 },
+        { General_Debug, false },
+        { Chat_Log, true },
+    };
+    for (const auto& [K, V] : Defaults) { (void)K; }
+}`;
+  const ref = configReference(config, settings);
+  assert.deepEqual(ref.sections, ['General', 'Chat']);
+  assert.deepEqual(ref.entries, [
+    { section: 'General', key: 'Debug', type: 'bool', default: 'false', env: 'NODE_DEBUG' },
+    { section: 'General', key: 'Port', type: 'int', default: '30814', env: 'NODE_PORT' },
+    { section: 'Chat', key: 'LogToConsole', type: 'bool', default: 'true', env: 'NODE_CHAT_LOG_TO_CONSOLE' },
+  ]);
+});
+
 const REF = {
   sections: ['General', 'Database'],
   entries: [
@@ -156,6 +180,13 @@ test('config example, section-count claims and mentions', () => {
   assert.deepEqual(m.map((x) => [x.check, x.claim]), [['config.mention', '[General] Nmae'], ['config.env', 'NODE_FOO']]);
 });
 
+test('config snippets: keys must exist in their section; values and other tables are free', () => {
+  const ref = { sections: ['General', 'Database', 'Http', 'Log'], entries: REF.entries };
+  const p = page('```toml\n[General]\nName = "My server"\nNmae = "typo"\n\n[server]\nmain = "server/main.lua"\n```\n', 'hosting/quick-start.md');
+  assert.deepEqual(checkConfigSnippets(p, ref).map((x) => [x.check, x.claim]), [['config.snippet', '[General] Nmae']]);
+  assert.deepEqual(checkConfigExample(p, ref), [], 'a snippet is not the complete example');
+});
+
 // --- CLI ---------------------------------------------------------------------------
 
 test('cli: help text from main.cpp, block comparison, flag mentions', () => {
@@ -181,6 +212,22 @@ ARGUMENTS:
   assert.equal(f[0].line, 7);
   assert.equal(f[0].expected, '                        Displays this help and exits.');
   assert.deepEqual(checkFlagMentions(page('Run `Node-Server --config=x` or `Node-Server --gen-config`.'), flags).map((x) => x.actual), ['--gen-config']);
+});
+
+test('cli: the 1.6 HelpText and the options compared by name', () => {
+  const main = `static const char* const HelpText = R"(
+Node-Server, the NodeMP game server.
+
+Usage: Node-Server [--port=N]
+)";
+  if (Name == "help") Flag(Out.Help);
+  else if (Name == "working-directory") Valued(Out.WorkingDirectory);
+  if (Arg == "--bans" || Arg.starts_with("--bans=")) {}`;
+  const { help, flags } = parseServerMain(main);
+  assert.ok(help.includes('Usage: Node-Server [--port=N]'));
+  assert.deepEqual([...flags].sort(), ['--bans', '--help', '--port', '--working-directory']);
+  const drift = page('```\nNode-Server, the NodeMP game server.\n\nUsage: Node-Server [--port=M]\n```\n');
+  assert.equal(checkHelpBlock(drift, help).length, 1);
 });
 
 // --- kick texts ------------------------------------------------------------------------
@@ -255,6 +302,22 @@ test('kicks: helper exit codes -- literal exists, code agrees with the exit that
     ['Failed to find the game please launch it. Report this if the issue persists code 8', 'exit code 2', '1'],
     ['Cannot get Local Appdata directory', 'a log line of the launcher (launcher/src)', 'no such literal'],
   ]);
+});
+
+test('kicks: helper exit codes through FinishProcess(ExitCode::...)', () => {
+  const src = `
+    static void Start() {
+      const std::string Line = "Another Node-Launcher is already running on port " + std::to_string(port) + " - closing";
+      error(Line);
+      FinishProcess(ExitCode::AlreadyRunning, Line);
+    }
+    void Missing() {
+      FinishProcess(ExitCode::GameNotFound, "BeamNG.drive was not found; pass --game-dir <folder>");
+    }`;
+  const codes = launcherExitCodes(src);
+  const byText = (re) => codes.filter((c) => re.test(c.text)).map((c) => c.code);
+  assert.deepEqual(byText(/already running/), [5]);
+  assert.deepEqual(byText(/pass --game-dir/), [4]);
 });
 
 test('kicks: quoted messages are looked up as fragments across every corpus', () => {

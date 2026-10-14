@@ -137,17 +137,24 @@ function readCppLiterals(src) {
   return out;
 }
 
-// Config.cpp: the `Str*`/`EnvStr*` constants, the FlushToFile writes (section,
-// key constant, File<Type>) and the TryReadValue reads (section, key, env).
+// Config.cpp, in either of its two shapes. Since server 1.6.0 one `Entries[]` table of
+// `{ .Table = "General", .Name = "Debug", .Key = Settings::Key::General_Debug,
+// .Env = "NODE_DEBUG", ... }` declares every key (the type is the default's, from
+// Settings.cpp); before it, `Str*`/`EnvStr*` constants with FlushToFile writes
+// (section, key constant, File<Type>) and TryReadValue reads (section, key, env).
 export function parseConfigCpp(source) {
   const constants = new Map();
   for (const m of source.matchAll(/std::string_view\s+(\w+)\s*=\s*"([^"]*)"/g)) constants.set(m[1], m[2]);
   const writes = [];
+  const reads = [];
+  for (const m of source.matchAll(/\.Table\s*=\s*"(\w+)",\s*\.Name\s*=\s*"(\w+)",\s*\.Key\s*=\s*Settings::Key::(\w+),\s*\.Env\s*=\s*"(\w+)"/g)) {
+    writes.push({ section: m[1], key: m[2], type: null, settingsKey: m[3] });
+    reads.push({ section: m[1], key: m[2], env: m[4], settingsKey: m[3] });
+  }
   const typeOf = { FileBool: 'bool', FileInt: 'int', FileString: 'string' };
   for (const m of source.matchAll(/data\["(\w+)"\]\[(\w+)\.data\(\)\]\s*=\s*(FileBool|FileInt|FileString)\(Settings::Key::(\w+)\)/g)) {
     writes.push({ section: m[1], key: constants.get(m[2]) ?? m[2], type: typeOf[m[3]], settingsKey: m[4] });
   }
-  const reads = [];
   for (const m of source.matchAll(/TryReadValue\(data,\s*"(\w+)",\s*(\w+),\s*([^,]+?),\s*Settings::Key::(\w+)\)/g)) {
     const envExpr = m[3].trim();
     const env = constants.has(envExpr) ? constants.get(envExpr) : null; // provider-name lookups are not literals
@@ -156,11 +163,16 @@ export function parseConfigCpp(source) {
   return { constants, writes, reads };
 }
 
+// The TOML type a rendered default stands for.
+const typeOfDefault = (d) => (d == null ? null : d.startsWith('"') ? 'string' : d === 'true' || d === 'false' ? 'bool' : 'int');
+
 // Settings.cpp: default of every Settings::Key, rendered as TOML would show it
-// ("Node Server" -> "\"Node Server\"", 8 -> "8", false -> "false").
+// ("Node Server" -> "\"Node Server\"", 8 -> "8", false -> "false"). The table is
+// `mSettingsMap = ...{ ... }` before 1.6.0 and `const Default Defaults[] = { ... }` since.
 export function parseSettingsCpp(source) {
   const defaults = new Map();
-  const body = /mSettingsMap\s*=\s*std::unordered_map<Key,\s*SettingsTypeVariant>\s*\{([\s\S]*?)\};/.exec(source);
+  const body = /mSettingsMap\s*=\s*std::unordered_map<Key,\s*SettingsTypeVariant>\s*\{([\s\S]*?)\};/.exec(source)
+    || /Default\s+Defaults\[\]\s*=\s*\{([\s\S]*?)\n\s*\};/.exec(source);
   const text = body ? body[1] : source;
   for (const m of text.matchAll(/\{\s*(\w+),\s*(std::string\("((?:[^"\\]|\\.)*)"\)|true|false|-?\d+)\s*\}/g)) {
     const [, key, raw, str] = m;
@@ -171,7 +183,9 @@ export function parseSettingsCpp(source) {
 }
 
 // The reference the docs table must reproduce: one entry per key, in the order
-// server.toml is written, with section, key, type, default and environment name.
+// Config.cpp declares them, with section, key, type, default and environment name.
+// (Since 1.6.0 the written server.toml groups keys through a hash map, so its own
+// order differs between platforms; the declaration order is the stable one.)
 export function configReference(configCpp, settingsCpp) {
   const { writes, reads } = parseConfigCpp(configCpp);
   const defaults = parseSettingsCpp(settingsCpp);
@@ -179,7 +193,7 @@ export function configReference(configCpp, settingsCpp) {
   const entries = writes.map((w) => ({
     section: w.section,
     key: w.key,
-    type: w.type,
+    type: w.type ?? typeOfDefault(defaults.get(w.settingsKey)),
     default: defaults.get(w.settingsKey) ?? null,
     env: envOf.get(w.settingsKey) ?? null,
   }));
@@ -187,13 +201,15 @@ export function configReference(configCpp, settingsCpp) {
   return { entries, sections };
 }
 
-// main.cpp: the `--help` text (the raw string assigned to sCommandlineArguments)
-// and the argument names the parser registers.
+// main.cpp: the `--help` text (the raw string assigned to sCommandlineArguments
+// before 1.6.0, HelpText since) and the option names the parser knows
+// (RegisterArgument before, `Name == "port"` since).
 export function parseServerMain(source) {
-  const m = /sCommandlineArguments\s*=\s*R"(\w*)\(([\s\S]*?)\)\1"/.exec(source);
+  const m = /(?:sCommandlineArguments|HelpText)\s*=\s*R"(\w*)\(([\s\S]*?)\)\1"/.exec(source);
   const help = m ? m[2] : null;
   const flags = new Set();
   for (const f of source.matchAll(/RegisterArgument\(\{\s*"([\w-]+)"\s*\}/g)) flags.add('--' + f[1]);
+  for (const f of source.matchAll(/\bName\s*==\s*"([a-z][\w-]*)"/g)) flags.add('--' + f[1]);
   // --gen-integrity is dispatched before the parser; its own options live in the help text.
   for (const f of source.matchAll(/Arg\s*==\s*"(--[\w-]+)"/g)) flags.add(f[1]);
   if (help) for (const f of help.matchAll(/(--[a-z][\w-]*)/g)) flags.add(f[1]);
@@ -327,10 +343,15 @@ export function luaTemplates(source) {
 // (log line template -> exit code) pairs the launcher source implies. A heuristic,
 // read as "the code that follows this message":
 //   fatal("...")                                   -> 1 (Logger.cpp: fatal sleeps 5 s and exits 1)
-//   error/game/info/warn("...") then exit(N) or return ExitX within five lines -> N
+//   error/game/info/warn("...") then exit(N), return ExitX or
+//   FinishProcess(ExitCode::X, ...) within five lines -> N
 //   `std::string msg = "..."` then error(msg + ...) and exit(N) likewise
+//   FinishProcess(ExitCode::X, "...")               -> X (the literal is the reason)
 // A message may collect several codes (platform branches); each is one entry
 // { text, code, line }. Messages with no exit in sight are not listed.
+// The helper's exit codes (launcher core/Outcome.h since 1.1.20).
+const EXIT_CODE = { Ok: 0, Refused: 1, Network: 2, Auth: 3, GameNotFound: 4, AlreadyRunning: 5, PortInUse: 6, Usage: 64 };
+
 export function launcherExitCodes(source) {
   const out = [];
   const templates = cppTemplates(source);
@@ -342,8 +363,18 @@ export function launcherExitCodes(source) {
       out.push({ text: t.text, code: 1, line: t.line });
       continue;
     }
+    const finish = /\bFinishProcess\(\s*ExitCode::(\w+)/.exec(t.head);
+    if (finish && finish[1] in EXIT_CODE) {
+      out.push({ text: t.text, code: EXIT_CODE[finish[1]], line: t.line });
+      continue;
+    }
     if (!/\b(error|game|info|warn)\s*\(/.test(ctx) && !/std::string \w+ = /.test(ctx)) continue;
     for (let l = t.line - 1; l < Math.min(lines.length, t.line + 4); l++) {
+      const fin = /\bFinishProcess\(\s*ExitCode::(\w+)/.exec(lines[l]);
+      if (fin && fin[1] in EXIT_CODE) {
+        out.push({ text: t.text, code: EXIT_CODE[fin[1]], line: t.line });
+        break;
+      }
       const m = /\b(?:std::)?exit\(\s*(\d+|[A-Za-z_]\w*)\s*\)|return\s+(ExitClean|ExitDiffers|ExitFailed|\d)\s*;/.exec(lines[l]);
       if (m) {
         const tok = m[1] ?? m[2];

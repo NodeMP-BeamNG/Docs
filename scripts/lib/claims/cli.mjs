@@ -1,6 +1,6 @@
-// Check 2: the `Node-Server --help` block in hosting/configuration.md against the
-// help text in server/src/core/main.cpp, and every `Node-Server --flag` mention
-// against the flags the server registers.
+// Check 2: every `Node-Server --help` block against the help text in
+// server/src/core/main.cpp, and every `Node-Server --flag` mention against the
+// options the server knows.
 //
 // The text is read from main.cpp rather than from a binary: the string is a
 // constant the binary prints verbatim (WriteRaw), so the source is the same
@@ -12,11 +12,11 @@ const finding = (check, page, line, claim, expected, actual) => ({ check, page: 
 
 const normalize = (s) => s.replace(/\r\n/g, '\n').replace(/^\n+|\n+$/g, '').replace(/[ \t]+$/gm, '');
 
-// The block right after a line mentioning `--help` that starts with USAGE:.
+// A code block with a `USAGE:` (before 1.6.0) or `Usage:` line naming Node-Server.
 export function checkHelpBlock(page, help) {
   const out = [];
   if (help == null) return out;
-  const blocks = codeBlocks(page.text).filter((b) => b.lines.some((l) => /^USAGE:/.test(l.trim())) && b.lines.some((l) => /Node-Server/.test(l)));
+  const blocks = codeBlocks(page.text).filter((b) => b.lines.some((l) => /^USAGE:|^Usage: Node-Server/.test(l.trim())) && b.lines.some((l) => /Node-Server/.test(l)));
   if (!blocks.length) return out;
   const expected = normalize(help);
   for (const block of blocks) {

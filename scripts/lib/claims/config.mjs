@@ -1,7 +1,8 @@
 // Check 1: the server.toml reference in hosting/configuration.md against
 // server/src/core/Config.cpp + Settings.cpp -- every section, key, type, default
-// and NODE_* name; the example server.toml on the same page; "N sections" claims
-// and `[Section] Key` / NODE_* mentions on every page.
+// and NODE_* name; a complete example server.toml on the same page; on every page
+// "N sections" claims, `[Section] Key` / NODE_* mentions and the keys of server.toml
+// snippets.
 import { tables, codeBlocks, codeLineSet, inlineCode } from './md.mjs';
 
 const finding = (check, page, line, claim, expected, actual) => ({ check, page: page.path, locale: page.locale, line, claim, expected, actual });
@@ -37,7 +38,7 @@ export function checkConfigTable(page, ref) {
     const claim = `[${e.section}] ${e.key}`;
     if (!seen.has(claim)) out.push(finding('config.table', page, table.start, claim, `a row for ${claim} (${e.type}, default ${e.default}, ${e.env})`, 'missing'));
   }
-  // The rows follow the order the server writes the file in.
+  // The rows follow the order Config.cpp declares the keys in.
   const docOrder = table.rows.map((r) => `[${strip(r.cells[0]).replace(/^\[|\]$/g, '')}] ${strip(r.cells[1])}`).filter((c) => seen.has(c));
   const refOrder = ref.entries.map((e) => `[${e.section}] ${e.key}`).filter((c) => seen.has(c));
   const firstDiff = docOrder.findIndex((c, i) => c !== refOrder[i]);
@@ -45,11 +46,16 @@ export function checkConfigTable(page, ref) {
   return out;
 }
 
-// The example server.toml (a ```toml block with [Section] headers): every key at
-// its default, no key missing, none unknown.
+const headersOf = (block) => block.lines.map((l) => /^\[(\w+)\]\s*$/.exec(l.trim())).filter(Boolean).map((m) => m[1]);
+
+// A ```toml block is the complete example when it opens at least half of the
+// server.toml sections; anything smaller is a snippet.
+const isCompleteExample = (block, ref) => headersOf(block).filter((s) => ref.sections.includes(s)).length * 2 >= ref.sections.length;
+
+// The complete example server.toml: every key at its default, no key missing, none unknown.
 export function checkConfigExample(page, ref) {
   const out = [];
-  const block = codeBlocks(page.text).find((b) => /^toml/.test(b.info) && b.lines.some((l) => /^\[General\]/.test(l)));
+  const block = codeBlocks(page.text).find((b) => /^toml/.test(b.info) && isCompleteExample(b, ref));
   if (!block) return out;
   let section = null;
   const seen = new Set();
@@ -69,6 +75,30 @@ export function checkConfigExample(page, ref) {
   for (const e of ref.entries) {
     const claim = `[${e.section}] ${e.key}`;
     if (!seen.has(claim)) out.push(finding('config.example', page, block.start, claim, `${e.key} = ${e.default} under [${e.section}]`, 'missing from the example'));
+  }
+  return out;
+}
+
+// A server.toml snippet on any page (a ```toml block under one of its section
+// headers, short of the complete example): every key it sets exists in that section.
+// The values are the page's to choose; tables that are not server.toml sections
+// (a resource.toml's [server], db.toml) are left alone.
+export function checkConfigSnippets(page, ref) {
+  const out = [];
+  for (const block of codeBlocks(page.text)) {
+    if (!/^toml/.test(block.info) || isCompleteExample(block, ref)) continue;
+    let section = null;
+    block.lines.forEach((raw, i) => {
+      const l = raw.trim();
+      const sec = /^\[(\w+)\]$/.exec(l);
+      if (sec) { section = ref.sections.includes(sec[1]) ? sec[1] : null; return; }
+      const kv = /^(\w+)\s*=/.exec(l);
+      if (!kv || !section) return;
+      if (!ref.entries.some((e) => e.section === section && e.key === kv[1])) {
+        const elsewhere = ref.entries.find((e) => e.key === kv[1]);
+        out.push(finding('config.snippet', page, block.start + 1 + i, `[${section}] ${kv[1]}`, elsewhere ? `[${elsewhere.section}] ${kv[1]}` : 'a key Config.cpp declares', 'no such key'));
+      }
+    });
   }
   return out;
 }
@@ -136,7 +166,7 @@ export function checkConfig(pages, sources) {
     if (/^hosting\/configuration\.mdx?$/.test(page.slug)) {
       out.push(...checkConfigTable(page, ref), ...checkConfigExample(page, ref));
     }
-    out.push(...checkSectionClaims(page, ref), ...checkConfigMentions(page, ref, sources.envNames));
+    out.push(...checkSectionClaims(page, ref), ...checkConfigMentions(page, ref, sources.envNames), ...checkConfigSnippets(page, ref));
   }
   return out;
 }
