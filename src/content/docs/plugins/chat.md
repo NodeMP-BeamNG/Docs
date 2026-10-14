@@ -1,228 +1,71 @@
 ---
-title: Chat
-description: Talking to players, making chat commands, refusing or rewriting what players say, answering in their language, and watching the chat.
+title: Chat and commands
+description: How the server's chat works, refusing and rewriting lines, logging the chat, speaking as the server, a command router, and kick and ban commands for moderators.
 ---
 
-Chat is part of the server. Players can talk with no resource installed, and your resource can
-speak, add commands, filter lines and watch the conversation with a few calls.
+Chat is part of the server: it works with no resource installed. The server takes each line, cleans
+it, applies the limits from `[Chat]`, and sends it to everyone in its scope, the sender included.
+Resources come in when they want to change that: refuse a line, rewrite it, or take it as a command.
 
-## Speaking
+## A line's way through the server
 
-| Call | Who sees it |
+1. A player sends a line, with the scope `global` (everyone) or `local` (the player's group).
+2. The server strips control characters and cuts the line to `[Chat] MaxLength`. A player over the
+   rate limit is told so; nobody is kicked for chatting.
+3. `chatMessageRequest` handlers decide: let it through, refuse, rewrite, or take it as a command.
+4. The line goes out, and `chatMessage` tells resources what happened to it.
+
+## Deciding about a line
+
+A `chatMessageRequest` handler gets the player and `msg = { text, scope }`. What it returns decides:
+
+| Return | Effect |
 |---|---|
-| `node.chat.say(text, ...)` | everyone |
-| `node.chat.tell(player, text, ...)` | one player (a `Player` or an id) |
-| `player:tell(text, ...)` | that player |
+| nothing | The line goes on as it is. |
+| `false, "reason"` | The line is refused; nobody gets it. |
+| a string | The line goes on with this text instead. |
+| `{ text = ..., scope = ... }` | Replaces the text, the scope, or both. |
+| `{ handled = true }` | The line is a command this resource took; nobody sees it. |
 
-All three take `string.format` arguments and show as a line from **System**. Control characters are
-removed and the line is cut to `[Chat] MaxLength` (256 bytes by default). They work in any handler,
-timer or coroutine, and the server's console shows them when chat logging is on.
+Handlers run in order, and each sees the text as the one before left it. The first refusal ends the
+chain.
 
-<!-- doctest: server+client -->
-```lua
-node.on("playerJoined", function(player)
-    player:tell("Welcome to the server, %s!", player.name)
-    node.chat.say("%s joined. %d online.", player.name, node.players.count())
-end)
+A rewrite:
 
--- expect-client: Alice chat:msg .*Welcome to the server, Alice!
--- expect-client: Alice chat:msg .*Alice joined\. 1 online\.
-```
-
-## Commands
-
-The server itself knows no chat commands: a line that starts with `/` is a chat line like any
-other. A command is a line your resource takes for itself. Catch it in `chatMessageRequest`, do the
-work, and return `{ handled = true }`:
-
-<!-- doctest: server+client {"emit": [["chat:send", {"text": "/dice 20"}]]} -->
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "spam here"}]]} -->
 ```lua
 node.on("chatMessageRequest", function(player, msg)
-    local sides = msg.text:match("^/dice%s*(%d*)$")
-    if not sides then return end -- not our command: let the line through
-
-    sides = tonumber(sides) or 6
-    if sides < 2 or sides > 1000 then
-        player:tell("Usage: /dice [sides], 2 to 1000")
-    else
-        node.chat.say("%s rolled %d (d%d)", player.name, math.random(sides), sides)
+    local clean = msg.text:gsub("[Ss]pam", "****")
+    if clean ~= msg.text then
+        return clean
     end
-    return { handled = true }
 end)
 
--- expect-client: Alice chat:msg .*Alice rolled \d+ \(d20\)
--- expect-log: /dice 20\s+\[handled by a resource\]
+-- expect-client: Alice chat:msg .*\*\*\*\* here
 ```
 
-When a handler answers `{ handled = true }`:
+A refusal. When the reason starts with `muted` or `filtered`, the player's game shows its own
+ready-made line for that case ("you are muted", "the message didn't pass the server's filter");
+any other reason shows as a plain "blocked". The full reason goes to the server's log.
 
-- nobody receives the line, and the sender's chat drops it quietly, so the player sees only your
-  answer;
-- handlers subscribed after yours don't see the line;
-- the server's console logs it with `[handled by a resource]` at the end.
-
-A line no resource takes goes to the chat as usual, `/` or not. So if a player mistypes `/dcie`,
-everyone reads `/dcie`.
-
-### Many commands, some for admins
-
-With more than one or two commands, keep them in a table and let one handler pick. Here each
-command can name the role it needs. Roles come from your resources
-([Players and vehicles → Roles](/plugins/players-and-vehicles/#roles)):
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/announce Restart in 5 minutes"}], ["chat:send", {"text": "/announce hi"}, "Bob"], ["chat:send", {"text": "/online"}, "Bob"]]} -->
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "see https://example.com", "cid": 7}]]} -->
 ```lua
-local commands = {}
-
-commands.online = {
-    run = function(player, rest)
-        player:tell("%d player(s) online", node.players.count())
-    end,
-}
-
-commands.announce = {
-    role = "admin",
-    run = function(player, rest)
-        if rest == "" then return player:tell("Usage: /announce <text>") end
-        node.chat.say("[Announcement] %s", rest)
-    end,
-}
-
 node.on("chatMessageRequest", function(player, msg)
-    local name, rest = msg.text:match("^/(%S+)%s*(.-)%s*$")
-    local command = name and commands[name:lower()]
-    if not command then return end
-
-    if command.role and player.role ~= command.role then
-        player:tell("You are not allowed to use /%s", name)
-    else
-        command.run(player, rest)
-    end
-    return { handled = true }
-end)
-
-node.on("playerJoined", function(player)
-    if player.name == "Alice" then player:setRole("admin") end
-end)
-
--- expect-client: Bob chat:msg .*\[Announcement\] Restart in 5 minutes
--- expect-client: Bob chat:msg .*You are not allowed to use /announce
--- expect-client: Bob chat:msg .*2 player\(s\) online
-```
-
-`name:lower()` makes `/Online` and `/ONLINE` work too. The server comes with a complete example of
-this pattern, `examples/chat-commands`, with `/help`, `/me` and `/pm`; copy the folder into
-`resources/` and add your own commands to its table.
-
-A few things worth knowing:
-
-- **Don't refuse `/` lines you don't know.** Another resource may know them, and a `false` from
-  your handler ends the line before that resource sees it. Return nothing and let it pass.
-- **Two resources with the same command:** the first handler that answers `{ handled = true }`
-  wins; the other never sees the line. Resources subscribe in the order they load.
-- **Secrets in commands.** `[Chat] LogHiddenCommands` lists commands whose arguments the log hides
-  (`/login hunter2` is written as `/login ***`). The host sets it; tell them if your resource has
-  such a command.
-- **Testing a command without the game** is on
-  [Your first resource → Testing without the game](/plugins/getting-started/#testing-without-the-game).
-
-## Refusing and rewriting
-
-`chatMessageRequest(player, msg)` runs before a line is sent. `msg.text` is already cleaned and cut
-to length; `msg.scope` is `"global"` or `"local"`. Your handler decides:
-
-| Return | What happens |
-|---|---|
-| nothing (or `true`) | the line goes out as it is |
-| `false, reason` | nobody gets the line; the sender is told the reason |
-| a string | the line goes out with this text instead, marked as edited |
-| `{ text = ..., scope = ... }` | changes the text, the scope, or both |
-| `{ handled = true }` | your resource took the line as a command: nobody gets it, the sender isn't told anything |
-
-Handlers run in the order they subscribed, and each sees the text as the one before left it. The
-first `false` or `{ handled = true }` ends it: later handlers don't see the line.
-
-A reason that starts with `muted` or `filtered` (`"muted"`, `"muted: spamming"`,
-`"filtered: links are not allowed"`) tells the player's game what kind of refusal it is, so it can
-show a translated message; the part after the colon is shown as the detail. Any other reason is shown
-as it is.
-
-Here is a small moderator in one handler: a `/mute` command for admins, the mute itself, a link
-filter and a word filter.
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "free stuff at http://spam.example"}], ["chat:send", {"text": "darn it"}]]} -->
-```lua
-local muted = {} -- [accountId or name] = true
-
-local function key(player) return player.accountId or player.name end
-
-node.on("chatMessageRequest", function(player, msg)
-    local target = msg.text:match("^/mute%s+(%S+)")
-    if target and player.role == "admin" then
-        local who = node.players.find(target)
-        if who then
-            muted[key(who)] = true
-            player:tell("%s is muted", who.name)
-        else
-            player:tell("Nobody called %s is here", target)
-        end
-        return { handled = true }
-    end
-
-    if muted[key(player)] then
-        return false, "muted"
-    end
     if msg.text:find("https?://") then
-        return false, "filtered: links are not allowed here"
+        return false, "filtered: links are not allowed"
     end
-    local clean, changed = msg.text:gsub("[Dd]arn", "****")
-    if changed > 0 then return clean end
 end)
 
--- expect-client: Alice chat:msg .*links are not allowed here
--- expect-client: Bob chat:msg .*\*\*\*\* it
+-- expect-client: Alice chat:refused .*filtered
 ```
 
-A rewritten line is cleaned and cut again, and reaches everyone with `edited = true`. A scope other
-than `"global"` or `"local"` refuses the line instead of showing it to everyone. With no
-`chatMessageRequest` handler at all, lines go out at once without waiting for the plugin thread.
+## Logging the chat
 
-## In the player's language
+`chatMessage` comes after the decision, with the outcome: `sent` is `true` for a line that went out,
+otherwise `code` says why not (`"muted"`, `"filtered"`, `"blocked"`, `"handled"`, …). This is the
+place for a chat log or a bridge to Discord.
 
-`player.locale` is the language the player's game runs in, such as `"ru_RU"` or `"en_US"`, as their
-client mod reports it. It's known by `playerJoined`. A mod older than 1.7.4 doesn't send it, and
-then it's an empty string, so always keep a fallback:
-
-<!-- doctest: server+client -->
-```lua
-local welcome = {
-    ru = "Добро пожаловать, %s!",
-    de = "Willkommen, %s!",
-}
-
-node.on("playerJoined", function(player)
-    local lang = (player.locale or ""):match("^(%a+)") -- "ru_RU" -> "ru"
-    player:tell(welcome[lang] or "Welcome, %s!", player.name)
-end)
-
--- expect-client: Alice chat:msg .*Welcome, Alice!
-```
-
-## Watching the chat
-
-`chatMessage(player, msg)` fires once the line's fate is decided, so it's the right place to log the
-chat, count activity or bridge to Discord: unlike in `chatMessageRequest`, nothing can change the
-outcome any more.
-
-| Field | Meaning |
-|---|---|
-| `msg.text`, `msg.scope` | the final text and scope |
-| `msg.sent` | `true` when the line went out |
-| `msg.mid` | the line's number, when sent |
-| `msg.code` | when not sent: `"handled"` (a resource took it as a command), `"muted"`, `"filtered"`, `"blocked"`, `"empty"` or `"invalid"` |
-| `msg.reason` | what the refusing handler said |
-
-<!-- doctest: server+client {"emit": [["chat:send", {"text": "hello there"}]]} -->
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "hello"}]]} -->
 ```lua
 node.on("chatMessage", function(player, msg)
     if msg.sent then
@@ -232,41 +75,90 @@ node.on("chatMessage", function(player, msg)
     end
 end)
 
--- expect: \[global\] Alice: hello there
+-- expect: \[global\] Alice: hello
 ```
 
-Lines refused before any resource saw them (the rate limit, a broken message) don't fire
-`chatMessage`. A bridge to Discord is in [Recipes](/plugins/recipes/#post-chat-to-discord).
+## Speaking as the server
 
-## Local chat
+- `player:tell(text, ...)` and `node.chat.tell(player, text, ...)`: a system line to one player.
+- `node.chat.say(text, ...)`: a system line to everyone.
 
-Players can send a line to `local` scope. It reaches the players in the sender's
-[visibility group](/plugins/players-and-vehicles/#visibility-groups); when no resource uses groups,
-that's everyone.
+Both take `string.format` arguments. Text can be coloured with `^` codes: `^0`–`^9` and `^a`–`^f`
+pick a colour, `^#RRGGBB` any colour, `^l` bold, `^o` italic, `^n` underline, `^m` strike-through,
+`^r` back to normal.
 
-## Settings
+## Commands
 
-The host sets these in `server.toml`; your resource can't change them, but should know they exist.
+The server knows no commands. A line that starts with `/` is an ordinary line until a resource
+returns `{ handled = true }` for it; a `/` line nobody takes goes to the chat like any other. So a
+command is a `chatMessageRequest` handler that recognises its line. With more than one command, a
+small router keeps them tidy:
 
-| Setting | Default | What it does |
-|---|---|---|
-| `[Chat] MaxLength` | `256` | The longest line, in bytes (16 to 2048). Longer lines are cut. |
-| `[Chat] RatePerSec` | `2` | Lines a player may send per second on average, commands included. Over that, the line isn't sent and the player is told so. |
-| `[Chat] Burst` | `5` | Lines a player may send at once before the rate applies. |
-| `[Chat] LogToConsole` | `true` | Shows the chat in the console and `logs/server.log`. |
-| `[Chat] LogHiddenCommands` | a list | Commands logged as `/login ***`. |
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/dice 20"}]]} -->
+```lua
+local commands = {}
 
-## Older resources
+function commands.dice(player, args)
+    local sides = tonumber(args[1]) or 6
+    node.chat.say("%s rolls %d", player.name, math.random(sides))
+end
 
-- **`node.commands`** was removed in server 1.8.0, together with the bus event `chat:command`. A
-  resource that calls `node.commands.add` stops at that line. Move each command into a
-  `chatMessageRequest` handler as shown [above](#commands); the body of the command stays the same.
-- **The wire event `chat:send`** still reaches resources that subscribe to it, for every line that
-  passed the rate limit, handled and refused ones included. Read it if you like, but don't relay the
-  line yourself: the server already did. To refuse lines, use `chatMessageRequest`; to send lines,
-  use `node.chat`.
+node.on("chatMessageRequest", function(player, msg)
+    local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
+    local command = name and commands[name:lower()]
+    if not command then return end
+    local args = {}
+    for word in rest:gmatch("%S+") do
+        args[#args + 1] = word
+    end
+    command(player, args)
+    return { handled = true }
+end)
 
-## Next
+-- expect-client: Alice chat:msg .*Alice rolls \d+
+```
 
-- [Recipes](/plugins/recipes/): `/kick`, `/ban`, a Discord bridge and more, complete.
-- [Events](/plugins/events/): everything else your resource can react to.
+Arguments of commands that carry a password (`/login`, `/register` and the others in
+`[Chat] LogHiddenCommands`) are written to the log as `***`. The `chat-commands` example in the
+server archive adds `/help`, `/me` and `/pm` this way ([The example plugins](/plugins/examples/)).
+
+## Commands for moderators
+
+Who may use a command is the resource's decision. Here the moderators are account numbers in
+`[config]`; `/kick` and `/ban` take a player's name and a reason, and a ban lasts a day:
+
+<!-- doctest: server+client {"config": {"moderators": [42]}, "players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/kick Bob flooding"}]]} -->
+```lua
+local moderators = {}
+for _, id in ipairs(node.config.moderators or {}) do
+    moderators[id] = true
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local cmd, name, reason = msg.text:match("^/(%a+)%s+(%S+)%s*(.*)$")
+    if cmd ~= "kick" and cmd ~= "ban" then return end
+    if not moderators[player.accountId] then
+        player:tell("Only moderators can do that")
+        return { handled = true }
+    end
+    local who = node.players.find(name)
+    if not who then
+        player:tell("Nobody called %s here", name)
+        return { handled = true }
+    end
+    if reason == "" then reason = "No reason given" end
+    if cmd == "kick" then
+        who:kick(reason)
+    else
+        who:ban(reason, os.time() + 24 * 3600)
+    end
+    node.chat.say("%s: %s (%s)", cmd, who.name, reason)
+    return { handled = true }
+end)
+
+-- expect-log: Bob kicked — flooding
+```
+
+Keying moderators by `accountId` is safe: a guest can call itself anything, but only NodeMP can vouch
+for an account. On a server without a key, players aren't verified, so don't hand out powers there
+by name.

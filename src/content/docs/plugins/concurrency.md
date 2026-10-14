@@ -1,183 +1,150 @@
 ---
 title: Timers and coroutines
-description: The one thread every handler runs on, timers, node.defer, waiting with coroutines, and heavy work on the background pool with node.await and node.job.
+description: Timers, coroutines that wait without blocking the server, heavy work on background threads, the 250 ms rule, and a restart with a countdown in chat.
 ---
 
-The server uses many threads; your Lua uses one. Every handler of every resource runs on the same
-worker thread, one call at a time. Everything on this page exists so that thread never has to wait.
+Every handler, timer and coroutine of every resource runs on one worker thread, one at a time. That
+makes code simple, with no locks and no races, and it sets one rule: **never block**. A handler that
+loops for a second holds up every other resource for that second. The server warns when one job holds
+the thread longer than 250 ms:
 
-## One thread for everyone
+```
+plugin worker job stalled the thread …
+```
 
-Network threads receive packets and queue events; the worker takes them off the queue and calls your
-handlers. Timers, coroutines, bus messages, HTTP answers and finished background jobs all come back
-to that same thread. That has two consequences:
-
-- **You never need a lock.** No two handlers run at once, in your resource or any other, so a plain
-  Lua table is a safe place for shared state.
-- **A slow handler holds up everyone.** A handler that loops for a second stalls every resource's
-  handlers and timers for that second. The server notices: any handler, timer or coroutine step that
-  runs longer than 250 ms is logged with the resource and what kind of code it was:
-  `plugin worker job stalled the thread for 699 ms (resource race, timer) — move heavy work to node.await/node.job`.
-
-`node.server.handlerStats()` shows how long your resource's handlers take (count, mean, max, and how
-many went over 250 ms), so you can see one creeping up before it trips the warning.
+Waiting is done with timers and coroutines, and heavy work goes to background threads.
 
 ## Timers
 
-- `node.after(ms, fn)` runs `fn` once after `ms` milliseconds and returns a timer id.
-- `node.every(ms, fn)` runs `fn` every `ms` milliseconds until cancelled. A slow `fn` delays the next
-  run; runs don't pile up.
-- `node.cancel(id)` stops either. Safe to call for a timer that already fired.
+| Call | What it does |
+|---|---|
+| `node.after(ms, fn)` | Runs `fn` once, after `ms` milliseconds. |
+| `node.every(ms, fn)` | Runs `fn` every `ms` milliseconds. A slow run delays the next one; runs never pile up. |
+| `node.cancel(id)` | Stops a timer. Safe for one that already fired. |
+| `node.defer(fn)` | Runs `fn` as soon as the current event has been handled. |
 
 <!-- doctest: server -->
 ```lua
 local ticks = 0
-local intervalId
-intervalId = node.every(60000, function()
+local id
+id = node.every(500, function()
     ticks = ticks + 1
-    node.log("minute %d, players: %d", ticks, node.players.count())
-    if ticks >= 60 then
-        node.cancel(intervalId)
+    if ticks == 3 then
+        node.cancel(id)
+        node.log("stopped after %d ticks", ticks)
     end
 end)
 
-node.after(500, function()
-    node.log("half a second in, timer %d is ticking", intervalId)
-end)
-
--- expect: half a second in, timer \d+ is ticking
+-- expect: stopped after 3 ticks
 ```
 
-A timer never interrupts a handler; it runs between them. Timers belong to the resource that set
-them: a reload drops them, and at shutdown they stop after `serverShutdown`. `serverTick` is a
-built-in timer of its own, every 100 ms.
+`serverTick` fires on every tick of the server. It shares the thread with everything else, so keep
+it short; a timer is usually the better choice.
 
-## After the others: node.defer
+## Coroutines
 
-`node.defer(fn)` runs `fn` once every handler of the event you're in has finished. Use it to act
-after everyone else has seen the event; anything you change inside `fn` happens after the event, not
-during it.
+A coroutine is code that can pause without holding the thread. `node.async(fn)` starts one; inside
+it, `node.sleep(ms)` pauses for a while and everything else keeps running meanwhile. Code that
+counts down reads top to bottom:
 
-<!-- doctest: server+client {"spawn": "coupe"} -->
+<!-- doctest: server -->
 ```lua
-node.on("vehicleSpawned", function(vehicle)
-    node.defer(function()
-        if vehicle:exists() then -- another handler may have deleted it meanwhile
-            vehicle:setTag("spawnedAt", tostring(node.server.unixTime()))
-            node.log("%s tagged spawnedAt=%s", tostring(vehicle), vehicle:tag("spawnedAt"))
-        end
+node.async(function()
+    for i = 3, 1, -1 do
+        node.log("%d", i)
+        node.sleep(500)
+    end
+    node.log("go")
+end)
+
+-- expect: ^go$
+```
+
+`node.wait(fn)` pauses until `fn` returns true, checking every 50 ms:
+
+<!-- doctest: server+client -->
+```lua
+node.async(function()
+    node.wait(function()
+        return node.players.count() > 0
     end)
+    node.log("someone is here")
 end)
 
--- expect: Vehicle#\d+ Alice tagged spawnedAt=\d+
+-- expect: someone is here
 ```
 
-## Waiting without blocking: node.async
+Inside a coroutine, `node.http.fetch` waits for an HTTP answer the same way
+([HTTP requests](/plugins/http/)), and the database module's calls wait for their results
+([The db module](/plugins/database/)).
 
-`node.async(fn, ...)` runs `fn(...)` as a coroutine on the worker. Inside it, these calls pause your
-code while everything else keeps running:
+## Heavy work
 
-- `node.sleep(ms)` waits for a time.
-- `node.wait(fn, intervalMs)` waits until `fn()` returns something truthy, checking every
-  `intervalMs` (50 by default). `node.wait(ms)` is the same as `node.sleep(ms)`.
-- `node.yield()` lets other handlers run for one turn, inside a long loop that has to stay on the
-  worker.
-- `node.await(work, args)` runs a function on another thread and gives you its result
-  ([below](#heavy-work-nodeawait-and-nodejob)). `node.http.fetch` works the same way for HTTP.
+A computation that takes long doesn't belong on the worker at all. `node.await(fn, args)` runs `fn`
+on a background thread and pauses the coroutine until it's done:
 
-<!-- doctest: server+client {"emit": [["race:start", ""]]} -->
+<!-- doctest: server -->
 ```lua
-node.on("race:start", function(player, data)
+node.async(function()
+    local sum, err = node.await(function(n)
+        local total = 0
+        for i = 1, n do
+            total = total + i
+        end
+        return total
+    end, 1000)
+    node.log("sum = %s", tostring(sum or err))
+end)
+
+-- expect: sum = 500500
+```
+
+The background function is copied to another Lua state, so it must stand alone: no variables from
+outside, no `node`, only its argument and plain Lua. Its argument and result travel as JSON.
+`node.job(fn, args, done)` is the same with a callback instead of a coroutine.
+
+## A restart with a countdown
+
+`node.server.shutdown(reason, delayMs)` schedules a stop, and `serverShutdownScheduled` tells every
+resource when it's due, so one of them can count down in chat. With `Restart=always` under systemd
+or a Docker restart policy, the stop becomes a restart.
+
+<!-- doctest: server+client {"config": {"moderators": [42]}, "emit": [["chat:send", {"text": "/restart"}]]} -->
+```lua
+local moderators = {}
+for _, id in ipairs(node.config.moderators or {}) do
+    moderators[id] = true
+end
+
+local current
+
+node.on("serverShutdownScheduled", function(info)
+    current = info
+    if info.cancelled then
+        node.chat.say("The restart is called off")
+        return
+    end
     node.async(function()
-        for i = 3, 1, -1 do
-            node.broadcast("race:countdown", tostring(i))
-            node.sleep(1000)
+        while current == info do
+            local left = math.floor(info.at - node.server.unixTime())
+            if left <= 0 then break end
+            node.chat.say("Restart in %d s: %s", left, info.reason)
+            node.sleep(math.min(left, 60) * 1000)
         end
-        node.broadcast("race:go")
-        node.log("race started by %s", tostring(player))
     end)
 end)
 
--- expect-client: Alice race:countdown 3
--- expect-client: Alice race:go
--- expect: race started by Player#\d+ Alice
-```
-
-Called outside `node.async`, these fail: the log says `node.sleep called outside a node.async task`.
-An error inside the coroutine is logged as `error in async task` and ends it. A reload drops running
-coroutines.
-
-A coroutine that slept wakes up in a changed world: the player may have left, the car may be gone.
-Check `player:isConnected()` and `vehicle:exists()` after every pause, and remember that ids are
-reused.
-
-`node.suspend(arm)` is the general form behind all of these: `arm(resume)` runs, and whoever calls
-`resume(...)` later (a handler, a timer, a bus message) wakes the coroutine with those values. Use it
-to turn a callback API of your own into straight-line code.
-
-## Heavy work: node.await and node.job
-
-Long computations don't belong on the worker. `node.await(work, args)` runs `work(args)` on a
-background thread and pauses your coroutine until it's done; it returns the result, or `nil` and an
-error. `node.job(work, args, done)` is the callback form: `done(result, err)` runs on the worker
-afterwards, and you don't need a coroutine.
-
-`work` runs in a separate, empty Lua state, so it must be **self-contained**: no variables from
-outside the function, no `node`, nothing of your resource. It gets `args` and returns a result, and
-both must be plain data (tables, strings, numbers, booleans). A function that can't be moved fails
-with `work function cannot be serialized (C function?)`.
-
-<!-- doctest: server+client {"emit": [["stats:request", ""]]} -->
-```lua
-node.storage.set("scores", { { name = "Bob", time = 71.2 }, { name = "Alice", time = 64.9 } })
-
-node.on("stats:request", function(player, data)
-    node.async(function()
-        local scores = node.storage.get("scores", {})
-        local top, err = node.await(function(args)
-            table.sort(args.scores, function(a, b) return a.time < b.time end)
-            local out = {}
-            for i = 1, math.min(10, #args.scores) do out[i] = args.scores[i] end
-            return out
-        end, { scores = scores })
-        if not top then
-            node.log.warn("ranking failed: %s", err)
-            return
-        end
-        player:send("stats:top", top)
-        node.log("%s leads with %.1f s", top[1].name, top[1].time)
-    end)
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text ~= "/restart" then return end
+    if moderators[player.accountId] then
+        node.server.shutdown("Scheduled restart", 5 * 60 * 1000)
+    end
+    return { handled = true }
 end)
 
--- expect: Alice leads with 64\.9 s
--- expect-client: Alice stats:top \[\{
+-- expect-client: Alice chat:msg .*Restart in \d+ s: Scheduled restart
 ```
 
-The background pool has one thread per CPU core, between 2 and 32; the `NODE_PLUGIN_POOL`
-environment variable sets the number. When its queue is full, `node.job` returns `false` and
-`node.await` returns `nil, "background pool is full"`.
-
-## What else runs off the worker
-
-- HTTP requests run in the background and call you back on the worker ([HTTP](/plugins/http/)).
-- `node.fs.writeAsync` writes on a file thread; `node.storage.set` costs only the size of the value,
-  so it's fine in a handler ([Storage and files](/plugins/storage/)).
-- Database queries run on the database module's own threads ([Database](/plugins/database/)).
-
-## The rules
-
-1. Keep handlers short. Waiting goes in `node.async`; computing goes in `node.await` or `node.job`.
-2. Never spin in a loop waiting for something. Use `node.sleep`, `node.wait` and `node.http.fetch`
-   inside `node.async`.
-3. Share nothing with a background job except plain data.
-4. For many cars at once, read them all on a timer (`node.vehicles.transforms`) instead of
-   subscribing to a stream per car.
-5. After any pause, check that the player and the car still exist.
-6. A reload drops everything you registered; a job or request already running still finishes, and
-   its callback goes nowhere.
-
-## Next
-
-- [Events](/plugins/events/): what arrives on the worker in the first place.
-- [Lua API reference](/plugins/api/lua/#top-level-events-sending-timers-coroutines): every timer and
-  coroutine call.
+Calling `shutdown` again replaces the schedule; a negative delay cancels it. When the moment comes,
+players are sent away with the reason, `serverShutdown` and `resourceUnload` run, and the server
+exits with code 0.
