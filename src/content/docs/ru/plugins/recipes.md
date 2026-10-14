@@ -1,412 +1,377 @@
 ---
 title: Рецепты
-description: Шесть ресурсов для копирования - команда чата, роли и группы, телепорт, сохранение состояния, HTTP-вебхук, кик и бан - с ожидаемыми строками лога.
+description: Готовые маленькие ресурсы для обычных задач — кто в игре, кик и бан, телепорты, старт гонки, перезапуск с отсчётом, время в игре, мост в Discord.
 ---
 
-Каждый рецепт - один ресурс: папка в `resources/`, названная по рецепту, с `server/main.lua` и,
-где нужна клиентская половина, `client/main.lua`. Каждый вызов есть в
-[справочнике Lua API](/ru/plugins/api/lua/); нативный модуль здесь не нужен ни разу. Четыре из
-шести используют команды чата или `player:tell`, которые говорят через пример ресурса `chat`, -
-установите в `resources/` ещё и `chat` (скопируйте `examples/chat` из архива релиза; см.
-[Ресурсы и контент](/ru/hosting/resources/#установка-ресурса)), иначе команды
-молча пропадают, а ответы уходят в никуда. Без игры команда проверяется через шину, как показано на
-странице [Первые шаги](/ru/plugins/getting-started/#тестирование-без-игры). Консоль сервера
-помечает каждую строку именем ресурса, так что строки лога ниже - ровно то, что вы увидите.
+Каждый рецепт — целый ресурс: создайте папку, вставьте код в `server/main.lua`, впишите настройки в
+`resource.toml` и запустите сервер. Они нарочно короткие: прочитать за минуту и переделать под себя.
 
-## Команда чата
+Все команды здесь устроены по образцу из [Чата → Команды](/ru/plugins/chat/#команды): обработчик
+`chatMessageRequest` ловит свои строки и отвечает `{ handled = true }`. Админы берутся из списка
+номеров аккаунтов в настройках ресурса:
 
-**Цель:** `/online` отвечает игроку, кто подключён.
+```toml
+[config]
+admins = [42, 108] # NodeMP account numbers
+```
+
+## Кто в игре
+
+**Задача:** `/online` говорит игроку, кто сейчас на сервере.
 
 <!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
 -- resources/online/server/main.lua
-node.commands.add("online", function(player, args, raw)
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text:lower() ~= "/online" then return end
     local names = {}
     for _, p in ipairs(node.players.all()) do
         names[#names + 1] = p.name
     end
     player:tell("%d online: %s", #names, table.concat(names, ", "))
-    node.log("%s asked who is online", tostring(player))
+    return { handled = true }
 end)
 
--- expect: Player#\d+ Alice asked who is online
 -- expect-client: Alice chat:msg .*2 online: (Alice, Bob|Bob, Alice)
 ```
 
-`node.commands.add(name, fn, opts?)` регистрирует обработчик строки чата `/name ...`: `fn` получает
-отправителя как `Player`, слова после имени как массив и всю строку. Для игрока имена не зависят от
-регистра - `/Online` и `/ONLINE` доходят до одного обработчика, - потому что `node.commands.add`
-приводит регистрируемое имя к нижнему регистру, а `chat` приводит к нижнему регистру набранное
-слово; сам поиск точный, так что `chat:command`, который публикует другой ресурс, должен нести имя
-в нижнем регистре ([События → node.bus](/ru/plugins/events/#между-ресурсами-nodebus) описывает
-нагрузку). Один обработчик на имя на ресурс; `node.commands.remove(name)` снимает его. Ресурс `chat`
-публикует каждую строку с `/` на шине как `chat:command`, так что команда, которую никто не
-зарегистрировал, просто отбрасывается - и никогда не показывается в чате.
+## Телепорты
 
-Алиса набирает `/online` и видит `2 online: Alice, Bob` системной строкой - `node.players.all()`
-перечисляет игроков в произвольном порядке, так что отсортируйте имена, если порядок важен.
-Консоль печатает:
+**Задача:** `/warp <место>` переносит в именованную точку, `/tp <игрок>` — к другому игроку.
+По дороге ничего не чинится.
 
+<!-- doctest: server+client {"spawn": "coupe", "config": {"places": {"garage": [-24.5, 610.0, 75.2]}}, "emit": [["chat:send", {"text": "/warp garage"}], ["chat:send", {"text": "/warp moon"}], ["chat:send", {"text": "/tp Nobody"}]]} -->
+```lua
+-- resources/warp/server/main.lua
+local places = node.config.places or {} -- name = { x, y, z }
+
+local function placeNames()
+    local names = {}
+    for name in pairs(places) do names[#names + 1] = name end
+    table.sort(names)
+    return table.concat(names, ", ")
+end
+
+local commands = {}
+
+function commands.warp(player, args)
+    local spot = places[args[1] or ""]
+    if not spot then return player:tell("Places: %s", placeNames()) end
+    local ok, err = player:teleport({ pos = { x = spot[1], y = spot[2], z = spot[3] } })
+    if ok then player:tell("Warped to %s", args[1]) else player:tell("Can't warp: %s", err) end
+end
+
+function commands.tp(player, args)
+    local target = node.players.find(args[1] or "")
+    local pos = target and target:position()
+    if not pos then return player:tell("%s isn't in the world yet", args[1] or "Nobody") end
+    local ok, err = player:teleport({ pos = { x = pos.x + 3, y = pos.y, z = pos.z + 0.5 } })
+    if ok then player:tell("Moved next to %s", target.name) else player:tell("Can't move: %s", err) end
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
+    local command = name and commands[name:lower()]
+    if not command then return end
+    local args = {}
+    for word in rest:gmatch("%S+") do args[#args + 1] = word end
+    command(player, args)
+    return { handled = true }
+end)
+
+-- expect-client: Alice chat:msg .*Warped to garage
+-- expect-client: Alice chat:msg .*Places: garage
+-- expect-client: Alice chat:msg .*Nobody isn't in the world yet
 ```
-online · Player#0 Alice asked who is online
-```
-
-## Права по роли и группе
-
-**Цель:** повысить известные аккаунты до `admin`, закрыть команду ролью и позволить админам
-открывать группы видимости.
 
 ```toml
-# resources/perms/resource.toml
-name = "perms"
-
-[config]
-admins = [42, 108]   # directory account ids
+[config.places]
+garage = [-24.5, 610.0, 75.2]
 ```
 
-<!-- doctest: server+client {"config": {"admins": [42, 108]}, "emit": [["chat:send", {"text": "/say hello all"}], ["chat:send", {"text": "/lobby 1"}]]} -->
+`player:teleport` переносит машину, за рулём которой игрок, или самого игрока, если он пешком, и
+сохраняет повреждения и груз. `player:position()` — где сервер видел игрока в последний раз. Чтобы
+узнать координаты для своих мест, встаньте там в игре и пусть ресурс запишет в лог
+`player:position()`. Подробности — в [Игроках и машинах → Телепорт](/ru/plugins/players-and-vehicles/#телепорт).
+
+## Кик и бан из чата
+
+**Задача:** `/kick`, `/ban`, временный `/tempban`, `/unban` и `/bans` — только для админов.
+
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "config": {"admins": [42]}, "emit": [["chat:send", {"text": "/kick Bob"}, "Bob"], ["chat:send", {"text": "/tempban Bob 30 Ramming"}], ["chat:send", {"text": "/bans"}], ["chat:send", {"text": "/unban 108"}], ["chat:send", {"text": "/unban 127.0.0.1"}]]} -->
 ```lua
--- resources/perms/server/main.lua
+-- resources/moderation/server/main.lua
 local admins = {}
 for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
 
--- accountRoles is a comma-separated list such as "USER,SUPPORTER,ADM"
-local function hasRole(player, tag)
-    for role in (player.accountRoles or ""):gmatch("[^,]+") do
-        if role == tag then return true end
-    end
-    return false
+local function isAdmin(player)
+    return player.accountId ~= nil and admins[player.accountId] == true
 end
 
-local function promote(player)
-    if hasRole(player, "ADM") or (player.accountId and admins[player.accountId]) then
-        player:setRole("admin")
-        node.log("%s is admin (account %s)", tostring(player), tostring(player.accountId))
+local function reason(args, from) -- the words from `from` on, or nil
+    local text = table.concat(args, " ", from)
+    return text ~= "" and text or nil
+end
+
+local commands = {}
+
+function commands.kick(player, args)
+    local who = node.players.find(args[1] or "")
+    if not who then return player:tell("Usage: /kick <player> [reason]") end
+    node.chat.say("%s was kicked", who.name)
+    who:kick(reason(args, 2) or "Kicked by an admin")
+end
+
+function commands.ban(player, args)
+    local who = node.players.find(args[1] or "")
+    if not who then return player:tell("Usage: /ban <player> [reason]") end
+    node.chat.say("%s was banned", who.name)
+    who:ban(reason(args, 2) or "Banned by an admin")
+end
+
+function commands.tempban(player, args)
+    local who = node.players.find(args[1] or "")
+    local minutes = tonumber(args[2] or "")
+    if not who or not minutes or minutes <= 0 then
+        return player:tell("Usage: /tempban <player> <minutes> [reason]")
+    end
+    node.chat.say("%s was banned for %d minute(s)", who.name, minutes)
+    who:ban(reason(args, 3) or "Banned for a while", os.time() + math.floor(minutes * 60))
+end
+
+function commands.unban(player, args)
+    local who = tonumber(args[1] or "") or args[1] -- an account number or an address
+    if not who then return player:tell("Usage: /unban <account number or IP>") end
+    if node.bans.remove(who) then
+        player:tell("Unbanned %s", tostring(who))
+    else
+        player:tell("%s was not banned", tostring(who))
     end
 end
 
-node.on("playerJoined", promote)
-for _, p in ipairs(node.players.all()) do promote(p) end -- players already here after a reload
-
--- opts.role: the prelude refuses the command for everyone else
-node.commands.add("say", function(player, args)
-    node.chat.say("[%s] %s", player.name, table.concat(args, " "))
-end, { role = "admin" })
-
--- an explicit check, for a rule opts.role cannot express
-node.commands.add("lobby", function(player, args)
-    local n = tonumber(args[1]) or 0
-    if n ~= 0 and player.role ~= "admin" then
-        player:tell("Only admins open lobbies; /lobby 0 takes you back")
-        return
+function commands.bans(player)
+    local list = node.bans.all()
+    if #list == 0 then return player:tell("No bans") end
+    for _, ban in ipairs(list) do
+        local who = ban.account and ("account " .. ban.account) or ban.ip
+        local ends = ban["until"] and os.date("!until %Y-%m-%d %H:%M UTC", ban["until"]) or "for good"
+        player:tell("%s (%s), %s: %s", who, ban.name or "?", ends, ban.reason or "")
     end
-    player:setGroup(n)
-    for _, v in ipairs(player:vehicles()) do v:setGroup(n) end
-    player:tell("You are now in world %d", n)
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
+    local command = name and commands[name:lower()]
+    if not command then return end
+    if not isAdmin(player) then
+        player:tell("Only admins can use /%s", name)
+    else
+        local args = {}
+        for word in rest:gmatch("%S+") do args[#args + 1] = word end
+        command(player, args)
+    end
+    return { handled = true }
 end)
 
--- expect: Player#\d+ Alice is admin \(account 42\)
--- expect-client: Alice chat:msg .*\[Alice\] hello all
--- expect-client: Alice chat:msg .*You are now in world 1
+-- expect-client: Bob chat:msg .*Only admins can use /kick
+-- expect-client: Alice chat:msg .*Bob was banned for 30 minute\(s\)
+-- expect-client: Alice chat:msg .*account 108 \(Bob\), until \d{4}-\d\d-\d\d \d\d:\d\d UTC: Ramming
+-- expect-client: Alice chat:msg .*Unbanned 108
 ```
 
-В игре три идентичности. `player.accountId` - идентификатор аккаунта в директории: стабилен между
-сессиями и адресами, `nil` у гостя Test Drive, и единственное, что стоит использовать в качестве
-ключа списка админов. `player.accountRoles` - роли из директории списком тегов через запятую:
-`USER` (у всех), `SUPPORTER`, `PARTNER`, `MOD`, `DEV`, `ADM` (администратор директории), у гостя -
-`""`. Сравнивайте теги целиком, как `hasRole`: ролей у аккаунта обычно несколько.
-`player.role` - собственная метка этого сервера на одну сессию, задаётся `player:setRole` и
-сбрасывается при отключении, поэтому `promote` выполняется при каждом подключении.
-`{ role = "admin" }` заставляет прелюдию ответить `You are not allowed to use /say` всем остальным
-ещё до вашего обработчика.
+- Бан накрывает аккаунт игрока, если он вошёл, и всегда его IP, поэтому `/bans` показывает на один
+  бан две строки. `/unban` принимает любую из них.
+- Временный бан кончается сам, даже если сервер в промежутке перезапустится: время окончания
+  хранится в `bans.json`.
+- Объявление уходит до кика, так что игрок ещё успевает увидеть, за что его отключают.
 
-`player:setGroup(n)` помещает игрока в группу видимости `n`: игроки и машины видят друг друга,
-только когда их числа совпадают, а `0` - мир, общий для всех. У машины своё число, так что
-переводите машины игрока вместе с ним. Консоль показывает каждое повышение:
+## Старт гонки
 
-```
-perms · Player#0 Alice is admin (account 42)
-```
+**Задача:** `/start` замораживает всех, отсчитывает в чате и отпускает на «Go!».
 
-## Телепорт и трансформация
-
-**Цель:** `/where` читает позицию, которую сервер держит для вашей машины; `/tp <player>`
-переносит вашу машину к машине другого игрока.
-
-Сервер сам никогда не двигает машину - позиции приходят от клиента, который её симулирует, -
-поэтому телепорт - это сетевое событие в собственную клиентскую половину игрока, которая и
-задаёт позицию в игре.
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/where"}], ["chat:send", {"text": "/tp Bob"}], ["chat:send", {"text": "/tp Nobody"}]]} -->
+<!-- doctest: server+client {"config": {"admins": [42]}, "emit": [["chat:send", {"text": "/start"}]]} -->
 ```lua
--- resources/tp/server/main.lua
-node.commands.add("where", function(player)
-    local veh = player.vehicle
-    local t = veh and veh:transform()
-    if not t then
-        player:tell("No position yet - sit in a car and move")
-        return
+-- resources/start/server/main.lua
+local admins = {}
+for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
+
+local running = false
+
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text:lower() ~= "/start" then return end
+    if not (player.accountId and admins[player.accountId]) then
+        player:tell("Only admins can start a race")
+    elseif not running then
+        running = true
+        node.async(function()
+            for _, p in ipairs(node.players.all()) do p:freeze(true) end
+            for i = 3, 1, -1 do
+                node.chat.say("%d...", i)
+                node.sleep(1000)
+            end
+            for _, p in ipairs(node.players.all()) do p:freeze(false) end
+            node.chat.say("Go!")
+            running = false
+        end)
     end
-    local speed = math.sqrt(t.vel.x ^ 2 + t.vel.y ^ 2 + t.vel.z ^ 2)
-    player:tell("%s at %.1f %.1f %.1f, %.1f m/s", tostring(veh), t.pos.x, t.pos.y, t.pos.z, speed)
+    return { handled = true }
 end)
 
-node.commands.add("tp", function(player, args)
-    local target = node.players.find(args[1] or "")
-    if not target then
-        player:tell("Usage: /tp <player>")
-        return
-    end
-    local pos = target:position()
-    if not pos or not player.vehicle then
-        player:tell("%s has no position yet, or you are on foot", target.name)
-        return
-    end
-    player:send("tp:to", { x = pos.x + 3, y = pos.y, z = pos.z + 0.5 })
-    node.log("%s -> %s (%.1f, %.1f, %.1f)", tostring(player), tostring(target), pos.x, pos.y, pos.z)
-end)
-
--- expect-client: Alice chat:msg .*No position yet - sit in a car and move
--- expect-client: Alice chat:msg .*Bob has no position yet, or you are on foot
--- expect-client: Alice chat:msg .*Usage: /tp <player>
+-- expect-client: Alice chat:msg .*3\.\.\.
+-- expect-client: Alice chat:msg .*Go!
 ```
 
-<!-- doctest: client -->
+Пока игрок заморожен, его машина для всех стоит на месте, а сервер отказывает ему в спавне, сбросе
+и пересадке. Тот, кто зашёл во время отсчёта, не заморожен; если это важно, замораживайте в
+`playerJoined`. Подробности — в
+[Игроках и машинах → Заморозить игрока](/ru/plugins/players-and-vehicles/#заморозить-игрока).
+
+## Перезапуск с обратным отсчётом
+
+**Задача:** `/restart [минуты]` перезапускает сервер после предупреждения в чате, `/restart cancel`
+отменяет.
+
+<!-- doctest: server+client {"config": {"admins": [42]}, "emit": [["chat:send", {"text": "/restart 5"}], ["chat:send", {"text": "/restart cancel"}]]} -->
 ```lua
--- resources/tp/client/main.lua
-node.on("tp:to", function(data)
-    local to = jsonDecode(data)
-    local veh = be:getPlayerVehicle(0)
-    if not veh then return end
-    local rot = quat(veh:getRotation())
-    veh:setPositionRotation(to.x, to.y, to.z, rot.x, rot.y, rot.z, rot.w)
-    node.log(string.format("teleported to %.1f %.1f %.1f", to.x, to.y, to.z))
+-- resources/restart/server/main.lua
+local admins = {}
+for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
+
+local reminders = {} -- timer ids of the warnings still to come
+
+local function dropReminders()
+    for _, id in ipairs(reminders) do node.cancel(id) end
+    reminders = {}
+end
+
+-- every scheduled stop is announced, whichever resource asked for it
+node.on("serverShutdownScheduled", function(info)
+    dropReminders()
+    if info.cancelled then
+        node.chat.say("The restart is off")
+        return
+    end
+    local left = info.at - os.time()
+    node.chat.say("Restart in %d minute(s): %s", math.ceil(left / 60), info.reason)
+    for _, before in ipairs({ 60, 10 }) do
+        if left > before then
+            reminders[#reminders + 1] = node.after((left - before) * 1000, function()
+                node.chat.say("Restart in %d seconds", before)
+            end)
+        end
+    end
 end)
+
+node.on("chatMessageRequest", function(player, msg)
+    local arg = msg.text:match("^/restart%s*(%S*)$")
+    if not arg then return end
+    if not (player.accountId and admins[player.accountId]) then
+        player:tell("Only admins can restart the server")
+    elseif arg == "cancel" then
+        if not node.server.shutdown(nil, -1) then player:tell("No restart is scheduled") end
+    else
+        local minutes = tonumber(arg) or 5
+        node.server.shutdown("Restarting, back in a minute", math.floor(minutes * 60 * 1000))
+    end
+    return { handled = true }
+end)
+
+-- expect-client: Alice chat:msg .*Restart in 5 minute\(s\): Restarting, back in a minute
+-- expect-client: Alice chat:msg .*The restart is off
 ```
 
-`vehicle:transform()` - последний снимок позиции, который прислал авторитет синхронизации машины:
-`pos`, `vel` и `angVel` как `{x, y, z}`, `rot` как `{x, y, z, w}`, на несколько тиков устаревший
-по самой своей природе, `nil` до первого снимка. `player:position()` - та же точка для игрока, из
-машины, в которой он сидит, или из его пешего аватара. Клиентская половина получает цель как
-JSON-текст, сохраняет текущий поворот машины и вызывает игровой `setPositionRotation`; новая позиция
-затем возвращается серверу и всем остальным через обычный поток позиций. На сервере:
+Когда время выйдет, игроков отключат с этой причиной, а сервер остановится ровно так же, как после
+Ctrl+C: плагины сохранятся, процесс выйдет с кодом 0. Сам он вернётся, только если его кто-то снова
+запустит: systemd с `Restart=always` или Docker с `restart: unless-stopped`
+([Чтобы сервер работал постоянно](/ru/hosting/running/)). Для ночного перезапуска вызывайте
+`node.server.shutdown` из таймера, а не из команды.
 
-```
-tp · Player#1 Bob -> Player#0 Alice (12.3, -45.6, 7.8)
-```
+## Время в игре и визиты
 
-а в `beamng.log` Боба, под `node.events`: `teleported to 15.3 -45.6 8.3`.
-
-## Сохранение состояния
-
-**Цель:** считать визиты и время игры на аккаунт между перезапусками.
+**Задача:** считать визиты и сыгранные минуты для каждого аккаунта, через перезапуски.
 
 <!-- doctest: server+client -->
 ```lua
 -- resources/playtime/server/main.lua
-local sessions = {} -- [player.id] = { since, account }; ids are reused, so this table is per session
+local sessions = {} -- [player.id] = { since, account }, for this session only
 
 node.on("playerJoined", function(player)
-    sessions[player.id] = { since = node.server.unixTime(), account = player.accountId }
-    if not player.accountId then return end -- a guest has no durable identity
+    sessions[player.id] = { since = os.time(), account = player.accountId }
+    if not player.accountId then return end -- a guest has nothing to keep it under
     local visits = node.storage.get("visits:" .. player.accountId, 0) + 1
     node.storage.set("visits:" .. player.accountId, visits)
     local played = node.storage.get("playtime:" .. player.accountId, 0)
-    player:tell("Welcome back, %s - visit %d, %d min played", player.name, visits, math.floor(played / 60))
+    player:tell("Welcome back, %s - visit %d, %d min played", player.name, visits, played // 60)
 end)
 
 node.on("playerLeft", function(player)
     local s = sessions[player.id]
     sessions[player.id] = nil
     if not s or not s.account then return end
-    local seconds = node.server.unixTime() - s.since
+    local seconds = os.time() - s.since
     local total = node.storage.get("playtime:" .. s.account, 0) + seconds
     node.storage.set("playtime:" .. s.account, total)
-    node.log("%s played %d s, %d s in total", tostring(player), seconds, total)
+    node.log("%s played %d s, %d s in total", player.name, seconds, total)
 end)
 
 -- expect-client: Alice chat:msg .*Welcome back, Alice - visit 1, 0 min played
--- expect: Player#\d+ Alice played \d+ s, \d+ s in total
+-- expect: Alice played \d+ s, \d+ s in total
 ```
 
-`node.storage` - хранилище ключ/значение на ресурс: `get(key, default)`, `set(key, value)` с любым
-значением, сериализуемым в JSON, `delete(key)`. Каждый `set` дописывается в `storage/playtime.log`
-(рядом с `resources/`) до возврата, так что сбой не теряет ничего подтверждённого; снимок
-`storage/playtime.json` переписывается, когда лог перерастает его, и при чистой остановке, а
-`.log`, оставшийся после сбоя, проигрывается при следующем запуске. После чистой остановки вслед за
-вторым визитом Алисы файл содержит:
+На этом рецепте держатся две детали. Данные хранятся под `player.accountId`, а не под `player.id`,
+который достанется следующему игроку. И аккаунт запоминается при входе, потому что к `playerLeft`
+запись игрока уже исчезла и читается только имя. После чистой остановки
+`storage/playtime.json` выглядит примерно так: `{"playtime:42":3720,"visits:42":2}`
+([Хранилище и файлы](/ru/plugins/storage/)).
 
-```json
-{"playtime:42":3720,"visits:42":2}
-```
+## Чат в Discord
 
-Рецепт держится на двух деталях. Долговечные ключи используют `player.accountId`, а не
-`player.id` - маленькое число, которое достанется следующему игроку. А аккаунт запоминается при
-подключении, потому что внутри `playerLeft` запись сессии уже исчезла - известно только
-`player.name`. Строка консоли при выходе:
+**Задача:** чат сервера, входы и выходы появляются в канале Discord.
 
-```
-playtime · Player#0 Alice played 1800 s, 3720 s in total
-```
-
-## HTTP-вебхук
-
-**Цель:** отправлять подключения и выходы в вебхук чата.
+В Discord откройте настройки канала, **Интеграция → Вебхуки → Новый вебхук** и скопируйте его URL
+в настройки ресурса. Этот URL — пароль к вашему каналу: в коде ему не место.
 
 ```toml
-# resources/webhook/resource.toml
-name = "webhook"
-
 [config]
-url = "…"   # the webhook URL is a secret; keep it out of the code
+webhook = "https://discord.com/api/webhooks/…"
 ```
 
-<!-- doctest: server+client {"config": {"url": "http://127.0.0.1:9/hooks/nodemp"}} -->
+<!-- doctest: server+client {"config": {"webhook": "http://127.0.0.1:9/api/webhooks/test"}, "emit": [["chat:send", {"text": "hello from the game"}]]} -->
 ```lua
--- resources/webhook/server/main.lua
-local url = node.config.url
+-- resources/discord/server/main.lua
+local url = node.config.webhook
 
 local function post(text)
-    if not url or url == "" then
-        node.log.warn("no [config] url in resource.toml, webhook disabled")
-        return
-    end
-    node.http.request("POST", url, {
-        headers = { ["Content-Type"] = "application/json" },
-        body = { content = text },
-    }, function(status, body, headers)
-        if status < 200 or status >= 300 then
-            node.log.warn("webhook failed (%d): %s", status, body)
-        end
-    end)
+    if not url or url == "" then return end
+    text = text:gsub("@", "@\u{200B}") -- so "@everyone" in a chat line pings nobody
+    node.http.post(url, { content = text }, { ["Content-Type"] = "application/json" },
+        function(status, body)
+            if status < 200 or status >= 300 then
+                node.log.warn("Discord answered %d: %s", status, body)
+            end
+        end)
 end
 
-node.on("playerJoined", function(player)
-    post(string.format("%s joined (%d online)", player.name, node.players.count()))
+node.on("chatMessage", function(player, msg)
+    if msg.sent and msg.scope == "global" then
+        post(string.format("**%s**: %s", player.name, msg.text))
+    end
 end)
 
-node.on("playerLeft", function(player)
-    post(string.format("%s left", player.name))
-end)
+node.on("playerJoined", function(player) post(player.name .. " joined") end)
+node.on("playerLeft", function(player) post(player.name .. " left") end)
 
--- expect: webhook failed \(-1\): refusing to connect to a non-public address \(127\.0\.0\.1
+-- expect: Discord answered -1: refusing to connect to a non-public address
 ```
 
-`node.http.request(method, url, { headers?, body? }, cb)` выполняет запрос в фоновом потоке пула и
-вызывает `cb(status, body, headers)` в рабочем потоке; тело-таблица кодируется в JSON за вас, а
-метод - тот, которого хочет сервис: здесь `"POST"`, в другом месте `"PUT"`, `"PATCH"`, `"DELETE"`
-или `"HEAD"` (`node.http.post(url, body, headers?, cb)` и его собратья - тот же вызов с
-фиксированным методом). `Content-Type` задавайте сами - без него тело уходит как
-`application/octet-stream`. Полученные `headers` имеют ключами имена заголовков в нижнем регистре
-(`headers["content-type"]`, никогда `headers["Content-Type"]`). Клиент следует не более чем пяти перенаправлениям, сдаётся примерно
-через 15 секунд и ограничивает ответ 8 МБ; TLS-сертификат собеседника он проверяет только тогда,
-когда хост задал `[Http] CaFile` ([Конфигурация](/ru/hosting/configuration/#http)). Запрос, так и
-не получивший ответа, вызывает колбэк со статусом `-1` и текстом ошибки в `body`; сам
-`node.http.request` возвращает `false` только тогда, когда запрос не удалось поставить в очередь.
-Большинство вебхуков отвечают `200` или `204` с пустым телом, так что
-здоровый прогон ничего не логирует; недоступный хост логирует транспортную ошибку с префиксом
-отказавшего шага (`resolve failed`, `connect failed`, `TLS handshake failed`) и сообщением самой
-операционной системы:
-
-```
-webhook · webhook failed (-1): connect failed: Connection refused
-```
-
-Получатель на той же машине или в локальной сети - тестовый адрес на `127.0.0.1`, бот в соседнем
-контейнере - получает отказ ещё до попытки соединения: по умолчанию сервер не пускает ресурсы на
-loopback, link-local и частные адреса:
-
-```
-webhook · webhook failed (-1): refusing to connect to a non-public address (127.0.0.1 -> 127.0.0.1): loopback, link-local, private and IPv4-mapped ranges are blocked for resources; set [Http] AllowPrivateNetworks = true to allow it
-```
-
-Снять запрет может хост - `[Http] AllowPrivateNetworks = true`
-([Конфигурация](/ru/hosting/configuration/#http)); ресурс - нет.
-
-Внутри `node.async` тот же запрос - `node.http.fetch(url, { method = "POST", body = t, headers = h })`,
-корутина, возвращающая `status, body, headers` ([Конкурентность](/ru/plugins/concurrency/#http)).
-
-## Кик и бан с причиной
-
-**Цель:** `/kick`, `/ban`, `/unban` и `/bans` для игроков с ролью `admin` из рецепта о правах.
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/ban Bob Spamming"}], ["chat:send", {"text": "/bans"}], ["chat:send", {"text": "/unban 108"}], ["chat:send", {"text": "/unban 127.0.0.1"}], ["chat:send", {"text": "/kick Bob"}]]} -->
-```lua
--- resources/moderation/server/main.lua
-local function target(player, args)
-    local who = node.players.find(args[1] or "")
-    if not who then
-        player:tell("No player named %s", tostring(args[1]))
-        return nil
-    end
-    if who == player then
-        player:tell("Not on yourself")
-        return nil
-    end
-    return who, table.concat(args, " ", 2)
-end
-
-node.commands.add("kick", function(player, args)
-    local who, reason = target(player, args)
-    if not who then return end
-    who:kick(reason ~= "" and reason or "Kicked by " .. player.name)
-end, { role = "admin" })
-
-node.commands.add("ban", function(player, args)
-    local who, reason = target(player, args)
-    if not who then return end
-    node.bans.add(who, reason ~= "" and reason or "Banned by " .. player.name) -- kicks as well
-end, { role = "admin" })
-
-node.commands.add("unban", function(player, args)
-    if not args[1] then player:tell("Usage: /unban <account id or IP>") return end
-    local who = tonumber(args[1]) or args[1] -- an account id, or an IP
-    if node.bans.remove(who) then
-        player:tell("Unbanned %s", tostring(who))
-    else
-        player:tell("%s was not banned", tostring(who))
-    end
-end, { role = "admin" })
-
-node.commands.add("bans", function(player)
-    for _, b in ipairs(node.bans.all()) do
-        player:tell("%s: %s - %s", b.name or "?", b.account and ("account " .. b.account) or b.ip, b.reason or "")
-    end
-end, { role = "admin" })
-
--- expect-log: Bob banned by a server plugin \(\S+, account 108\) — Spamming
--- expect-log: Bob kicked — Spamming
--- expect-client: Alice chat:msg .*Bob: account 108 - Spamming
--- expect-client: Alice chat:msg .*Unbanned 108
--- expect-client: Alice chat:msg .*No player named Bob
-```
-
-`player:kick(reason)` отключает игрока и показывает причину в лаунчере. `node.bans.add(who, reason)`
-принимает три формы: `Player` банит его IP и, когда билет на подключение был погашен для аккаунта,
-этот аккаунт тоже - а затем кикает; строка с IP или число с идентификатором аккаунта банят будущие
-подключения и не трогают текущую сессию. `node.bans.remove` и `node.bans.has` принимают ту же
-строку или число; `node.bans.all()` перечисляет каждый бан с `ip`, `account`, `reason`, `at` и
-`name`. Баны хранятся в `bans.json` рядом с `server.toml`; его формат и правила ручной правки - на
-странице [Запуск сервера → Баны](/ru/hosting/administration/#баны). Два объекта `Player` равны, когда
-совпадают их идентификаторы, - на это и опирается `who == player`.
-
-`/kick Bob Spamming` и `/ban Bob Spamming` печатают под тегом `Kick`:
-
-```
-Bob kicked — Spamming
-Bob banned by a server plugin (203.0.113.5, account 108) — Spamming
-Bob kicked — Spamming
-```
-
-Следующее подключение с этого адреса отклоняется на пороге:
-`connection from 203.0.113.5 refused (banned: Spamming)`; забаненный аккаунт отклоняется с любого
-адреса, сразу после погашения его билета. `node.bans.add` и `player:ban` подставляют причину
-`Banned`; `You are banned from this server` видит вернувшийся забаненный игрок, когда сохранённая
-причина пуста.
+`chatMessage` срабатывает, когда судьба строки решена, поэтому отклонённые строки и команды (у тех
+и других `msg.sent` равно `false`) в Discord не попадают, как и локальные. Исправный вебхук отвечает
+`204`, и ресурс ничего не пишет. В проверке выше URL указывает на эту же машину, а такие адреса
+сервер по умолчанию не пускает — отсюда и предупреждение
+([HTTP → Что решает владелец сервера](/ru/plugins/http/#что-решает-владелец-сервера)).
 
 ## Дальше
 
-- [События](/ru/plugins/events/) - каждый вид событий, на которые подписываются эти рецепты.
-- [Конкурентность](/ru/plugins/concurrency/) - что где выполняется, когда рецепт ждёт HTTP или задание.
-- [Клиентские скрипты](/ru/plugins/client-scripting/) - клиентская половина, на которую опирается телепорт.
-- [Соглашения](/ru/plugins/conventions/) - именование, идентификаторы против объектов, формы возвращаемых значений.
+- [Примеры плагинов](/ru/plugins/examples/): ресурсы побольше, целиком, которые идут с сервером.
+- [Чат](/ru/plugins/chat/), [Игроки и машины](/ru/plugins/players-and-vehicles/),
+  [HTTP](/ru/plugins/http/): вызовы из этих рецептов, подробно.

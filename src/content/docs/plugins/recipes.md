@@ -1,411 +1,377 @@
 ---
 title: Recipes
-description: Six resources to copy - a chat command, roles and groups, teleport, persistence, an HTTP webhook, kick and ban - with the log lines to expect.
+description: Complete small resources for the usual jobs - who's online, kick and ban, teleports, a race start, a restart with a countdown, playtime, a Discord bridge.
 ---
 
-Each recipe is one resource: a folder under `resources/` named after the recipe, with
-`server/main.lua` and, where a client half is needed, `client/main.lua`. Every call is in the
-[Lua API reference](/plugins/api/lua/); nothing here needs a native module. Four of the six use
-chat commands or `player:tell`, which speak through the `chat` example resource - install `chat`
-in `resources/` as well (copy `examples/chat` from the release archive; see
-[Resources and content](/hosting/resources/#installing-a-resource)), or the commands vanish
-silently and the replies go nowhere. Without the game, a command is exercised through the bus as
-[Getting started](/plugins/getting-started/#testing-without-the-game) shows. The server console
-tags each line with the resource's name, so the log lines below are what you will see.
+Each recipe is a whole resource: make the folder, paste the code into `server/main.lua`, put the
+settings into `resource.toml`, and start the server. They're short on purpose, so you can read them
+in a minute and change them to fit.
 
-## A chat command
+Every command here follows the pattern from [Chat → Commands](/plugins/chat/#commands): a
+`chatMessageRequest` handler catches its own lines and answers `{ handled = true }`. Admins come
+from a list of account numbers in the resource's settings:
 
-**Goal:** `/online` answers the player with who is connected.
+```toml
+[config]
+admins = [42, 108] # NodeMP account numbers
+```
+
+## Who's online
+
+**Goal:** `/online` tells the player who is on the server.
 
 <!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
 -- resources/online/server/main.lua
-node.commands.add("online", function(player, args, raw)
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text:lower() ~= "/online" then return end
     local names = {}
     for _, p in ipairs(node.players.all()) do
         names[#names + 1] = p.name
     end
     player:tell("%d online: %s", #names, table.concat(names, ", "))
-    node.log("%s asked who is online", tostring(player))
+    return { handled = true }
 end)
 
--- expect: Player#\d+ Alice asked who is online
 -- expect-client: Alice chat:msg .*2 online: (Alice, Bob|Bob, Alice)
 ```
 
-`node.commands.add(name, fn, opts?)` registers a handler for the chat line `/name ...`: `fn`
-receives the sender as a `Player`, the words after the name as an array and the whole line. Names
-are case-insensitive for the player - `/Online` and `/ONLINE` reach the same handler - because
-`node.commands.add` lowercases the name you register and `chat` lowercases the word the player
-typed; the lookup itself is exact, so a `chat:command` another resource publishes must carry the
-lowercase name ([Events → node.bus](/plugins/events/#between-resources-nodebus) has the payload).
-One handler per name per resource; `node.commands.remove(name)` takes it back. The `chat` resource
-publishes every `/` line on the bus as `chat:command`, so a command nobody registered is simply
-dropped - never shown in chat.
+## Teleports
 
-Alice types `/online` and sees `2 online: Alice, Bob` as a system line - `node.players.all()`
-lists players in no particular order, so sort the names if the order matters. The console prints:
+**Goal:** `/warp <place>` moves you to a named spot, `/tp <player>` next to another player. Nothing
+is repaired on the way.
 
+<!-- doctest: server+client {"spawn": "coupe", "config": {"places": {"garage": [-24.5, 610.0, 75.2]}}, "emit": [["chat:send", {"text": "/warp garage"}], ["chat:send", {"text": "/warp moon"}], ["chat:send", {"text": "/tp Nobody"}]]} -->
+```lua
+-- resources/warp/server/main.lua
+local places = node.config.places or {} -- name = { x, y, z }
+
+local function placeNames()
+    local names = {}
+    for name in pairs(places) do names[#names + 1] = name end
+    table.sort(names)
+    return table.concat(names, ", ")
+end
+
+local commands = {}
+
+function commands.warp(player, args)
+    local spot = places[args[1] or ""]
+    if not spot then return player:tell("Places: %s", placeNames()) end
+    local ok, err = player:teleport({ pos = { x = spot[1], y = spot[2], z = spot[3] } })
+    if ok then player:tell("Warped to %s", args[1]) else player:tell("Can't warp: %s", err) end
+end
+
+function commands.tp(player, args)
+    local target = node.players.find(args[1] or "")
+    local pos = target and target:position()
+    if not pos then return player:tell("%s isn't in the world yet", args[1] or "Nobody") end
+    local ok, err = player:teleport({ pos = { x = pos.x + 3, y = pos.y, z = pos.z + 0.5 } })
+    if ok then player:tell("Moved next to %s", target.name) else player:tell("Can't move: %s", err) end
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
+    local command = name and commands[name:lower()]
+    if not command then return end
+    local args = {}
+    for word in rest:gmatch("%S+") do args[#args + 1] = word end
+    command(player, args)
+    return { handled = true }
+end)
+
+-- expect-client: Alice chat:msg .*Warped to garage
+-- expect-client: Alice chat:msg .*Places: garage
+-- expect-client: Alice chat:msg .*Nobody isn't in the world yet
 ```
-online · Player#0 Alice asked who is online
-```
-
-## Permissions by role and group
-
-**Goal:** promote known accounts to `admin`, gate a command on the role, and let admins open
-visibility groups.
 
 ```toml
-# resources/perms/resource.toml
-name = "perms"
-
-[config]
-admins = [42, 108]   # directory account ids
+[config.places]
+garage = [-24.5, 610.0, 75.2]
 ```
 
-<!-- doctest: server+client {"config": {"admins": [42, 108]}, "emit": [["chat:send", {"text": "/say hello all"}], ["chat:send", {"text": "/lobby 1"}]]} -->
+`player:teleport` moves the car the player drives, or the player on foot, and keeps damage and
+cargo. `player:position()` is where the server last saw someone. To find coordinates for your
+places, stand there in the game and have a resource log `player:position()`.
+[Players and vehicles → Teleporting](/plugins/players-and-vehicles/#teleporting) has the details.
+
+## Kick and ban from chat
+
+**Goal:** `/kick`, `/ban`, a timed `/tempban`, `/unban` and `/bans`, for admins only.
+
+<!-- doctest: server+client {"players": ["Alice", "Bob"], "config": {"admins": [42]}, "emit": [["chat:send", {"text": "/kick Bob"}, "Bob"], ["chat:send", {"text": "/tempban Bob 30 Ramming"}], ["chat:send", {"text": "/bans"}], ["chat:send", {"text": "/unban 108"}], ["chat:send", {"text": "/unban 127.0.0.1"}]]} -->
 ```lua
--- resources/perms/server/main.lua
+-- resources/moderation/server/main.lua
 local admins = {}
 for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
 
--- accountRoles is a comma-separated list such as "USER,SUPPORTER,ADM"
-local function hasRole(player, tag)
-    for role in (player.accountRoles or ""):gmatch("[^,]+") do
-        if role == tag then return true end
-    end
-    return false
+local function isAdmin(player)
+    return player.accountId ~= nil and admins[player.accountId] == true
 end
 
-local function promote(player)
-    if hasRole(player, "ADM") or (player.accountId and admins[player.accountId]) then
-        player:setRole("admin")
-        node.log("%s is admin (account %s)", tostring(player), tostring(player.accountId))
+local function reason(args, from) -- the words from `from` on, or nil
+    local text = table.concat(args, " ", from)
+    return text ~= "" and text or nil
+end
+
+local commands = {}
+
+function commands.kick(player, args)
+    local who = node.players.find(args[1] or "")
+    if not who then return player:tell("Usage: /kick <player> [reason]") end
+    node.chat.say("%s was kicked", who.name)
+    who:kick(reason(args, 2) or "Kicked by an admin")
+end
+
+function commands.ban(player, args)
+    local who = node.players.find(args[1] or "")
+    if not who then return player:tell("Usage: /ban <player> [reason]") end
+    node.chat.say("%s was banned", who.name)
+    who:ban(reason(args, 2) or "Banned by an admin")
+end
+
+function commands.tempban(player, args)
+    local who = node.players.find(args[1] or "")
+    local minutes = tonumber(args[2] or "")
+    if not who or not minutes or minutes <= 0 then
+        return player:tell("Usage: /tempban <player> <minutes> [reason]")
+    end
+    node.chat.say("%s was banned for %d minute(s)", who.name, minutes)
+    who:ban(reason(args, 3) or "Banned for a while", os.time() + math.floor(minutes * 60))
+end
+
+function commands.unban(player, args)
+    local who = tonumber(args[1] or "") or args[1] -- an account number or an address
+    if not who then return player:tell("Usage: /unban <account number or IP>") end
+    if node.bans.remove(who) then
+        player:tell("Unbanned %s", tostring(who))
+    else
+        player:tell("%s was not banned", tostring(who))
     end
 end
 
-node.on("playerJoined", promote)
-for _, p in ipairs(node.players.all()) do promote(p) end -- players already here after a reload
-
--- opts.role: the prelude refuses the command for everyone else
-node.commands.add("say", function(player, args)
-    node.chat.say("[%s] %s", player.name, table.concat(args, " "))
-end, { role = "admin" })
-
--- an explicit check, for a rule opts.role cannot express
-node.commands.add("lobby", function(player, args)
-    local n = tonumber(args[1]) or 0
-    if n ~= 0 and player.role ~= "admin" then
-        player:tell("Only admins open lobbies; /lobby 0 takes you back")
-        return
+function commands.bans(player)
+    local list = node.bans.all()
+    if #list == 0 then return player:tell("No bans") end
+    for _, ban in ipairs(list) do
+        local who = ban.account and ("account " .. ban.account) or ban.ip
+        local ends = ban["until"] and os.date("!until %Y-%m-%d %H:%M UTC", ban["until"]) or "for good"
+        player:tell("%s (%s), %s: %s", who, ban.name or "?", ends, ban.reason or "")
     end
-    player:setGroup(n)
-    for _, v in ipairs(player:vehicles()) do v:setGroup(n) end
-    player:tell("You are now in world %d", n)
+end
+
+node.on("chatMessageRequest", function(player, msg)
+    local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
+    local command = name and commands[name:lower()]
+    if not command then return end
+    if not isAdmin(player) then
+        player:tell("Only admins can use /%s", name)
+    else
+        local args = {}
+        for word in rest:gmatch("%S+") do args[#args + 1] = word end
+        command(player, args)
+    end
+    return { handled = true }
 end)
 
--- expect: Player#\d+ Alice is admin \(account 42\)
--- expect-client: Alice chat:msg .*\[Alice\] hello all
--- expect-client: Alice chat:msg .*You are now in world 1
+-- expect-client: Bob chat:msg .*Only admins can use /kick
+-- expect-client: Alice chat:msg .*Bob was banned for 30 minute\(s\)
+-- expect-client: Alice chat:msg .*account 108 \(Bob\), until \d{4}-\d\d-\d\d \d\d:\d\d UTC: Ramming
+-- expect-client: Alice chat:msg .*Unbanned 108
 ```
 
-Three identities are in play. `player.accountId` is the directory's account id - stable across
-sessions and addresses, `nil` for a Test Drive guest - and the only thing worth keying an admin
-list by. `player.accountRoles` is the directory's roles as a comma-separated list of tags -
-`USER` (everyone), `SUPPORTER`, `PARTNER`, `MOD`, `DEV`, `ADM` (a directory admin) - and `""`
-for a guest; compare whole tags as `hasRole` does, since an account usually has several.
-`player.role` is this server's own per-session label, set with `player:setRole` and cleared at
-disconnect, which is why `promote` runs at every join. `{ role = "admin" }` makes the prelude
-answer `You are not allowed to use /say` to anyone else before your handler runs.
+- A ban covers the player's account when they're signed in, and their IP always, so `/bans` shows
+  two lines for one ban. `/unban` takes either.
+- A timed ban ends by itself, even if the server restarts in between: the end is stored in
+  `bans.json`.
+- The announcement goes out before the kick, so the player still sees why they're leaving.
 
-`player:setGroup(n)` puts the player in visibility group `n`: players and vehicles see each other
-only when their numbers match, and `0` is the world everyone shares. A vehicle keeps its own
-number, so move the player's cars along. The console shows each promotion:
+## A race start
 
-```
-perms · Player#0 Alice is admin (account 42)
-```
+**Goal:** `/start` freezes everyone, counts down in chat, and lets go on "Go!".
 
-## Teleport and transform
-
-**Goal:** `/where` reads the position the server holds for your car; `/tp <player>` moves your
-car next to another player's.
-
-The server never moves a vehicle itself - positions come from the client that simulates it - so
-the teleport is a wire event to the player's own client half, which sets the position in the game.
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/where"}], ["chat:send", {"text": "/tp Bob"}], ["chat:send", {"text": "/tp Nobody"}]]} -->
+<!-- doctest: server+client {"config": {"admins": [42]}, "emit": [["chat:send", {"text": "/start"}]]} -->
 ```lua
--- resources/tp/server/main.lua
-node.commands.add("where", function(player)
-    local veh = player.vehicle
-    local t = veh and veh:transform()
-    if not t then
-        player:tell("No position yet - sit in a car and move")
-        return
+-- resources/start/server/main.lua
+local admins = {}
+for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
+
+local running = false
+
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text:lower() ~= "/start" then return end
+    if not (player.accountId and admins[player.accountId]) then
+        player:tell("Only admins can start a race")
+    elseif not running then
+        running = true
+        node.async(function()
+            for _, p in ipairs(node.players.all()) do p:freeze(true) end
+            for i = 3, 1, -1 do
+                node.chat.say("%d...", i)
+                node.sleep(1000)
+            end
+            for _, p in ipairs(node.players.all()) do p:freeze(false) end
+            node.chat.say("Go!")
+            running = false
+        end)
     end
-    local speed = math.sqrt(t.vel.x ^ 2 + t.vel.y ^ 2 + t.vel.z ^ 2)
-    player:tell("%s at %.1f %.1f %.1f, %.1f m/s", tostring(veh), t.pos.x, t.pos.y, t.pos.z, speed)
+    return { handled = true }
 end)
 
-node.commands.add("tp", function(player, args)
-    local target = node.players.find(args[1] or "")
-    if not target then
-        player:tell("Usage: /tp <player>")
-        return
-    end
-    local pos = target:position()
-    if not pos or not player.vehicle then
-        player:tell("%s has no position yet, or you are on foot", target.name)
-        return
-    end
-    player:send("tp:to", { x = pos.x + 3, y = pos.y, z = pos.z + 0.5 })
-    node.log("%s -> %s (%.1f, %.1f, %.1f)", tostring(player), tostring(target), pos.x, pos.y, pos.z)
-end)
-
--- expect-client: Alice chat:msg .*No position yet - sit in a car and move
--- expect-client: Alice chat:msg .*Bob has no position yet, or you are on foot
--- expect-client: Alice chat:msg .*Usage: /tp <player>
+-- expect-client: Alice chat:msg .*3\.\.\.
+-- expect-client: Alice chat:msg .*Go!
 ```
 
-<!-- doctest: client -->
+While frozen, a player's car stands still for everyone, and the server refuses their spawns, resets
+and seat changes. Someone who joins during the countdown isn't frozen; freeze them in `playerJoined`
+if that matters. The details are on
+[Players and vehicles → Freezing a player](/plugins/players-and-vehicles/#freezing-a-player).
+
+## A restart with a countdown
+
+**Goal:** `/restart [minutes]` restarts the server after a warning in chat; `/restart cancel` calls
+it off.
+
+<!-- doctest: server+client {"config": {"admins": [42]}, "emit": [["chat:send", {"text": "/restart 5"}], ["chat:send", {"text": "/restart cancel"}]]} -->
 ```lua
--- resources/tp/client/main.lua
-node.on("tp:to", function(data)
-    local to = jsonDecode(data)
-    local veh = be:getPlayerVehicle(0)
-    if not veh then return end
-    local rot = quat(veh:getRotation())
-    veh:setPositionRotation(to.x, to.y, to.z, rot.x, rot.y, rot.z, rot.w)
-    node.log(string.format("teleported to %.1f %.1f %.1f", to.x, to.y, to.z))
+-- resources/restart/server/main.lua
+local admins = {}
+for _, id in ipairs(node.config.admins or {}) do admins[id] = true end
+
+local reminders = {} -- timer ids of the warnings still to come
+
+local function dropReminders()
+    for _, id in ipairs(reminders) do node.cancel(id) end
+    reminders = {}
+end
+
+-- every scheduled stop is announced, whichever resource asked for it
+node.on("serverShutdownScheduled", function(info)
+    dropReminders()
+    if info.cancelled then
+        node.chat.say("The restart is off")
+        return
+    end
+    local left = info.at - os.time()
+    node.chat.say("Restart in %d minute(s): %s", math.ceil(left / 60), info.reason)
+    for _, before in ipairs({ 60, 10 }) do
+        if left > before then
+            reminders[#reminders + 1] = node.after((left - before) * 1000, function()
+                node.chat.say("Restart in %d seconds", before)
+            end)
+        end
+    end
 end)
+
+node.on("chatMessageRequest", function(player, msg)
+    local arg = msg.text:match("^/restart%s*(%S*)$")
+    if not arg then return end
+    if not (player.accountId and admins[player.accountId]) then
+        player:tell("Only admins can restart the server")
+    elseif arg == "cancel" then
+        if not node.server.shutdown(nil, -1) then player:tell("No restart is scheduled") end
+    else
+        local minutes = tonumber(arg) or 5
+        node.server.shutdown("Restarting, back in a minute", math.floor(minutes * 60 * 1000))
+    end
+    return { handled = true }
+end)
+
+-- expect-client: Alice chat:msg .*Restart in 5 minute\(s\): Restarting, back in a minute
+-- expect-client: Alice chat:msg .*The restart is off
 ```
 
-`vehicle:transform()` is the last position snapshot the vehicle's sync authority sent - `pos`,
-`vel` and `angVel` as `{x, y, z}`, `rot` as `{x, y, z, w}`, a few ticks old by construction,
-`nil` before the first snapshot. `player:position()` is the same point for a player, from the
-vehicle it occupies or its walking avatar. The client half receives the target as JSON text,
-keeps the car's current rotation and calls the game's `setPositionRotation`; the new position then
-travels back to the server and everyone else through the normal position stream. On the server:
+When the time is up, players are sent away with the reason, and the server stops exactly as after
+Ctrl+C: plugins save, and the process exits with code 0. It comes back by itself only if something
+starts it again: systemd with `Restart=always` or Docker with `restart: unless-stopped`
+([Keeping it running](/hosting/running/)). For a nightly restart, call `node.server.shutdown` from a
+timer instead of a command.
 
-```
-tp · Player#1 Bob -> Player#0 Alice (12.3, -45.6, 7.8)
-```
+## Playtime and visits
 
-and in Bob's `beamng.log`, under `node.events`: `teleported to 15.3 -45.6 8.3`.
-
-## Persistence
-
-**Goal:** count visits and play time per account across restarts.
+**Goal:** count visits and minutes played per account, across restarts.
 
 <!-- doctest: server+client -->
 ```lua
 -- resources/playtime/server/main.lua
-local sessions = {} -- [player.id] = { since, account }; ids are reused, so this table is per session
+local sessions = {} -- [player.id] = { since, account }, for this session only
 
 node.on("playerJoined", function(player)
-    sessions[player.id] = { since = node.server.unixTime(), account = player.accountId }
-    if not player.accountId then return end -- a guest has no durable identity
+    sessions[player.id] = { since = os.time(), account = player.accountId }
+    if not player.accountId then return end -- a guest has nothing to keep it under
     local visits = node.storage.get("visits:" .. player.accountId, 0) + 1
     node.storage.set("visits:" .. player.accountId, visits)
     local played = node.storage.get("playtime:" .. player.accountId, 0)
-    player:tell("Welcome back, %s - visit %d, %d min played", player.name, visits, math.floor(played / 60))
+    player:tell("Welcome back, %s - visit %d, %d min played", player.name, visits, played // 60)
 end)
 
 node.on("playerLeft", function(player)
     local s = sessions[player.id]
     sessions[player.id] = nil
     if not s or not s.account then return end
-    local seconds = node.server.unixTime() - s.since
+    local seconds = os.time() - s.since
     local total = node.storage.get("playtime:" .. s.account, 0) + seconds
     node.storage.set("playtime:" .. s.account, total)
-    node.log("%s played %d s, %d s in total", tostring(player), seconds, total)
+    node.log("%s played %d s, %d s in total", player.name, seconds, total)
 end)
 
 -- expect-client: Alice chat:msg .*Welcome back, Alice - visit 1, 0 min played
--- expect: Player#\d+ Alice played \d+ s, \d+ s in total
+-- expect: Alice played \d+ s, \d+ s in total
 ```
 
-`node.storage` is a key/value store per resource: `get(key, default)`, `set(key, value)` with any
-JSON-serialisable value, `delete(key)`. Each `set` is appended to `storage/playtime.log` (next to
-`resources/`) before it returns, so a crash loses nothing that was acknowledged; the snapshot
-`storage/playtime.json` is rewritten when the log outgrows it and at a clean stop, and a `.log`
-left by a crash is replayed at the next start. After a clean stop following Alice's second visit
-the file reads:
+Two details carry this recipe. The data is kept under `player.accountId`, never `player.id`, which
+the next player will get. And the account is remembered at the join, because by `playerLeft` the
+player's record is gone and only the name is still readable. After a clean stop,
+`storage/playtime.json` reads like `{"playtime:42":3720,"visits:42":2}`
+([Storage and files](/plugins/storage/)).
 
-```json
-{"playtime:42":3720,"visits:42":2}
-```
+## Post chat to Discord
 
-Two details carry the recipe. Durable keys use `player.accountId`, never `player.id`, which is a
-small number reused by the next player. And the account is remembered at join, because inside
-`playerLeft` the session record is already gone - only `player.name` is still known. The console
-line on leave:
+**Goal:** the server's chat, joins and leaves appear in a Discord channel.
 
-```
-playtime · Player#0 Alice played 1800 s, 3720 s in total
-```
-
-## An HTTP webhook
-
-**Goal:** post joins and leaves to a chat webhook.
+In Discord, open the channel's settings, **Integrations → Webhooks → New Webhook**, and copy its
+URL into the resource's settings. The URL is a password to your channel: keep it out of the code.
 
 ```toml
-# resources/webhook/resource.toml
-name = "webhook"
-
 [config]
-url = "…"   # the webhook URL is a secret; keep it out of the code
+webhook = "https://discord.com/api/webhooks/…"
 ```
 
-<!-- doctest: server+client {"config": {"url": "http://127.0.0.1:9/hooks/nodemp"}} -->
+<!-- doctest: server+client {"config": {"webhook": "http://127.0.0.1:9/api/webhooks/test"}, "emit": [["chat:send", {"text": "hello from the game"}]]} -->
 ```lua
--- resources/webhook/server/main.lua
-local url = node.config.url
+-- resources/discord/server/main.lua
+local url = node.config.webhook
 
 local function post(text)
-    if not url or url == "" then
-        node.log.warn("no [config] url in resource.toml, webhook disabled")
-        return
-    end
-    node.http.request("POST", url, {
-        headers = { ["Content-Type"] = "application/json" },
-        body = { content = text },
-    }, function(status, body, headers)
-        if status < 200 or status >= 300 then
-            node.log.warn("webhook failed (%d): %s", status, body)
-        end
-    end)
+    if not url or url == "" then return end
+    text = text:gsub("@", "@\u{200B}") -- so "@everyone" in a chat line pings nobody
+    node.http.post(url, { content = text }, { ["Content-Type"] = "application/json" },
+        function(status, body)
+            if status < 200 or status >= 300 then
+                node.log.warn("Discord answered %d: %s", status, body)
+            end
+        end)
 end
 
-node.on("playerJoined", function(player)
-    post(string.format("%s joined (%d online)", player.name, node.players.count()))
+node.on("chatMessage", function(player, msg)
+    if msg.sent and msg.scope == "global" then
+        post(string.format("**%s**: %s", player.name, msg.text))
+    end
 end)
 
-node.on("playerLeft", function(player)
-    post(string.format("%s left", player.name))
-end)
+node.on("playerJoined", function(player) post(player.name .. " joined") end)
+node.on("playerLeft", function(player) post(player.name .. " left") end)
 
--- expect: webhook failed \(-1\): refusing to connect to a non-public address \(127\.0\.0\.1
+-- expect: Discord answered -1: refusing to connect to a non-public address
 ```
 
-`node.http.request(method, url, { headers?, body? }, cb)` runs the request on a background pool
-thread and calls `cb(status, body, headers)` on the worker; a table body is JSON-encoded for you,
-and the method is whatever the service wants - `"POST"` here, `"PUT"`, `"PATCH"`, `"DELETE"` or
-`"HEAD"` elsewhere (`node.http.post(url, body, headers?, cb)` and its siblings are the same call
-with the method fixed). Set the `Content-Type` yourself - without it the body is sent as
-`application/octet-stream`. The `headers` you get back are keyed by the lowercased header name
-(`headers["content-type"]`, never `headers["Content-Type"]`). The client follows up to five
-redirects, gives up after about 15 seconds and caps the response at 8 MB; it verifies the peer's
-TLS certificate only when the host set `[Http] CaFile`
-([Configuration](/hosting/configuration/#http)). A request that never got an
-answer calls back with status `-1` and the error text in `body`; `node.http.request` itself
-returns `false` only when the request could not be queued. Most webhook endpoints answer `200` or
-`204` with an empty body, so a healthy
-run logs nothing; an unreachable host logs the transport error, prefixed by the step that failed
-(`resolve failed`, `connect failed`, `TLS handshake failed`) and followed by the operating
-system's own message:
-
-```
-webhook · webhook failed (-1): connect failed: Connection refused
-```
-
-A receiver on the same machine or the local network - a test endpoint on `127.0.0.1`, a bot in the
-next container - is refused before any connection is tried, because by default the server keeps
-resources away from loopback, link-local and private addresses:
-
-```
-webhook · webhook failed (-1): refusing to connect to a non-public address (127.0.0.1 -> 127.0.0.1): loopback, link-local, private and IPv4-mapped ranges are blocked for resources; set [Http] AllowPrivateNetworks = true to allow it
-```
-
-The host lifts that with `[Http] AllowPrivateNetworks = true`
-([Configuration](/hosting/configuration/#http)); a resource cannot.
-
-Inside `node.async`, `node.http.fetch(url, { method = "POST", body = t, headers = h })` is the same
-request as a coroutine that returns `status, body, headers` ([Concurrency](/plugins/concurrency/#http)).
-
-## Kick and ban with a reason
-
-**Goal:** `/kick`, `/ban`, `/unban` and `/bans` for players with the `admin` role from the
-permissions recipe.
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/ban Bob Spamming"}], ["chat:send", {"text": "/bans"}], ["chat:send", {"text": "/unban 108"}], ["chat:send", {"text": "/unban 127.0.0.1"}], ["chat:send", {"text": "/kick Bob"}]]} -->
-```lua
--- resources/moderation/server/main.lua
-local function target(player, args)
-    local who = node.players.find(args[1] or "")
-    if not who then
-        player:tell("No player named %s", tostring(args[1]))
-        return nil
-    end
-    if who == player then
-        player:tell("Not on yourself")
-        return nil
-    end
-    return who, table.concat(args, " ", 2)
-end
-
-node.commands.add("kick", function(player, args)
-    local who, reason = target(player, args)
-    if not who then return end
-    who:kick(reason ~= "" and reason or "Kicked by " .. player.name)
-end, { role = "admin" })
-
-node.commands.add("ban", function(player, args)
-    local who, reason = target(player, args)
-    if not who then return end
-    node.bans.add(who, reason ~= "" and reason or "Banned by " .. player.name) -- kicks as well
-end, { role = "admin" })
-
-node.commands.add("unban", function(player, args)
-    if not args[1] then player:tell("Usage: /unban <account id or IP>") return end
-    local who = tonumber(args[1]) or args[1] -- an account id, or an IP
-    if node.bans.remove(who) then
-        player:tell("Unbanned %s", tostring(who))
-    else
-        player:tell("%s was not banned", tostring(who))
-    end
-end, { role = "admin" })
-
-node.commands.add("bans", function(player)
-    for _, b in ipairs(node.bans.all()) do
-        player:tell("%s: %s - %s", b.name or "?", b.account and ("account " .. b.account) or b.ip, b.reason or "")
-    end
-end, { role = "admin" })
-
--- expect-log: Bob banned by a server plugin \(\S+, account 108\) — Spamming
--- expect-log: Bob kicked — Spamming
--- expect-client: Alice chat:msg .*Bob: account 108 - Spamming
--- expect-client: Alice chat:msg .*Unbanned 108
--- expect-client: Alice chat:msg .*No player named Bob
-```
-
-`player:kick(reason)` disconnects the player and shows the reason in the launcher.
-`node.bans.add(who, reason)` takes three shapes: a `Player` bans its IP and, when the join ticket
-was redeemed for an account, that account too - then kicks; an IP string or an account id number
-bans for future connects and leaves a running session alone. `node.bans.remove` and
-`node.bans.has` take the same string or number; `node.bans.all()` lists every ban with `ip`,
-`account`, `reason`, `at` and `name`. Bans persist in `bans.json` next to `server.toml`, whose
-format and hand-editing rules are on [Running the server → Bans](/hosting/administration/#bans). Two
-`Player` objects compare equal when their ids match, which is what `who == player` relies on.
-
-`/kick Bob Spamming` and `/ban Bob Spamming` print, under the `Kick` tag:
-
-```
-Bob kicked — Spamming
-Bob banned by a server plugin (203.0.113.5, account 108) — Spamming
-Bob kicked — Spamming
-```
-
-The next connection from that address is refused at the door:
-`connection from 203.0.113.5 refused (banned: Spamming)`; a banned account is refused whatever the
-address, right after its ticket is redeemed. `node.bans.add` and `player:ban` fall back to the
-reason `Banned`; `You are banned from this server` is what a returning banned player sees when the
-stored reason is empty.
+`chatMessage` fires once a line's fate is decided, so refused lines and commands (`msg.sent` is
+`false` for both) stay out of Discord, and so do local lines. A healthy webhook answers `204` and the
+resource logs nothing. In the test above the URL points at this machine, which the server refuses by
+default; that's the warning you see ([HTTP → What the host controls](/plugins/http/#what-the-host-controls)).
 
 ## Next
 
-- [Events](/plugins/events/) - every kind of event these recipes subscribe to.
-- [Concurrency](/plugins/concurrency/) - what runs where when a recipe waits on HTTP or a job.
-- [Client scripting](/plugins/client-scripting/) - the client half the teleport relies on.
-- [Conventions](/plugins/conventions/) - naming, ids versus objects, return shapes.
+- [The example plugins](/plugins/examples/): bigger, complete resources that come with the server.
+- [Chat](/plugins/chat/), [Players and vehicles](/plugins/players-and-vehicles/),
+  [HTTP](/plugins/http/): the calls these recipes use, in depth.
