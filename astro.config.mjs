@@ -158,20 +158,27 @@ export default defineConfig({
           { label: 'Start here', translations: { ru: 'С чего начать' }, items: [
             { slug: 'plugins/overview' },
             { slug: 'plugins/getting-started' },
+            { slug: 'plugins/examples' },
             { slug: 'plugins/conventions' },
           ]},
           { label: 'Resources and events', translations: { ru: 'Ресурсы и события' }, items: [
             { slug: 'plugins/resources' },
             { slug: 'plugins/events' },
+            { slug: 'plugins/players-and-vehicles' },
+            { slug: 'plugins/chat' },
             { slug: 'plugins/concurrency' },
+            { slug: 'plugins/bus' },
           ]},
           { label: 'Data and network', translations: { ru: 'Данные и сеть' }, items: [
+            { slug: 'plugins/storage' },
             { slug: 'plugins/database' },
+            { slug: 'plugins/http' },
             { slug: 'plugins/protocol' },
           ]},
           { label: 'Client and native code', translations: { ru: 'Клиент и нативный код' }, items: [
             { slug: 'plugins/client-scripting' },
             { slug: 'plugins/native-modules' },
+            { slug: 'plugins/js-host' },
           ]},
           { label: 'Practice', translations: { ru: 'Практика' }, items: [
             { slug: 'plugins/recipes' },

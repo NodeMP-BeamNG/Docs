@@ -44,7 +44,8 @@ demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 1 resource · 1 module loaded
 ```
 
-Chat, `/` commands and the server's own chat messages work without any resource.
+Chat and the server's own chat messages work without any resource. Chat commands come from
+resources, such as `chat-commands` below.
 
 ### The examples
 
@@ -54,6 +55,7 @@ one; the copy is yours to change and survives updates.
 
 | Example | What it does |
 |---|---|
+| `chat-commands` | Adds `/help`, `/me` and `/pm` to the chat; the starting point for commands of your own. |
 | `demo-numbers` | The smallest resource with a server half and a client half. |
 | `freeroam-example` | Greets players, answers a client event, runs timers. |
 | `vehicle-cleanup` | Deletes cars nobody uses any more, by rules you set in its `resource.toml`. |
@@ -61,7 +63,6 @@ one; the copy is yours to change and survives updates.
 | `seat-demo` | Seats players into cars from the server, takes them out, swaps them. |
 | `nodegrab-allow` | Allows the experimental node grabber, which is refused unless a plugin says yes. |
 | `devapi-example` | A tour of the plugin API, one feature at a time. |
-| `chat` | Not needed any more: chat is part of the server. Kept as an example of reading chat lines. |
 | `session-report` | Who played, for how long, in what. Written in JavaScript, which needs a native module the archive doesn't include; without it the server skips this one. |
 
 [The example plugins](/plugins/examples/) walks through them for plugin authors.

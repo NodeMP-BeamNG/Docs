@@ -71,8 +71,9 @@ join it by address. → [Get listed](/hosting/registering/)
 
 ### Do I still need the `chat` resource?
 
-No. Chat is part of the server, and `player:tell`, `node.chat.say` and chat commands work without
-it. If you have `resources/chat` from an older setup, you can delete it.
+No. Chat is part of the server, and `player:tell` and `node.chat.say` work without it. Chat
+commands come from resources: `examples/chat-commands` adds `/help`, `/me` and `/pm`. If you have
+`resources/chat` from an older setup, you can delete it.
 → [Mods and resources](/hosting/resources/)
 
 ### I pasted the `[Directory]` block from the website and now the server won't start.

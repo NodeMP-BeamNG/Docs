@@ -11,7 +11,7 @@ A plugin is one of two things:
 
 - a **resource**: a folder of Lua in `resources/`. This is what almost everyone writes;
 - a **native module**: a library written in C or C++ in `modules/`, for work on a hot path or to
-  teach the server another language.
+  teach the server another language, such as [JavaScript](/plugins/js-host/).
 
 ## What you can build
 
@@ -20,6 +20,8 @@ A few examples of what resources do, each with a page that shows how:
 - greet players, give roles, keep scores and playtime → [Players and vehicles](/plugins/players-and-vehicles/), [Storage and files](/plugins/storage/);
 - chat commands, a mute, a word filter, a Discord bridge → [Chat](/plugins/chat/), [HTTP](/plugins/http/);
 - refuse a car, an edit or a join, with a reason the player sees → [Events](/plugins/events/);
+- reserved slots, timed bans, a frozen race start, a restart with a countdown → [Players and vehicles](/plugins/players-and-vehicles/), [Recipes](/plugins/recipes/);
+- resources that work together, or with a native module → [Between resources](/plugins/bus/);
 - races and checkpoints, a speed radar, a minimap → [Players and vehicles → Reading the world fast](/plugins/players-and-vehicles/#reading-the-world-fast);
 - a UI or an effect inside the players' game → [Client scripts](/plugins/client-scripting/);
 - data in PostgreSQL or SQLite → [Database](/plugins/database/).
