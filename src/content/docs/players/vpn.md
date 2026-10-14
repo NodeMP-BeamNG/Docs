@@ -21,6 +21,9 @@ Most VPNs just work. A few things worth knowing:
 - **A slow VPN is fine.** The server gives the secure handshake 20 seconds by default, and a mod
   download is only stopped when nothing at all has moved for a minute. Slow is never a reason to
   cut you off.
+- **Servers from version 1.8.0 suit VPNs better.** They send the other cars' positions in packets
+  small enough to pass through a VPN tunnel in one piece. On older servers a packet could be split
+  on the way, and one lost piece made several cars stutter at once.
 
 ## When the connection drops
 

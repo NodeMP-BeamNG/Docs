@@ -1,6 +1,6 @@
 ---
 title: Console, kicks and bans
-description: The server console and its commands, kicking and banning players, bans.json, reading the log, and what to check when a player is refused.
+description: The server console, kicking and banning players (for good or for a while), restarting with a warning, reading the log, and refused players.
 ---
 
 ## The console
@@ -19,7 +19,8 @@ reads commands typed into it:
 | `stop` | Shuts the server down (`exit` and `quit` too). |
 
 Anything else is answered with `unknown command, try help`. Players can't reach the console: a
-`/kick 1` typed in chat is a chat command for the server's plugins, not a console command. Under
+`/kick 1` typed in chat is an ordinary chat line, and it becomes a command only if one of your
+resources takes it as one. Under
 systemd or in Docker without a terminal the console is off unless `[General] Console = true`
 ([Keeping it running](/hosting/running/#the-console-in-a-service)).
 
@@ -27,12 +28,13 @@ The console also shows the chat as it happens, with the player's id:
 
 ```
 17:51:12.345  Chat   › (0) Alice: hello
-17:51:14.101  Chat   › (0) Alice: /ping x y
+17:51:14.101  Chat   › (0) Alice: /ping x y  [handled by a resource]
 17:51:16.000  Chat   › System -> all: Restart in 5 minutes  [console]
 ```
 
-Refused lines show why, and commands that take a secret (`/login`, `/register`, …) appear with the
-secret replaced by `***`. `[Chat] LogToConsole = false` keeps the chat out of the console and the
+Refused lines show why, and a line a resource took as its command is marked
+`[handled by a resource]`. Commands that take a secret (`/login`, `/register`, …) appear with the
+secret replaced by `***`; `[Chat] LogHiddenCommands` lists them. `[Chat] LogToConsole = false` keeps the chat out of the console and the
 log.
 
 ## Kicks and bans
@@ -40,7 +42,7 @@ log.
 Kicking from the console is above. There is no ban command in the console: bans come from plugins
 (`player:ban(reason)`, `node.bans.add`), and you lift them with the server stopped. A moderation
 command takes a few lines of Lua; [Recipes](/plugins/recipes/#kick-and-ban-from-chat) has one with
-`/kick` and `/ban` for players with the right role.
+`/kick`, `/ban` and a timed `/tempban` for players with the right role.
 
 ### Bans
 
@@ -54,9 +56,14 @@ the player had:
 ```json
 {
   "203.0.113.7": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
-  "nodemp:108": { "reason": "Spamming", "at": 1789558100, "name": "Bob" }
+  "nodemp:108": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
+  "198.51.100.4": { "reason": "Ramming", "at": 1789558100, "name": "Carl", "until": 1789565300 }
 }
 ```
+
+A ban with `"until"` is a timed one: it ends at that moment (Unix seconds), and the server drops it
+from the file by itself the next time it checks, lists or starts. Plugins set it; a ban without
+`"until"` is for good.
 
 Banning a connected player bans both their address and, if they're signed in, their account, so
 the ban follows them to another network. A banned player is turned away at the door with the
@@ -71,10 +78,29 @@ Node-Server --bans remove 203.0.113.7
 Node-Server --bans remove nodemp:108
 ```
 
-`list` prints every ban with its key, date, name and reason; `remove` takes an address, an account
-as `nodemp:<id>` or a bare account id. Editing the file by hand with the server stopped works too.
-Editing it while the server runs doesn't: the server keeps its own copy in memory and writes it back
-on the next ban. A plugin can lift a ban on a running server with `node.bans.remove(who)`.
+`list` prints every ban with its key, date, name and reason, and `until` with the end date for a
+timed one; `remove` takes an address, an account as `nodemp:<id>` or a bare account id. Editing the
+file by hand with the server stopped works too. Editing it while the server runs doesn't: the server
+keeps its own copy in memory and writes it back on the next ban. A plugin can lift a ban on a
+running server with `node.bans.remove(who)`.
+
+## Restarting with a warning
+
+`stop` in the console sends everyone away at once. To give players a warning first, a resource can
+schedule the stop: `node.server.shutdown("Nightly restart", 5 * 60 * 1000)` stops the server in
+five minutes, and the log says so:
+
+```
+restarter stops the server in 300.0 s: Nightly restart
+stop requested by a resource: Nightly restart
+```
+
+When the time comes, players are sent away with that reason, plugins save what they keep, and the
+server exits with code 0, just as after Ctrl+C. Under systemd with `Restart=always` or in Docker with
+`restart: unless-stopped` ([Keeping it running](/hosting/running/)) it then starts again by itself,
+so this is a restart. A resource can call the stop off before then. The
+[recipe](/plugins/recipes/#a-restart-with-a-countdown) adds a countdown in chat and an admin
+command.
 
 ## Reading the log
 
