@@ -1,300 +1,178 @@
 ---
 title: События
-description: Вход игрока по шагам, четыре вида событий, что получают обработчики, отказ с причиной, сетевые события от клиентов и фильтр ретрансляции.
+description: Виды событий, порядок, в котором игрок заходит и выходит, отказ в запросе с причиной, резервные места, отписка и события, которые приходят много раз в секунду.
 ---
 
-Всё, что делает серверная часть, начинается с события. Один вызов подписывается на любое из них —
-`node.on(name, fn)`, — а имя решает, что получит `fn`. На этой странице — виды событий и визит
-игрока от начала до конца; в [справочнике событий](/ru/plugins/api/events/) — все имена с точными
-аргументами.
+Ресурс работает в обработчиках событий. `node.on(имя, обработчик)` подписывает, а сервер вызывает
+обработчик, когда событие происходит. [Справочник событий](/ru/plugins/api/events/) перечисляет все
+события с их аргументами, а здесь — как они связаны между собой.
 
-## Вход по шагам
+## Виды событий
 
-Вот что происходит между нажатием **Join** и тем, как игрок едет по карте, и где своё слово может
-сказать ваш код. Шаги без события — дело самого сервера.
+| Вид | Примеры | Что получает обработчик | Что возвращать |
+|---|---|---|---|
+| События сервера | `playerJoined`, `vehicleSpawned`, `serverShutdown` | Объект: `Player` или `Vehicle` | Не важно. |
+| Уведомления | `vehicleEdited`, `vehicleReset`, `chatMessage` | Игрока, машину и данные, уже разобранные | Не важно. |
+| Запросы | `playerConnectRequest`, `vehicleSpawnRequest`, `chatMessageRequest` | Игрока, машину и данные | `false, "причина"` — отказ. |
+| Сетевые события | `greeter:hello`, любое своё имя | Игрока и данные строкой | Не важно. |
 
-1. **Дверь.** Лаунчер подключается и предъявляет билет из списка серверов. Сервер проверяет его и
-   список банов. Забаненного разворачивают здесь, раньше, чем о нём узнает любой плагин.
-2. **Место и имя.** Игрок получает номер и отображаемое имя. Если на сервере уже есть игрок с таким
-   именем, новичок получает `Имя#<номер>`.
-3. **`playerConnectRequest(player, name)`.** Ваш шанс отказать — с причиной, которую игрок увидит.
-   Имя, IP и поля аккаунта уже читаются; ничего ещё не скачано. На полном сервере его тоже
-   спрашивают, с `player.overCapacity`, так что можно пустить человека на резервное место
-   ([Игроки и машины → Резервные места](/ru/plugins/players-and-vehicles/#резервные-места)).
-4. **`playerAuthenticated(player)`.** Игрока впустили. Хорошее место, чтобы загрузить то, что вы о
-   нём храните.
-5. **Проверка файлов игры.** Лаунчер проверяет файлы игры на том уровне, который просит сервер.
-   **`playerVerifyReported(player, report)`** сообщает результат — уже после вердикта сервера.
-6. **Моды.** Игрок скачивает то, чего у него нет. События нет; это может занять минуты.
-7. **Карта и клиентские скрипты.** Имя карты и клиентские файлы всех ресурсов уходят вместе, чтобы
-   игра подготовила их, пока грузится карта.
-8. **`playerJoining(player)`.** Игра игрока сейчас грузит карту. Машин у него ещё нет. Удобный
-   момент, чтобы сказать остальным «Alice загружается» или запустить таймер, сколько длится вход.
-9. **`playerJoined(player)`.** Игрок в мире и получил все машины. Обычное место, чтобы
-   поздороваться, выдать роль и вернуть его состояние.
+Имя, которого сервер не знает, — это сетевое событие, сообщение от клиентского скрипта
+([Клиентские скрипты](/ru/plugins/client-scripting/)). Сообщения между ресурсами идут по
+[шине](/ru/plugins/bus/), а не через `node.on`.
 
-Во время игры **`playerLagging(player, silentSec)`** срабатывает, когда от игрока несколько секунд
-ничего не приходит (по умолчанию 8), а **`playerRecovered(player, silentSec)`** — когда он вернулся.
-Лагающий игрок сохраняет место за рулём и свои машины.
+На одно событие можно подписать несколько обработчиков, из одного ресурса или из разных. Они
+выполняются по очереди, на единственном рабочем потоке сервера.
 
-В конце — **`playerLeft(player, reason)`**. Имя ещё читается. Пешеходный аватар игрока удаляется, а
-его машины остаются в мире без владельца. `reason` — тот же текст, что в строке ухода в логе
-сервера: `"Connection closed by the client"`, текст кика и так далее. С `"Replaced"` (тот же аккаунт
-зашёл снова) сравнивайте точно, остальное считайте обычным текстом.
+## Порядок входа
 
-Две вещи, которые стоит помнить:
+По дороге на сервер игрок проходит четыре события:
 
-- `playerLeft` срабатывает для каждого, кто получил номер, — в том числе для игрока, которому вы
-  отказали в `playerConnectRequest`, и для того, кто вышел во время скачивания. Не перед каждым
-  `playerLeft` был `playerJoined`.
-- После обрыва связи сервер держит место 30 секунд (по умолчанию) на случай, если лаунчер
-  переподключится. Вернувшийся игрок вызывает `playerRecovered`, а не второй `playerJoined`; не
-  вернувшийся — `playerLeft`, когда окно истечёт.
+1. `playerConnectRequest` — игрок вошёл в аккаунт и просится на сервер. Баны уже проверены. Здесь
+   можно отказать.
+2. `playerAuthenticated` — игрока пустили. Имя и адрес известны, машин ещё нет.
+3. `playerJoining` — моды скачаны, карта отправлена, игра загружает уровень.
+4. `playerJoined` — игрок в мире. Обычное место, чтобы поздороваться, выдать роль, восстановить
+   сохранённые данные.
+
+На выходе событие одно — `playerLeft`, с причиной, по которой закончилась сессия.
+
+<!-- doctest: server+client -->
+```lua
+for _, name in ipairs({ "playerAuthenticated", "playerJoining", "playerJoined" }) do
+    node.on(name, function(player)
+        node.log("%s: %s", name, player.name)
+    end)
+end
+
+node.on("playerConnectRequest", function(player, name)
+    node.log("playerConnectRequest: %s", name)
+end)
+
+node.on("playerLeft", function(player, reason)
+    node.log("playerLeft: %s (%s)", player.name, reason)
+end)
+
+-- expect: playerConnectRequest: Alice
+-- expect: playerAuthenticated: Alice
+-- expect: playerJoining: Alice
+-- expect: playerJoined: Alice
+-- expect: playerLeft: Alice
+```
+
+Оборванное соединение не заканчивает сессию сразу. После `[Network] LagGraceSec` тишины сервер
+вызывает `playerLagging`, а если игрок вернулся — `playerRecovered`. `playerLeft` срабатывает, только
+когда игрок вышел сам, его кикнули или он не вернулся за `DisconnectSec`. Игрок, который успел
+переподключиться, события входа заново не проходит.
+
+Id игроков переиспользуются: ушедший игрок освобождает id для следующего. Храните данные по
+`player.accountId` (аккаунт) или по имени, но не по id.
+
+## Отказ в запросе
+
+Обработчик запроса, который вернул `false`, отказывает, а второе значение — причина, которую увидит
+игрок. Побеждает первый отказ. Если ничего не вернуть, запрос проходит.
 
 <!-- doctest: server+client -->
 ```lua
 node.on("playerConnectRequest", function(player, name)
-    if name:lower():find("admin", 1, true) then
-        return false, "Names with 'admin' in them are reserved"
+    if player.guest then
+        return false, "This server is for players with an account"
     end
     node.log("%s may join", name)
 end)
 
-node.on("playerJoining", function(player)
-    node.log("%s is loading the map", player.name)
-end)
-
-node.on("playerJoined", function(player)
-    player:tell("Welcome, %s. %d online.", player.name, node.players.count())
-end)
-
-node.on("playerLeft", function(player, reason)
-    node.log("%s left: %s", tostring(player.name), reason)
-end)
-
 -- expect: Alice may join
--- expect: Alice is loading the map
--- expect-client: Alice chat:msg .*Welcome, Alice\. 1 online\.
--- expect: Alice left: .+
 ```
 
-## Четыре вида, один node.on
-
-| Вид | Имена | Обработчик получает | Возвращаемое значение |
-|---|---|---|---|
-| **События движка** | `<subject><Verb-ed>`, после того как что-то случилось: `playerJoined`, `vehicleSpawned`, `serverTick` | сам объект (`Player` или `Vehicle`) или ничего | игнорируется |
-| **Уведомления** | после того как сервер обработал действие игрока: `vehicleEdited`, `playerSeatChanged`, `chatMessage` | `(player, vehicle, payload)` или `(player, payload)`, если машины нет | игнорируется |
-| **Запросы** | `<subject><Action>Request`, до того как сервер выполнит просьбу игрока: `vehicleSpawnRequest`, `chatMessageRequest` | как уведомления | `false[, reason]` — отказ |
-| **Сетевые события** | любое другое имя, обычно `<область>:<глагол>`: `race:finish` | `(player, data)`, `data` — как прислал клиент | игнорируется |
-
-У двух каналов свои вызовы: сообщения между ресурсами ([Шина](/ru/plugins/bus/)) и сырые байты для
-нативных модулей (`node.modules.on`). Фильтр ретрансляции ставится через `node.relay.filter`
-([ниже](#фильтр-ретрансляции)). Все обработчики выполняются в одном рабочем потоке, по одному за
-раз, в порядке подписки; на одно имя могут подписаться несколько ресурсов.
-
-### Имена
-
-События движка и уведомления называются `<subject><Verb-ed>`: что случилось, после того, с чем
-случилось. Запросы — `<subject><Action>Request`. Приставки `on` нет, настоящего времени тоже. Имена,
-переименованные в прошлом, больше не работают: `node.on` отклоняет их одной ошибкой с новым именем
-(`event "playerJoin" was renamed to "playerJoined"; nothing is subscribed to the old name`). Полный
-список — в [справочнике событий](/ru/plugins/api/events/#renamed-events).
-
-## Что получает обработчик
-
-Там, где сервер работает с номерами, `node.on` даёт вам объекты. `Player` — маленькая таблица с
-`id`; чтение `player.name`, `player.ip`, `player.role` или `player.accountId` один раз получает
-запись игрока и сохраняет её в объекте. Методы вроде `player:kick`, `player:send`, `player:tell` и
-`player:vehicles` действуют по номеру. `Vehicle` устроен так же. Подробности — на странице
-[Игроки и машины](/ru/plugins/players-and-vehicles/).
-
-Данные в JSON приходят уже декодированными: конфигурация спавна — таблица с `config.jbm`, вызов
-сцепки — с `call.controllerName`. Исключение — сетевые события: их `data` — ровно то, что прислал
-клиент, декодируйте сами через `node.json.decode`.
-
-Номера переиспользуются. `Player` из `playerLeft` ещё знает своё имя, но его `id` позже достанется
-другому. Всё долгоживущее храните по `player.accountId` (для гостей — по `player.name`) и проверяйте
-`player:isConnected()` после ожидания.
-
-`node.raw.on(name, fn)` подписывается с сырыми аргументами (номера и текст JSON) — для горячих
-путей, где объекты не нужны.
-
-## События движка
-
-Срабатывают после того, как что-то случилось; возвращаемое значение игнорируется.
-
-- **Игроки.** `playerAuthenticated`, `playerJoining`, `playerJoined`, `playerLeft`,
-  `playerPolicyChanged` (игрок изменил, кто может пользоваться его машинами), `playerCameraChanged`,
-  `playerFrozenChanged` (ресурс заморозил или отпустил игрока; смотрите `player.frozen`).
-- **Сервер и ресурс.** `serverTick` (каждые 100 мс, без аргумента; держите его лёгким),
-  `serverShutdown` (сохраните нужное; таймеры больше не сработают), `resourceUnload(reason)`
-  ([Ресурсы → Сохранить перед выгрузкой](/ru/plugins/resources/#сохранить-перед-выгрузкой)).
-- **Машины.** `vehicleSpawned`, `vehicleTagsChanged`, `vehicleLockChanged`, `vehicleDamageChanged`,
-  `vehicleTeleported`, `vehicleBreakGroupsChanged`.
-- **Потоки.** `vehiclePositionChanged`, `vehicleInputsChanged`, `vehicleElectricsChanged`,
-  `vehiclePowertrainChanged`, `vehicleEngineChanged`, `vehicleNodesChanged`,
-  `playerInputsChanged`, `playerHeadPoseChanged`. Приходят до 60 раз в секунду на машину и
-  сливаются, так что медленный обработчик видит меньше событий, а не растущую очередь. Обработчик
-  получает только объект; последнее состояние читайте соответствующим методом
-  (`vehicle:transform()`, `player:inputs()`). Для радара или мини-карты лучше читать все машины
-  разом по таймеру ([Игроки и машины → Быстро читать мир](/ru/plugins/players-and-vehicles/#быстро-читать-мир)).
-
-## Уведомления
-
-Срабатывают после того, как сервер обработал действие игрока. Данные в JSON приходят декодированными.
-
-| Событие | Аргументы | Когда |
-|---|---|---|
-| `vehicleDeleted` | `vehicle, cause` | Машина исчезла из мира. `cause` — `"player"`, `"server"`, `"leave"` (пешеходный аватар ушедшего), `"seat"` или `"replace"`. Записи к этому моменту уже нет; смысл имеет только `vehicle.id`. |
-| `vehicleRespawned` | `player, vehicle, config` | Игрок заменил машину, за рулём которой сидит. |
-| `vehicleEdited` | `player, vehicle, config` | Применены новые детали или настройка. |
-| `vehicleReset` | `player, vehicle, posRot` | Машину сбросили. `posRot.cause` — `"player"` или `"server"`; при сбросе сервером `player` равен `nil`. |
-| `vehiclePainted` | `player, vehicle, paints` | Новая покраска. |
-| `playerSeatChanged` | `player, vehicle, role` | Сел, вышел или его пересадили. `vehicle` — `nil`, если пешком; `role` — `"driver"`, `"passenger"` или `"none"`. |
-| `vehicleCouplerChanged`, `vehicleControllerChanged` | `player, vehicle, call` | Прошёл вызов двери, сцепки или контроллера. |
-| `chatMessage` | `player, msg` | Судьба строки чата решена ([Чат](/ru/plugins/chat/#следить-за-чатом)). |
-| `playerVerifyReported` | `player, report` | Закончилась проверка файлов игры ([Клиентские скрипты → Строгие сессии](/ru/plugins/client-scripting/#строгие-сессии-sessionconfigstrict)). |
-| `playerLagging`, `playerRecovered` | `player, silentSec` | См. [вход](#вход-по-шагам). |
-| `serverShutdownScheduled` | `info` | Ресурс назначил остановку через `node.server.shutdown(reason, delayMs)`: `info.reason`, `info.at` (секунды Unix) и `info.by` (ресурс). Когда остановку отменили, `info.cancelled` равно `true`. [Рецепт](/ru/plugins/recipes/#перезапуск-с-обратным-отсчётом) ведёт отсчёт в чате. |
-
-<!-- doctest: server -->
-```lua
-node.on("vehicleEdited", function(player, vehicle, config)
-    node.log("%s edited %s (%s)", tostring(player), tostring(vehicle), tostring(config.jbm))
-end)
-
-node.on("playerSeatChanged", function(player, vehicle, role)
-    if vehicle then
-        node.log("%s is now %s of %s", tostring(player), role, tostring(vehicle))
-    end
-end)
-
-node.on("vehicleDeleted", function(vehicle, cause)
-    node.log("vehicle %d gone (%s)", vehicle.id, cause)
-end)
-
-node.on("serverShutdownScheduled", function(info)
-    if info.cancelled then
-        node.chat.say("The restart is off")
-    else
-        node.chat.say("Restart in %d seconds: %s", info.at - os.time(), info.reason)
-    end
-end)
-```
-
-## Запросы: как сказать «нет»
-
-Запрос срабатывает до того, как сервер выполнит просьбу игрока. Верните `false`, по желанию с
-причиной, чтобы отказать; не возвращайте ничего, чтобы разрешить. Обработчик, который ничего не
-возвращает, может просто наблюдать: он видит каждый запрос и ничего не меняет.
-
-Выполняются все обработчики, даже после отказа одного из них, так что наблюдатели видят всё;
-используется первая названная причина. Обработчик, упавший с ошибкой, не отказывает. Исключение —
-чат: там первый `false` обрывает цепочку ([Чат](/ru/plugins/chat/#отказать-и-переписать)).
-
-| Запрос | Аргументы | Отказ |
-|---|---|---|
-| `playerConnectRequest` | `player, name` | разворачивает игрока; он видит причину. |
-| `vehicleSpawnRequest` | `player, requestedId, config` | убирает машину, которую игрок только что создал. `requestedId` — номер клиента, а не итоговый. |
-| `vehicleEnterRequest`, `vehicleExitRequest` | `player, vehicle, role` | оставляет игрока где был; он видит причину. |
-| `vehicleEditRequest`, `vehiclePaintRequest` | `player, vehicle, config` / `paints` | откатывает машину игрока к тому, что было на сервере; причину он видит, если вы её дали. |
-| `vehicleCouplerRequest` | `player, vehicle, call` | дверь или сцепка остаётся как была. |
-| `vehicleTriggerRequest` | `player, vehicle, call` | запрещает нажать что-то в чужой машине. Явный `true` разрешает, даже если владелец машины не пускает других к своим органам управления. |
-| `vehicleNodeGrabRequest` | `player, vehicle, grab` | запрещает хватать машину экспериментальным захватом узлов. **Нет обработчика — тоже «нет»**: чтобы включить захват, нужен ресурс, который скажет «да» (см. `nodegrab-allow` в [примерах](/ru/plugins/examples/)). |
-| `chatMessageRequest` | `player, msg` | строка не отправляется, отправителю объясняют почему. Строка или таблица в ответе переписывают её ([Чат](/ru/plugins/chat/#отказать-и-переписать)). |
-
-Пример в духе `gatekeeper-example`: лимит машин с причиной и двери, которые открывает только
-владелец машины.
+С машинами то же самое. Здесь ресурс не пускает на сервер одну модель:
 
 <!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
-local MAX_CARS_PER_PLAYER = 2
+local banned = { pickup = true }
 
 node.on("vehicleSpawnRequest", function(player, requestedId, config)
-    if #player:vehicles() >= MAX_CARS_PER_PLAYER then
-        return false, "Vehicle limit reached (" .. MAX_CARS_PER_PLAYER .. " per player)"
-    end
-    node.log("%s spawns a %s", tostring(player), tostring(config.jbm))
-end)
-
-node.on("vehicleCouplerRequest", function(player, vehicle, call)
-    if vehicle.spawner and vehicle.spawner ~= player then
-        return false -- only the spawner opens this car's doors
+    node.log("%s wants a %s", player.name, config.jbm)
+    if banned[config.jbm] then
+        return false, "This car isn't allowed here"
     end
 end)
 
--- expect: Player#\d+ Alice spawns a coupe
+-- expect: Alice wants a coupe
 ```
 
-`vehicleSpawnRequest` срабатывает до появления машины, поэтому `player:vehicles()` считает то, что у
-игрока уже есть. Собственная настройка сервера `MaxCars` делает то же без ресурса; пример показывает
-форму. То, что сервер делает сам (`vehicle:seat`, `vehicle:setCoupler`, `vehicle:trigger`,
-`vehicle:lock`), эти хуки не спрашивает никогда.
+На любой запрос можно и просто смотреть, ничего не решая, — ничего не возвращайте. Какие запросы
+бывают и что делает отказ в игре, сказано в
+[справочнике событий](/ru/plugins/api/events/#cancellable-requests-decide).
 
-## Сетевые события
+## Резервные места
 
-Ресурс придумывает свои события между серверной и клиентской частью, просто используя имя. Тот же
-`node.on` подписывается на них, а обработчик получает `(player, data)`, где `data` — строка, которую
-клиент передал в `node.emitServer(name, data)`, обычно JSON.
-
-Называйте их `<область>:<глагол>`, строчными, с одним двоеточием: `hello:count`, `race:finish`.
-Имена, начинающиеся с `node:`, принадлежат NodeMP, как и `chat:send`, `chat:msg` и другие события
-`chat:`. В обратную сторону: `player:send(event, data)` — одному игроку,
-`node.broadcast(event, data)` — всем, `node.broadcast(event, data, except)` — всем, кроме одного.
-Таблица кодируется в JSON за вас.
-
-Сетевые события клиента доходят до сервера и дальше никуда. Чтобы передать что-то остальным
-игрокам, перешлите сами:
-
-<!-- doctest: server+client {"players": ["Alice", "Bob"], "emit": [["team:ping", "{\"at\": 1}"]]} -->
-```lua
-node.on("team:ping", function(sender, data)
-    if type(data) ~= "string" or #data > 256 then return end -- untrusted input
-    node.broadcast("team:ping", data, sender) -- everyone but the sender
-end)
-
--- expect-client: Bob team:ping \{"at": 1\}
-```
-
-Не доверяйте `data`: любой может прислать что угодно из своей игры. Проверьте тип и длину,
-декодируйте через `node.json.decode` и проверьте поля, прежде чем ими пользоваться.
-
-## Фильтр ретрансляции
-
-`relayRequest` — вопрос, который сервер задаёт про каждый пакет, который пересылает: должен ли этот
-игрок увидеть этот пакет? Ставится через `node.relay.filter(fn)`.
-`fn(fromPid, toPid, category, subtype, gid)` получает номера, а не объекты, потому что вызывается на
-каждый пакет, и возвращает `false`, чтобы скрыть пакет от этого игрока. Ответы кешируются, поэтому
-вызывайте `node.relay.invalidate()` каждый раз, когда меняются данные, которые читает фильтр.
+На полном сервере `playerConnectRequest` всё равно срабатывает, и у игрока стоит
+`player.overCapacity`. Обработчик, который явно вернул `true`, пускает игрока сверх `MaxPlayers`.
+Если промолчать, сервер откажет сам (`Server full!`).
 
 <!-- doctest: server -->
 ```lua
-local hidden = {} -- [gid] = { [pid] = true }
+local reserved = { [42] = true } -- account ids
 
-node.relay.filter(function(fromPid, toPid, cat, sub, gid)
-    local peers = hidden[gid]
-    if peers and peers[toPid] then return false end
+node.on("playerConnectRequest", function(player)
+    if player.overCapacity and reserved[player.accountId] then
+        return true
+    end
 end)
-
-local function hide(vehicle, player)
-    hidden[vehicle.id] = hidden[vehicle.id] or {}
-    hidden[vehicle.id][player.id] = true
-    node.relay.invalidate() -- the filter's data changed
-end
 ```
 
-Для правил «по комнатам» есть способ дешевле — группы видимости. `player:setGroup(n)` и
-`vehicle:setGroup(n)` помещают игроков и машины в пронумерованные миры, и видят друг друга только
-одинаковые номера — без фильтра и без кеша. Группа `0` — общий мир.
+## Уведомления
+
+Уведомления говорят, что уже случилось. Отказать в них нельзя, зато в них есть подробности:
+
+<!-- doctest: server+client {"spawn": "coupe"} -->
+```lua
+node.on("vehicleSpawned", function(vehicle)
+    node.log("car %d spawned by %s", vehicle.id, vehicle.name)
+end)
+
+node.on("vehicleDeleted", function(vehicle, cause)
+    node.log("car %d deleted (%s)", vehicle.id, cause)
+end)
+
+-- expect: car \d+ spawned by Alice
+```
+
+Чат удобно записывать по `chatMessage`: к этому моменту сервер уже решил, что стало с каждой строкой
+([Чат и команды](/ru/plugins/chat/)).
 
 ## Отписка
 
-`node.off(name, fn?)` снимает обработчики этого ресурса для имени (все или только `fn`) и
-возвращает, сколько снято. Перезагрузка в любом случае сбрасывает все подписки, так что тогда
-убирать нечего.
+`node.off(имя, обработчик)` снимает один обработчик, `node.off(имя)` — все обработчики этого ресурса
+для события. Обработчик может снять сам себя:
 
-## Дальше
+<!-- doctest: server+client -->
+```lua
+local function firstJoin(player)
+    node.log("first player: %s", player.name)
+    node.off("playerJoined", firstJoin)
+end
 
-- [Справочник событий](/ru/plugins/api/events/) — все имена и их точные аргументы.
-- [Игроки и машины](/ru/plugins/players-and-vehicles/) — объекты, которые получают обработчики.
-- [Таймеры и корутины](/ru/plugins/concurrency/) — как ждать, не задерживая всех.
+node.on("playerJoined", firstJoin)
+
+-- expect: first player: Alice
+```
+
+`node.defer(fn)` выполняет `fn`, когда все обработчики текущего события уже отработали, — так можно
+действовать после того, как событие увидели остальные.
+
+## События, которые приходят много раз в секунду
+
+`vehiclePositionChanged`, `vehicleElectricsChanged` и похожие приходят на каждый пакет машины, до 60
+раз в секунду на машину. Они передают только машину, а текущее состояние читают через
+`vehicle:transform()` и похожие методы. Если обработчик не успевает, он видит меньше событий, но
+очередь не растёт. И всё же для карты или радара один вызов `node.vehicles.transforms()` по таймеру
+читает все машины сразу и обходится гораздо дешевле
+([Игроки и машины](/ru/plugins/players-and-vehicles/#много-машин-сразу)).
+
+## Старые имена событий
+
+События, переименованные в одном из прошлых релизов, на старые имена не отзываются.
+`node.on("playerJoin", f)` — `playerJoin` переименован — ни на что не подписывает и пишет в лог одну
+ошибку с новым именем, `playerJoined`. Полный список — в
+[справочнике событий](/ru/plugins/api/events/#renamed-events).
