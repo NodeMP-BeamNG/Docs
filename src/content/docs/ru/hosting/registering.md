@@ -36,8 +36,9 @@ host_secret = "…"
 
 :::caution[Пишите имена так, как выше]
 Сайт показывает эти ключи с заглавными буквами, `HostId = "…"`, — это имена из версий до сервера
-1.9.0. Возьмите с сайта значения и впишите их под именами, как выше. Старые имена сервер 1.9.0 не
-читает: он не попадёт в список и напишет в логе
+1.9.0. Лучше всего взять с сайта значения и вписать их под именами, как выше. Сервер 1.9.1 и новее
+понимает и строки с сайта, вставленные в конец файла или в его начало, и пишет в логе, какую строку
+как прочитал. Сервер 1.9.0 старые имена не читает: он не попадёт в список и напишет в логе
 `server.toml has settings this server does not read: [listing] Url, …`.
 
 Вторую таблицу `[listing]` тоже не добавляйте: TOML не разрешает одну таблицу дважды, и сервер не
@@ -150,7 +151,7 @@ voice = "mumble://voice.example.com:64738"
 |---|---|---|
 | `The directory refused this server's credentials: …` | Неверный Host ID или секрет, секрет сменили или ключ удалили. | Сверьте с **Моими серверами**. Если сомневаетесь, смените секрет и впишите новый. |
 | `This server is NOT announced to a directory: …` | Нет `host_id` или `host_secret`. | Заполните `url`, `host_id` и `host_secret` в `[listing]`. |
-| `server.toml has settings this server does not read: [listing] Url, …` | Ключи записаны под именами из версий до 1.9.0. | Впишите их как `url`, `host_id` и `host_secret`. |
+| `server.toml has settings this server does not read: [listing] Url, …` | Сервер 1.9.0, а ключи записаны под именами из версий до 1.9.0. | Впишите их как `url`, `host_id` и `host_secret` или обновите сервер до 1.9.1. |
 | `Could not reach the directory at https://api.nodemp.com: …` | Нет исходящего HTTPS, не работает DNS или NodeMP недоступен. | Проверьте `curl https://api.nodemp.com/healthz` на машине сервера. Сервер повторяет попытки сам. |
 | `listed in the server browser`, но в лаунчере сервера нет | NodeMP не достаёт до порта снаружи, или стоит `public = false`. | Откройте и пробросьте порт. Список обновится примерно через 15 секунд. |
 | Игроков не пускает с `The server could not verify your account with the directory (…)` | NodeMP был недоступен, когда они заходили. | Подождите. На сервере с Test Drive можно включить `admit_when_down`. |
