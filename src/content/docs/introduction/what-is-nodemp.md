@@ -32,9 +32,9 @@ launcher says what and why ([When something breaks](/players/troubleshooting/)).
 
 | Part | Version | Where to get it |
 |---|---|---|
-| Server (`Node-Server`) | 1.8.0 | [GitHub releases](https://github.com/NodeMP-BeamNG/releases/releases): Windows, Linux, Docker |
+| Server (`Node-Server`) | 1.9.0 | [GitHub releases](https://github.com/NodeMP-BeamNG/releases/releases): Windows, Linux, Docker |
 | Launcher | 1.1.25 | [nodemp.com/download](https://nodemp.com/download) |
-| Client mod (`NodeMP.zip`) | 1.7.4 | Installed by the launcher |
+| Client mod (`NodeMP.zip`) | 1.7.6 | Installed by the launcher |
 
 The client mod is built for BeamNG.drive 0.39.4.0. The launcher and the server speak wire protocol
 v23; when one of them is too old, the launcher says which, and offers to update itself.

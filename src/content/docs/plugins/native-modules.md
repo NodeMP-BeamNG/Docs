@@ -54,11 +54,11 @@ On Windows, build with the static C runtime so the DLL needs nothing beside it.
 
 ## ABI versions
 
-The ABI version reads `major.minor`; this server speaks 2.5. `NodeApi` is a struct read by position,
+The ABI version reads `major.minor`; this server speaks 2.6. `NodeApi` is a struct read by position,
 so its layout is a contract: new functions are only ever added at the end, which raises the minor.
 
 - **A different major** is refused at load, before the module can touch anything:
-  `module '…' was built against SDK ABI 1.12, this server speaks 2.5 -- refusing to load it. Rebuild the module.`
+  `module '…' was built against SDK ABI 1.12, this server speaks 2.6 -- refusing to load it. Rebuild the module.`
 - **An older minor** loads: everything the module knows is where it expects it.
 - **A newer minor** loads with a warning: the module may call functions this server doesn't have.
   Check `api->struct_size` before using a function added after the version you require.
@@ -93,8 +93,11 @@ Lua and JavaScript resources need no rebuilding when the server updates.
 
 Modules reach resources over the [bus](/plugins/bus/) (`emit_resource_event`,
 `register_resource_event`, where they appear as `"native"`), and their client halves through the
-numbered binary channels (`register_module_channel`, `send_module`). A module can't add functions to
-Lua: what it offers resources goes over the bus, the way the [db module](/plugins/database/) does.
+numbered binary channels (`register_module_channel`, `send_module`). Since ABI 2.6 a module can also
+ask resources a question: `call_resource_event` runs their handlers at once and passes each answer to
+a callback before it returns. Call it from a callback, on the worker thread. A module subscribed to
+the name sees the question but can't answer it. A module can't add functions to Lua: what it offers
+resources goes over the bus, the way the [db module](/plugins/database/) does.
 
 ## Installing a module
 

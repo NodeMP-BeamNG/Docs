@@ -74,7 +74,7 @@ A moderation command with these calls is on [Chat and commands](/plugins/chat/#c
 and seat changes are refused with `You are frozen by the server`. `player:freeze(false)` lets go.
 
 `player:teleport({ pos = { x = 0, y = 0, z = 1 } })` moves the car the player drives, or the player
-on foot, without repairing anything. Both need client mod 1.7.4 to look right in the player's game;
+on foot, without repairing anything. Both look right in the player's game since client mod 1.7.4;
 with an older mod a teleport repairs the car.
 
 ### Separate worlds
