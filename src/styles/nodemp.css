@@ -385,6 +385,8 @@ mobile-starlight-toc a[aria-current='true'] {
   background: var(--nmp-control);
   color: var(--nmp-fg);
   font-size: 0.9em;
+  /* A long path or key breaks inside itself rather than widening the page on a phone. */
+  overflow-wrap: anywhere;
 }
 
 .sl-markdown-content hr {
@@ -397,6 +399,31 @@ mobile-starlight-toc a[aria-current='true'] {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  overflow-wrap: break-word;
+}
+
+/* On a narrow screen a table that still does not fit scrolls inside itself. */
+@media (max-width: 50rem) {
+  .sl-markdown-content table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* Code blocks scroll inside their frame; the frame never sets the page width, in tabs neither. */
+.sl-markdown-content :is(.expressive-code, .expressive-code .frame, .expressive-code pre),
+starlight-tabs,
+starlight-tabs [role='tabpanel'] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+starlight-tabs {
+  display: block;
+}
+
+.sl-markdown-content pre {
+  overflow-x: auto;
 }
 
 .sl-markdown-content :is(th, td) {
