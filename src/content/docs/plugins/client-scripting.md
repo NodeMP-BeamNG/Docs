@@ -47,6 +47,68 @@ end
 return M
 ```
 
+## Extensions and the mod script
+
+Since client mod 1.7.6 a resource's client files load the way a mod's would.
+
+A file under `client/lua/ge/extensions/` is an extension under the name the game gives that path:
+`client/lua/ge/extensions/race/hud.lua` is `race_hud`. As after `extensions.load`, it's a global of
+that name, the extensions in its `M.dependencies` load before it, and its `on…` functions get the
+game's events.
+
+<!-- doctest: client -->
+```lua
+-- client/lua/ge/extensions/race/hud.lua
+local M = {}
+
+M.dependencies = { "race_core" }
+
+function M.onExtensionLoaded()
+    ui_message("Laps: " .. race_core.laps(), 5, "race")
+end
+
+return M
+```
+
+### Which files run
+
+Without a mod script every file runs, in the order they arrive: sorted by path, with the files
+directly in `lua/ge/extensions/` first, or in the order of `[client] files`. An extension's
+dependencies still run before it.
+
+### A mod script
+
+To decide what loads, as a mod's `modScript.lua` does, put one at
+`client/scripts/<name>/modScript.lua` or `client/modScript.lua`. The mod script then runs first, and
+only what it loads runs:
+
+<!-- doctest: client -->
+```lua
+-- client/scripts/race/modScript.lua
+setExtensionUnloadMode("race_core", "manual")
+setExtensionUnloadMode("race_hud", "manual")
+loadManualUnloadExtensions()
+```
+
+`load`, `extensions.load`, `setExtensionUnloadMode` with `loadManualUnloadExtensions`, and
+`registerCoreModule` load the resource's own extension of that name. Extensions marked `"manual"`
+load in the order they were marked, here `race_core` and then `race_hud`, and they load even if the
+script forgets `loadManualUnloadExtensions()`. Several mod scripts run in path order.
+
+### Mods from the content folder
+
+A name the resource doesn't have is the game's: for example an extension from a mod in the server's
+`content/` folder. Such a mod needs no `scripts/` folder of its own. The resource loads its
+extension when it arrives and, if the extension wasn't loaded before, unloads it when the player
+leaves.
+
+<!-- doctest: client -->
+```lua
+-- client/modScript.lua
+load("race_core")       -- in the resource: client/lua/ge/extensions/race/core.lua
+load("bigmap_sounds")   -- not in the resource: the game's, from a zip in content/
+```
+
 ## Talking to the server
 
 A client file has a `node` table of its own, smaller than the server's:

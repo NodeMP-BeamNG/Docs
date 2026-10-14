@@ -47,6 +47,68 @@ end
 return M
 ```
 
+## Расширения и скрипт мода
+
+Начиная с клиентского мода 1.7.6 клиентские файлы ресурса загружаются так же, как файлы мода.
+
+Файл из `client/lua/ge/extensions/` — это расширение под тем именем, которое игра даёт этому пути:
+`client/lua/ge/extensions/race/hud.lua` — это `race_hud`. Как после `extensions.load`, оно становится
+глобальной переменной с этим именем, расширения из его `M.dependencies` загружаются раньше него, а
+его функции `on…` получают события игры.
+
+<!-- doctest: client -->
+```lua
+-- client/lua/ge/extensions/race/hud.lua
+local M = {}
+
+M.dependencies = { "race_core" }
+
+function M.onExtensionLoaded()
+    ui_message("Laps: " .. race_core.laps(), 5, "race")
+end
+
+return M
+```
+
+### Какие файлы выполняются
+
+Без скрипта мода выполняются все файлы в том порядке, в каком приходят: по алфавиту путей, причём
+файлы прямо в `lua/ge/extensions/` идут первыми, или в порядке `[client] files`. Зависимости расширения всё
+равно выполняются раньше него.
+
+### Скрипт мода
+
+Чтобы самому решать, что загружается, как это делает `modScript.lua` мода, положите его в
+`client/scripts/<имя>/modScript.lua` или в `client/modScript.lua`. Тогда скрипт мода выполняется
+первым, и выполняется только то, что он загрузит:
+
+<!-- doctest: client -->
+```lua
+-- client/scripts/race/modScript.lua
+setExtensionUnloadMode("race_core", "manual")
+setExtensionUnloadMode("race_hud", "manual")
+loadManualUnloadExtensions()
+```
+
+`load`, `extensions.load`, `setExtensionUnloadMode` вместе с `loadManualUnloadExtensions` и
+`registerCoreModule` загружают собственное расширение ресурса с этим именем. Расширения, помеченные
+`"manual"`, загружаются в том порядке, в каком их пометили, — здесь сначала `race_core`, потом
+`race_hud`, — и загрузятся, даже если скрипт забыл вызвать `loadManualUnloadExtensions()`. Если
+скриптов мода несколько, они выполняются по порядку путей.
+
+### Моды из папки content
+
+Имя, которого в ресурсе нет, относится к игре: например, это расширение из мода в папке `content/`
+сервера. Такому моду не нужна своя папка `scripts/`. Ресурс загружает его расширение, когда
+приходит, и, если до этого оно не было загружено, выгружает, когда игрок уходит.
+
+<!-- doctest: client -->
+```lua
+-- client/modScript.lua
+load("race_core")       -- in the resource: client/lua/ge/extensions/race/core.lua
+load("bigmap_sounds")   -- not in the resource: the game's, from a zip in content/
+```
+
 ## Обмен с сервером
 
 У клиентского файла своя таблица `node`, меньше серверной:

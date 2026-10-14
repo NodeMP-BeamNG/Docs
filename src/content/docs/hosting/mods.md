@@ -19,11 +19,11 @@ After replacing or removing a zip, restart the server too.
 
 ## A map of your own
 
-Put the map's zip into `content/` and name the map in `[General] Map`:
+Put the map's zip into `content/` and name the map in `[server] map`:
 
 ```toml
-[General]
-Map = "/levels/my_map/info.json"
+[server]
+map = "/levels/my_map/info.json"
 ```
 
 `my_map` is the map's folder inside the zip, under `levels/`. To find it, open the zip and look at
@@ -56,3 +56,8 @@ in. The mark survives replacing the zip.
 
 Resources can send Lua scripts to players as well, but that's a different mechanism: the scripts
 arrive on join and don't go into `content/`. See [Resources](/hosting/resources/).
+
+The two can work together. Since client mod 1.7.6 a resource's scripts can switch on Lua from a mod
+in `content/`. The mod then needs no start-up script (`scripts/…/modScript.lua`) of its own: its
+Lua runs when the resource loads it and is switched off when the player leaves.
+[Client scripts](/plugins/client-scripting/#mods-from-the-content-folder) shows how.
