@@ -24,12 +24,12 @@ jobs:
       # The API reference is generated from the sdk, so the sdk this job reads
       # decides which anchors exist. An API change lands as a pair of PRs -- sdk
       # first, then the pages -- so when the sdk has a branch NAMED LIKE THIS ONE
-      # that is what the pages were written against; otherwise main, as deploy.yml
-      # does. The deploy key stays configured on the sdk clone for the second step.
+      # that is what the pages were written against; otherwise the release the
+      # pages describe (versions.json), as deploy.yml does: main runs ahead of it.
+      # The deploy key stays configured on each clone for the second step.
       #
       # check-claims (npm run check) reads the server, the launcher, the client mod
-      # and the launcher interface the same way: one read-only deploy key each,
-      # the branch named like this one when there is one, otherwise main.
+      # and the launcher interface the same way: one read-only deploy key each.
       - name: Checkout sdk (read-only deploy key)
         uses: actions/checkout@v5
         with:
@@ -65,18 +65,24 @@ jobs:
           ssh-key: ${{ secrets.UI_LAUNCHER_DEPLOY_KEY }}
           path: UI-launcher
           persist-credentials: true
-      - name: Use the branch named like this one in each repository, when there is one
+      - name: The branch named like this one in each repository, otherwise the release the pages describe
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
+          set -euo pipefail
+          v() { jq -r ".$1" src/content/versions.json; }
+          declare -A released=([sdk]="server-v$(v server)" [server]="v$(v server)" [launcher]="v$(v launcher)"
+                               [NodeMP]="v$(v mod)" [UI-launcher]="v$(v launcher)")
           for repo in sdk server launcher NodeMP UI-launcher; do
             if [ "$BRANCH" != "main" ] && git -C "$repo" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
               git -C "$repo" fetch --depth 1 origin "$BRANCH"
-              git -C "$repo" checkout --detach FETCH_HEAD
-              echo "$repo: branch $BRANCH ($(git -C "$repo" rev-parse HEAD))"
+              echo "$repo: branch $BRANCH"
             else
-              echo "$repo: main ($(git -C "$repo" rev-parse HEAD))"
+              git -C "$repo" fetch --depth 1 origin "refs/tags/${released[$repo]}"
+              echo "$repo: tag ${released[$repo]}"
             fi
+            git -C "$repo" checkout --detach FETCH_HEAD
+            git -C "$repo" rev-parse HEAD
           done
       - uses: actions/setup-python@v5
         with:
@@ -142,6 +148,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/server
+          ref: v${{ env.SERVER_VERSION }}
           ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
           path: server
           sparse-checkout: run

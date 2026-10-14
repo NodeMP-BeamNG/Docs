@@ -28,11 +28,23 @@ jobs:
       - uses: actions/checkout@v5
       # The sdk builds the API reference; the server, the launcher, the client mod
       # and the launcher interface are what check-claims (npm run check) compares
-      # the pages with. All on main, one read-only deploy key each.
+      # the pages with. Each at the release the pages describe (versions.json), not
+      # at main, which runs ahead of it; one read-only deploy key each.
+      - name: The releases the pages describe
+        id: released
+        run: |
+          v() { jq -r ".$1" src/content/versions.json; }
+          {
+            echo "sdk=server-v$(v server)"
+            echo "server=v$(v server)"
+            echo "launcher=v$(v launcher)"
+            echo "mod=v$(v mod)"
+          } >> "$GITHUB_OUTPUT"
       - name: Checkout sdk (read-only deploy key)
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/sdk
+          ref: ${{ steps.released.outputs.sdk }}
           ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
           path: sdk
           persist-credentials: false
@@ -40,6 +52,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/server
+          ref: ${{ steps.released.outputs.server }}
           ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
           path: server
           persist-credentials: false
@@ -47,6 +60,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/launcher
+          ref: ${{ steps.released.outputs.launcher }}
           ssh-key: ${{ secrets.LAUNCHER_DEPLOY_KEY }}
           path: launcher
           persist-credentials: false
@@ -54,6 +68,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/NodeMP
+          ref: ${{ steps.released.outputs.mod }}
           ssh-key: ${{ secrets.MOD_DEPLOY_KEY }}
           path: NodeMP
           persist-credentials: false
@@ -61,6 +76,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/UI-launcher
+          ref: ${{ steps.released.outputs.launcher }}
           ssh-key: ${{ secrets.UI_LAUNCHER_DEPLOY_KEY }}
           path: UI-launcher
           persist-credentials: false
@@ -127,6 +143,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: NodeMP-BeamNG/server
+          ref: v${{ env.SERVER_VERSION }}
           ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
           path: server
           sparse-checkout: run
