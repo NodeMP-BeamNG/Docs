@@ -105,8 +105,8 @@ leaves.
 <!-- doctest: client -->
 ```lua
 -- client/modScript.lua
-load("race_core")       -- in the resource: client/lua/ge/extensions/race/core.lua
-load("bigmap_sounds")   -- not in the resource: the game's, from a zip in content/
+load("race_core")      -- the resource's: client/lua/ge/extensions/race/core.lua
+load("bigmap_sounds")  -- the game's: an extension of a mod in content/
 ```
 
 ## Talking to the server
