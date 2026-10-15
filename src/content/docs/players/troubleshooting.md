@@ -117,7 +117,7 @@ the last line of its log. Look it up under
 
 ## What to send when you ask for help
 
-On the [forum](https://forum.nodemp.com) or on Discord, send:
+On Discord, send:
 
 1. **`launcher.log`**, right after the problem; it starts over on the next join.
 2. **The exact message**: the title, the line under it, and the text under **Details**.

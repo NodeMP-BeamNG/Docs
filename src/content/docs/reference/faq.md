@@ -49,7 +49,7 @@ Close BeamNG.drive and pick the next server in the launcher. You can't switch fr
 ### My message isn't on these pages. What now?
 
 Every message is on [Error messages](/reference/error-codes/). If yours isn't there, send it with
-your `launcher.log` to the forum or Discord
+your `launcher.log` to Discord
 ([what to send](/players/troubleshooting/#what-to-send-when-you-ask-for-help)).
 
 ## Hosts

@@ -1,6 +1,6 @@
 ---
 // The phone menu's foot: what the bar shows on a wide screen and hides on a
-// phone -- the site's sections, the forum and RU | EN.
+// phone -- the site's sections, the status page and RU | EN.
 import config from 'virtual:starlight/user-config';
 import { inLocale } from '../lib/locale';
 
@@ -11,7 +11,7 @@ const links = [
   { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
   { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
   { href: `${site}/news`, label: ru ? 'Новости' : 'News' },
-  { href: 'https://forum.nodemp.com', label: ru ? 'Форум' : 'Forum' },
+  { href: 'https://status.nodemp.com', label: ru ? 'Статус сервисов' : 'Service status' },
 ];
 const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
   short: code === 'root' ? 'EN' : code.toUpperCase(),
