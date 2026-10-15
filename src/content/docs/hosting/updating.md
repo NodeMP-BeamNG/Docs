@@ -13,7 +13,7 @@ certificate, resources, mods, storage, bans.
 ./Node-Server --version
 ```
 
-It prints, for example, `Node-Server v1.11.1`. The start-up banner shows the same version.
+It prints, for example, `Node-Server v1.12.0`. The start-up banner shows the same version.
 
 ## Where releases are
 
@@ -32,7 +32,7 @@ update.
 From PowerShell, unpacking with replacement looks like this:
 
 ```powershell
-$zip = "$HOME\Downloads\Node-Server-1.11.1-windows-x64.zip"
+$zip = "$HOME\Downloads\Node-Server-1.12.0-windows-x64.zip"
 Expand-Archive $zip -DestinationPath C:\NodeMP -Force
 ```
 
@@ -44,17 +44,17 @@ With the service from [Server on Linux](/hosting/linux/#a-systemd-service):
 
 ```bash
 cd /tmp
-url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.11.1
-curl -LO "$url/Node-Server-1.11.1-linux-x64.tar.gz"
-curl -LO "$url/Node-Server-1.11.1-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.11.1-linux-x64.tar.gz.sha256
+url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.12.0
+curl -LO "$url/Node-Server-1.12.0-linux-x64.tar.gz"
+curl -LO "$url/Node-Server-1.12.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.12.0-linux-x64.tar.gz.sha256
 ```
 
 Then stop the service, unpack the archive over the old files and start it again:
 
 ```bash
 sudo systemctl stop nodemp
-sudo tar -xzf Node-Server-1.11.1-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.12.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp
 ```
@@ -67,7 +67,7 @@ copies of the examples, isn't in the archive and isn't touched.
 Load the new image and use its tag:
 
 ```bash
-docker load -i nodemp-server-v1.11.1-image.tar
+docker load -i nodemp-server-v1.12.0-image.tar
 ```
 
 In `compose.yaml`, change the `image:` line to the new tag and run `docker compose up -d`. With
@@ -187,7 +187,7 @@ trusted = ["backup"]
 
 ## When players need a new launcher
 
-The launcher and the server speak a versioned protocol. Server 1.11.1 speaks v23, like the releases
+The launcher and the server speak a versioned protocol. Server 1.12.0 speaks v23, like the releases
 before it: launchers from version 1.1.23 and client mods from version 1.6.25 join it as before. When
 a release changes the protocol, its description says so prominently, and an old launcher is refused
 with a request to update. The launcher offers **Update now** by itself, and the client mod is updated

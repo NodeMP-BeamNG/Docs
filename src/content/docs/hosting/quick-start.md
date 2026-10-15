@@ -24,8 +24,8 @@ join it by address.
 4. **Put it in the list** with a server key: [Get listed](/hosting/registering/).
 5. **Join it** from the launcher, [below](#join-your-server).
 
-The server is published on [GitHub](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.11.1)
-under the tag `server-v1.11.1`: an archive for Windows, one for Linux and the Docker image, each with
+The server is published on [GitHub](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.12.0)
+under the tag `server-v1.12.0`: an archive for Windows, one for Linux and the Docker image, each with
 a `.sha256` file next to it for checking the download.
 
 ## The first start
