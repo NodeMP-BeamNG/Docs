@@ -55,7 +55,8 @@ shows how to run a BeamMP plugin as it is.
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)`, or `node.broadcast` |
 | `MP.TriggerGlobalEvent` | `node.bus.call`, which returns what the handlers return, or `node.bus.emit` when nobody needs to answer ([The bus](/plugins/bus/#asking-and-answering)) |
-| `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)` |
+| `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)`; `CallStrategy.Precise` is `node.every(ms, fn, { precise = true })` |
+| `onConsoleInput` | `node.console.command(name, fn)`, or the `consoleInput` event for whole lines |
 | `MP.Sleep` | `node.sleep(ms)` inside `node.async`, which doesn't block |
 | `MP.GetPlayerVehicles`, `MP.RemoveVehicle` | `player:vehicles()`, `vehicle:delete()` |
 | `MP.GetPositionRaw` | `vehicle:transform()`, or `node.vehicles.transforms()` for every car |

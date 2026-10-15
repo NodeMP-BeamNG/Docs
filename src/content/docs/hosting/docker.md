@@ -8,15 +8,15 @@ Lua 5.1 for the obfuscator and a container health check.
 
 ## Load the image
 
-The image comes with the release as a file. Download `nodemp-server-v1.10.0-image.tar` from the
-[release page](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.10.0) and load it
+The image comes with the release as a file. Download `nodemp-server-v1.11.0-image.tar` from the
+[release page](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.11.0) and load it
 into Docker:
 
 ```bash
-docker load -i nodemp-server-v1.10.0-image.tar
+docker load -i nodemp-server-v1.11.0-image.tar
 ```
 
-Docker answers `Loaded image: nodemp-server:1.10.0-d3d67cc`. That tag is what you run.
+Docker answers `Loaded image: nodemp-server:1.11.0-3e46d07`. That tag is what you run.
 
 ## How the container works
 
@@ -45,7 +45,7 @@ docker run -d --name nodemp --restart unless-stopped \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
   -e NODE_NAME="Friday freeroam" \
   -e NODE_MAP=/levels/west_coast_usa/info.json \
-  nodemp-server:1.10.0-d3d67cc
+  nodemp-server:1.11.0-3e46d07
 ```
 
 To follow the log:
@@ -65,7 +65,7 @@ folder:
 ```yaml
 services:
   nodemp:
-    image: nodemp-server:1.10.0-d3d67cc
+    image: nodemp-server:1.11.0-3e46d07
     restart: unless-stopped
     ports: ["30814:30814/tcp", "30814:30814/udp"]
     volumes: ["./data:/data"]

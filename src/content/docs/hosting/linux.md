@@ -11,11 +11,11 @@ an older system, run the [Docker image](/hosting/docker/).
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
 cd /opt/nodemp
-url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.10.0
-curl -LO "$url/Node-Server-1.10.0-linux-x64.tar.gz"
-curl -LO "$url/Node-Server-1.10.0-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.10.0-linux-x64.tar.gz.sha256
-tar -xzf Node-Server-1.10.0-linux-x64.tar.gz
+url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.11.0
+curl -LO "$url/Node-Server-1.11.0-linux-x64.tar.gz"
+curl -LO "$url/Node-Server-1.11.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.11.0-linux-x64.tar.gz.sha256
+tar -xzf Node-Server-1.11.0-linux-x64.tar.gz
 ```
 
 `sha256sum` should say `OK`. The folder now holds `Node-Server`, `tools/`, `modules/` and

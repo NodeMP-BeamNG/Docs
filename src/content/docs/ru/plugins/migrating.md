@@ -54,7 +54,8 @@ description: Для авторов плагинов BeamMP и KissMP — как 
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)` или `node.broadcast` |
 | `MP.TriggerGlobalEvent` | `node.bus.call` — он возвращает то, что вернули обработчики, или `node.bus.emit`, если отвечать никому не нужно ([Шина](/ru/plugins/bus/#вопрос-и-ответ)) |
-| `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)` |
+| `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)`; `CallStrategy.Precise` — это `node.every(ms, fn, { precise = true })` |
+| `onConsoleInput` | `node.console.command(name, fn)` или событие `consoleInput` для целых строк |
 | `MP.Sleep` | `node.sleep(ms)` внутри `node.async`, без блокировки |
 | `MP.GetPlayerVehicles`, `MP.RemoveVehicle` | `player:vehicles()`, `vehicle:delete()` |
 | `MP.GetPositionRaw` | `vehicle:transform()` или `node.vehicles.transforms()` для всех машин |

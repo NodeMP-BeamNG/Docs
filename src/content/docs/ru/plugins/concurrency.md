@@ -20,6 +20,7 @@ plugin worker job stalled the thread …
 |---|---|
 | `node.after(ms, fn)` | Выполняет `fn` один раз через `ms` миллисекунд. |
 | `node.every(ms, fn)` | Выполняет `fn` каждые `ms` миллисекунд. Медленный запуск сдвигает следующий, запуски не копятся. |
+| `node.every(ms, fn, { precise = true })` | Держит расписание: запуски, на которые поток был занят, идут подряд, а `fn(missed)` узнаёт, сколько их пропущено. |
 | `node.cancel(id)` | Останавливает таймер. Безопасно и для уже сработавшего. |
 | `node.defer(fn)` | Выполняет `fn`, как только текущее событие обработано. |
 
@@ -36,6 +37,23 @@ id = node.every(500, function()
 end)
 
 -- expect: stopped after 3 ticks
+```
+
+`precise` нужен, когда важно число запусков: очко раз в секунду, обратный отсчёт. Десять секунд
+`every(100, fn, { precise = true })` дают сто запусков, даже если другой обработчик занимал поток.
+После долгой задержки догоняется не больше `maxBacklog` запусков (по умолчанию 10); дальше расписание
+начинается заново от текущего момента, и лог один раз об этом пишет.
+
+<!-- doctest: server -->
+```lua
+local seconds = 0
+node.every(100, function(missed)
+    seconds = seconds + 0.1
+    if missed > 0 then node.log("caught up %d runs", missed) end
+end, { precise = true })
+node.after(1050, function() node.log("counted %.1f s", seconds) end)
+
+-- expect: counted 1\.0 s
 ```
 
 `serverTick` приходит на каждом такте сервера. Он делит поток со всем остальным, поэтому держите его

@@ -20,6 +20,7 @@ Waiting is done with timers and coroutines, and heavy work goes to background th
 |---|---|
 | `node.after(ms, fn)` | Runs `fn` once, after `ms` milliseconds. |
 | `node.every(ms, fn)` | Runs `fn` every `ms` milliseconds. A slow run delays the next one; runs never pile up. |
+| `node.every(ms, fn, { precise = true })` | Keeps the schedule: runs the worker was too busy for follow back to back, and `fn(missed)` says how many. |
 | `node.cancel(id)` | Stops a timer. Safe for one that already fired. |
 | `node.defer(fn)` | Runs `fn` as soon as the current event has been handled. |
 
@@ -36,6 +37,23 @@ id = node.every(500, function()
 end)
 
 -- expect: stopped after 3 ticks
+```
+
+Use `precise` when the count matters: a point every second, a countdown. Ten seconds of
+`every(100, fn, { precise = true })` give a hundred runs even if another handler held the thread.
+After a long stall at most `maxBacklog` runs are caught up (10 unless you say otherwise); then the
+schedule starts again from now, and the log says so once.
+
+<!-- doctest: server -->
+```lua
+local seconds = 0
+node.every(100, function(missed)
+    seconds = seconds + 0.1
+    if missed > 0 then node.log("caught up %d runs", missed) end
+end, { precise = true })
+node.after(1050, function() node.log("counted %.1f s", seconds) end)
+
+-- expect: counted 1\.0 s
 ```
 
 `serverTick` fires on every tick of the server. It shares the thread with everything else, so keep

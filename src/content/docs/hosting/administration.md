@@ -18,6 +18,9 @@ A server started in a terminal takes commands right in its window. On Windows th
 | `reload <resource>` | Runs a resource again. |
 | `stop` | Stops the server. `exit` and `quit` do the same. |
 
+Resources can add commands of their own; `help` lists them under "from resources:", each with the
+resource it comes from. A word nobody takes is answered `unknown command, try help`.
+
 Without a reason, a kicked player sees `Kicked by the server`. Players can't reach the console: a
 `/kick 1` typed in chat is an ordinary chat line. It becomes a command only if a resource takes it
 as one.
