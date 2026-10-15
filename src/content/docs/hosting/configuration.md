@@ -207,6 +207,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
 | `[logs]` | `debug` | bool | `false` | `NODE_DEBUG` | Debug logging from every part of the server. |
+| `[logs]` | `details` | bool | `false` | `NODE_LOG_DETAILS` | Show on the console the statistics and housekeeping lines that otherwise go only to `logs/server.log`: `netstats`, seat changes, failed connection attempts. |
 | `[logs]` | `max_size_mb` | int | `50` | `NODE_LOG_MAX_SIZE_MB` | Start a new `server.log` once it grows past this many MB, and at every start. `0`: only at start. |
 | `[logs]` | `keep` | int | `5` | `NODE_LOG_KEEP` | How many old logs to keep. |
 | `[logs]` | `date` | bool | `false` | `NODE_LOG_DATE` | Put the date before the time on every line. |

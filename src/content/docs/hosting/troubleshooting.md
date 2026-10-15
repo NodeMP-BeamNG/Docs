@@ -89,7 +89,7 @@ NodeMP has to reach the server from outside before it shows it.
 
 ## A player says it lags
 
-Find that player's `netstats` lines in the log, one every 15 seconds. `rtt` is the round trip in
+Find that player's `netstats` lines in `logs/server.log`, one every 15 seconds. `rtt` is the round trip in
 milliseconds, `loss` the share of position packets that never arrived. High numbers for one player
 while the others are fine mean it's their connection; send them
 [A bad connection](/players/connection/). Bad numbers for everyone point at the server's own line.
