@@ -24,8 +24,8 @@ Docker. Аккаунт для запуска не нужен: без него с
 4. **Добавьте сервер в список** с ключом сервера — [Попасть в список](/ru/hosting/registering/).
 5. **Зайдите на него** из лаунчера — [ниже](#зайти-на-свой-сервер).
 
-Сервер публикуется на [GitHub](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.9.1)
-под тегом `server-v1.9.1`: архив для Windows, архив для Linux и Docker-образ, у каждого рядом файл
+Сервер публикуется на [GitHub](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.10.0)
+под тегом `server-v1.10.0`: архив для Windows, архив для Linux и Docker-образ, у каждого рядом файл
 `.sha256` для проверки.
 
 ## Первый запуск

@@ -54,6 +54,35 @@ laps = 3
 переменная — `node`, весь API ([справочник](/ru/plugins/api/lua/)). У каждого ресурса своё состояние
 Lua, глобальных переменных другого ресурса он не видит.
 
+На диске ресурсу доступна только его собственная папка. Так ресурс, скачанный у кого-то, не прочитает
+`server.toml`, не удалит файлы и не запустит программы на машине хоста:
+
+| Что | В ресурсе |
+|---|---|
+| `io.open`, `io.lines`, `os.remove`, `os.rename`, `dofile`, `loadfile`, `require`, `package.searchpath` | Файлы внутри папки ресурса. Путь считается от этой папки; путь от папки сервера (`resources/race/data.json`) или абсолютный тоже подходит, если ведёт внутрь. За её пределами: `nil, "…: outside the resource folder"`. |
+| `os.time`, `os.clock`, `os.date`, `os.difftime`, `io.write` | Как обычно. |
+| `os.getenv` | `nil` для любой переменной: в окружении лежат секреты сервера. |
+| `os.execute`, `io.popen`, `os.exit`, `os.setlocale`, `os.tmpname`, `io.read`, `io.input`, `io.output` | Вызывают ошибку с подсказкой про `[resources] trusted`. |
+| `load` | Только текст: скомпилированные куски не загружаются. |
+| `debug` | Только `traceback` и `getinfo`. |
+
+То же действует внутри `node.job` и `node.await`. Если ресурсу действительно нужно больше, хост
+вписывает его в `server.toml`, и он получает всю стандартную библиотеку, а пути считаются от папки
+сервера:
+
+```toml
+[resources]
+trusted = ["backup"]
+```
+
+<!-- doctest: server -->
+```lua
+local ok, err = pcall(os.execute, "echo hi")
+node.log("%s", err)
+
+-- expect: os\.execute is not available to resources
+```
+
 Lua-модули на C загрузить нельзя: сервер не подгружает в ресурс нативные библиотеки. Для того, что не
 под силу Lua, есть [нативные модули](/ru/plugins/native-modules/).
 

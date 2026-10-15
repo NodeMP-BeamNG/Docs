@@ -54,6 +54,34 @@ The server half runs on Lua 5.4 with the standard libraries. On top of them ther
 `node`: the whole API ([reference](/plugins/api/lua/)). Each resource has a Lua state of its own; one
 resource can't see another's globals.
 
+A resource reaches its own folder and nothing else on the disk. That way a resource someone shared
+can't read `server.toml`, delete files or run programs on the host's machine:
+
+| What | In a resource |
+|---|---|
+| `io.open`, `io.lines`, `os.remove`, `os.rename`, `dofile`, `loadfile`, `require`, `package.searchpath` | Files inside the resource folder. A path is relative to that folder; a path from the server's folder (`resources/race/data.json`) or an absolute one works when it leads inside. Elsewhere: `nil, "…: outside the resource folder"`. |
+| `os.time`, `os.clock`, `os.date`, `os.difftime`, `io.write` | As usual. |
+| `os.getenv` | `nil` for every variable: the environment holds the server's secrets. |
+| `os.execute`, `io.popen`, `os.exit`, `os.setlocale`, `os.tmpname`, `io.read`, `io.input`, `io.output` | Raise an error that names `[resources] trusted`. |
+| `load` | Text only; precompiled chunks are refused. |
+| `debug` | `traceback` and `getinfo` only. |
+
+The same applies inside `node.job` and `node.await`. If a resource really needs more, the host lists
+it in `server.toml`, and it gets the whole standard library with paths from the server's folder:
+
+```toml
+[resources]
+trusted = ["backup"]
+```
+
+<!-- doctest: server -->
+```lua
+local ok, err = pcall(os.execute, "echo hi")
+node.log("%s", err)
+
+-- expect: os\.execute is not available to resources
+```
+
 Lua modules written in C can't be loaded: the server doesn't load native libraries into a resource.
 For work Lua can't do, there are [native modules](/plugins/native-modules/).
 

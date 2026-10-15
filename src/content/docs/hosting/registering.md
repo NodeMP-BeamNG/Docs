@@ -35,8 +35,8 @@ host_secret = "…"
 
 :::caution[Write the names as above]
 The site shows these keys with capital letters, `HostId = "…"`: those are the names from before
-server 1.9.0. It's best to take the values and write them under the names above. Server 1.9.1 and
-later also reads the site's lines pasted at the end of the file or at its top, and says in the log
+server 1.9.0. It's best to take the values and write them under the names above. Since server 1.9.1
+the server also reads the site's lines pasted at the end of the file or at its top, and says in the log
 which line it read as which key. A 1.9.0 server ignores the old names, stays out of the list and
 says so in the log: `server.toml has settings this server does not read: [listing] Url, …`.
 

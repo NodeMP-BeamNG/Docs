@@ -13,7 +13,7 @@ TLS-сертификат, ресурсы, моды, хранилище, баны
 ./Node-Server --version
 ```
 
-Команда печатает, например, `Node-Server v1.9.1`. Та же версия видна в заставке при запуске.
+Команда печатает, например, `Node-Server v1.10.0`. Та же версия видна в заставке при запуске.
 
 ## Где брать релизы
 
@@ -32,7 +32,7 @@ TLS-сертификат, ресурсы, моды, хранилище, баны
 Из PowerShell распаковать с заменой можно так:
 
 ```powershell
-$zip = "$HOME\Downloads\Node-Server-1.9.1-windows-x64.zip"
+$zip = "$HOME\Downloads\Node-Server-1.10.0-windows-x64.zip"
 Expand-Archive $zip -DestinationPath C:\NodeMP -Force
 ```
 
@@ -44,17 +44,17 @@ Expand-Archive $zip -DestinationPath C:\NodeMP -Force
 
 ```bash
 cd /tmp
-url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.9.1
-curl -LO "$url/Node-Server-1.9.1-linux-x64.tar.gz"
-curl -LO "$url/Node-Server-1.9.1-linux-x64.tar.gz.sha256"
-sha256sum -c Node-Server-1.9.1-linux-x64.tar.gz.sha256
+url=https://github.com/NodeMP-BeamNG/releases/releases/download/server-v1.10.0
+curl -LO "$url/Node-Server-1.10.0-linux-x64.tar.gz"
+curl -LO "$url/Node-Server-1.10.0-linux-x64.tar.gz.sha256"
+sha256sum -c Node-Server-1.10.0-linux-x64.tar.gz.sha256
 ```
 
 Затем остановите службу, распакуйте архив поверх и запустите снова:
 
 ```bash
 sudo systemctl stop nodemp
-sudo tar -xzf Node-Server-1.9.1-linux-x64.tar.gz -C /opt/nodemp
+sudo tar -xzf Node-Server-1.10.0-linux-x64.tar.gz -C /opt/nodemp
 sudo chown -R nodemp:nodemp /opt/nodemp
 sudo systemctl start nodemp
 ```
@@ -67,7 +67,7 @@ sudo systemctl start nodemp
 Загрузите новый образ и укажите его тег:
 
 ```bash
-docker load -i nodemp-server-v1.9.1-image.tar
+docker load -i nodemp-server-v1.10.0-image.tar
 ```
 
 В `compose.yaml` поменяйте строку `image:` на новый тег и выполните `docker compose up -d`. С
@@ -172,9 +172,23 @@ docker load -i nodemp-server-v1.9.1-image.tar
 | `[Resources] Obfuscate` | `[resources] obfuscate` |
 | `[Experimental] NodeGrab` | `[experimental] node_grab` |
 
+## Ресурсы с 1.10.0
+
+Начиная с сервера 1.10.0 Lua-ресурсу доступна только его папка: он не может прочитать `server.toml`,
+удалить файлы в других местах, запустить программу или прочитать переменные окружения
+([что может ресурс](/ru/plugins/resources/#окружение-lua)). Ресурсы-примеры и модуль базы данных
+работают как раньше. Ресурс, который писал файлы рядом с сервером, запускал скрипт резервной копии
+или брал настройку из окружения, теперь получит `nil` или ошибку с подсказкой про
+`[resources] trusted`. Если вы ему доверяете, впишите его:
+
+```toml
+[resources]
+trusted = ["backup"]
+```
+
 ## Когда игрокам нужен новый лаунчер
 
-Лаунчер и сервер говорят по протоколу с номером версии. Сервер 1.9.1 говорит на v23, как и
+Лаунчер и сервер говорят по протоколу с номером версии. Сервер 1.10.0 говорит на v23, как и
 предыдущие версии: лаунчеры с версии 1.1.23 и клиентские моды с версии 1.6.25 заходят на него как
 раньше. Если релиз меняет протокол, в его описании это выделено, а старый лаунчер получает отказ с
 просьбой обновиться. Лаунчер сам предлагает **Обновить сейчас**, а клиентский мод обновляется перед

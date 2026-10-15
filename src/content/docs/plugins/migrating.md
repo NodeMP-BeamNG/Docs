@@ -149,6 +149,11 @@ all.
 - `MP.SendChatMessage` shows the line as a system line.
 - `MP.Sleep` blocks the worker, and with it every resource. The module warns once.
 - The identifier BeamMP calls `beammp` is the player's NodeMP account number.
+- A plugin reaches its own folder only, as every resource does
+  ([the Lua environment](/plugins/resources/#the-lua-environment)). Paths it builds as
+  `Resources/Server/<plugin>/…`, in `FS.*`, `io.open` and the like, lead to the resource folder.
+  A plugin that reads other folders, runs programs or reads environment variables needs the host
+  to list it in `[resources] trusted`.
 
 ### What has no equivalent
 

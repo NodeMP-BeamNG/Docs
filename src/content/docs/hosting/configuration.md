@@ -235,6 +235,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
 | `[resources]` | `obfuscate` | bool | `true` | `NODE_OBFUSCATE` | Obfuscate the client scripts of resources. `false` sends them as they are. |
+| `[resources]` | `trusted` | list | `[]` | `NODE_RESOURCES_TRUSTED` | Resources whose Lua gets the whole standard library: files anywhere, programs, the environment. `"*"` trusts every one. Others reach only their own folder ([what a resource can do](/plugins/resources/#the-lua-environment)). |
 
 ### `[experimental]`
 
