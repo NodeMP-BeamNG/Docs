@@ -1,6 +1,6 @@
 ---
 // Two bars, one card: the overview (splash) is the site's floating bar — mark,
-// Servers / Download / Docs, EN | RU, Sign in — so opening the docs from
+// Servers / Download / Docs, EN | RU — so opening the docs from
 // nodemp.com is the same header on another host, no fold. Any other page is
 // the compact bar over the sidebar (mark, search, EN | RU). Same origin, so
 // the browser slides one into the place of the other (nodemp.css, nmp-fold):
@@ -52,7 +52,6 @@ const siteLinks = [
             </a>
           ))}
         </nav>
-        <a class="nmp-signin" href={`${site}/account/login`}>{ru ? 'Войти' : 'Sign in'}</a>
       </>
     ) : (
       <>
@@ -116,7 +115,7 @@ const siteLinks = [
   }
 
   /* Named only while a transition runs: at rest the name would paint the row as a layer
-     of its own, and Chrome would draw Sign in without subpixel antialiasing. */
+     of its own, and Chrome would draw its text without subpixel antialiasing. */
   :global(:root:active-view-transition) .nmp-items {
     view-transition-name: nmp-items;
   }
@@ -168,26 +167,6 @@ const siteLinks = [
     background: var(--nmp-accent-wash);
   }
 
-  .nmp-signin {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 35px;
-    margin-inline-start: auto;
-    padding-inline: 16px;
-    border-radius: 13px;
-    background: var(--nmp-control);
-    color: var(--nmp-fg);
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: background-color 200ms var(--nmp-ease);
-  }
-
-  .nmp-signin:hover {
-    background: var(--nmp-control-lift);
-  }
-
   .nmp-search {
     flex: 1;
     min-width: 0;
@@ -227,8 +206,6 @@ const siteLinks = [
     }
   }
 
-  /* isolate: painted together with Sign in, this text on a translucent plate makes Chrome
-     drop subpixel antialiasing for Sign in as well. */
   .nmp-lang {
     display: none;
     flex-shrink: 0;
@@ -237,7 +214,6 @@ const siteLinks = [
     padding: 3px;
     border-radius: 13px;
     background: var(--nmp-hover);
-    isolation: isolate;
   }
 
   .nmp-lang a {
@@ -286,10 +262,6 @@ const siteLinks = [
     .nmp-bar--home .nmp-rule,
     .nmp-bar--home .nmp-site-nav {
       display: flex;
-    }
-
-    .nmp-bar--home .nmp-signin {
-      margin-inline-start: 4px;
     }
   }
 </style>
