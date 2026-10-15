@@ -101,9 +101,6 @@ jobs:
   doctest:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # The released server the examples run on (NodeMP-BeamNG/releases, tag server-v<version>).
-      SERVER_VERSION: "1.9.0"
     services:
       postgres:
         image: postgres:16-alpine
@@ -120,6 +117,9 @@ jobs:
           --health-retries 12
     steps:
       - uses: actions/checkout@v5
+      # The released server the examples run on (NodeMP-BeamNG/releases, tag server-v<version>).
+      - name: Server version from versions.json
+        run: echo "SERVER_VERSION=$(jq -r .server src/content/versions.json)" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
