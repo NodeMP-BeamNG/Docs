@@ -57,8 +57,9 @@ Command Prompt or PowerShell and press Enter. Each line of the result is a reaso
 | `hash`, `size`, `missing` | A game file was changed or is missing. Many of them, including `/Bin64/…`, mean you and the server have different game versions. | Verify the files in Steam, update the game, or wait for the host to update. |
 | `crc`, `extra`, `duplicate` | Something inside one of the game's archives is off. | Verify the files in Steam. |
 
-During the session a strict server checks again, every 10 minutes and after files change. If
-something changed, the session ends. Put the files back as they were and join again.
+During the session a strict server checks again: on its own schedule (every 10 minutes unless the
+host changed it) and after files change. If something changed, the session ends. Put the files back
+as they were and join again.
 
 ## Mods don't download
 
@@ -127,7 +128,7 @@ If the problem is inside the game (a car missing, the chat acting up), add the g
 
 | What | Where |
 |---|---|
-| `launcher.log` | `%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\` (**Settings → Launcher → Logs**) |
+| `launcher.log` | `%LOCALAPPDATA%\NodeMP\helper\logs\` (**Settings → Launcher → Logs**) |
 | `beamng.log` | `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\` |
-| Downloaded server mods | `%LOCALAPPDATA%\com.nodemp.launcher\helper\cache\` |
+| Downloaded server mods | `%LOCALAPPDATA%\NodeMP\helper\cache\` |
 | The client mod | `%LOCALAPPDATA%\BeamNG\BeamNG.drive\current\mods\multiplayer\NodeMP.zip` |

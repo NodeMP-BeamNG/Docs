@@ -114,7 +114,7 @@ can kick with their own text, which you then see as it is.
 The helper is the launcher's background part that does the joining. When it quits during a join, the
 launcher shows **The launcher's traffic helper stopped** with the last line of its log. The number
 itself is only visible when you start the helper by hand. The full log is
-`%LOCALAPPDATA%\com.nodemp.launcher\helper\logs\launcher.log`.
+`%LOCALAPPDATA%\NodeMP\helper\logs\launcher.log`.
 
 | Code | Last log line | Meaning | What to do |
 |---|---|---|---|

@@ -28,7 +28,7 @@ The gear at the bottom of the left rail opens **Settings**. There are three page
 - **Folders**: where the servers' downloaded mods and the logs are. Attach `launcher.log` when you
   report a problem.
 - **Client mod**: the installed version and **Check now**.
-- **Updates**: the channel, automatic checks, going back a version
+- **Updates**: the channel, automatic checks, background downloads, going back a version
   ([more](/players/install/#launcher-updates)).
 - **Reset**: back to the defaults. Favorites, recent servers and downloads stay.
 
@@ -87,7 +87,5 @@ Change them in the game's controls options, in the *gameplay* category:
 ## For the curious: Launcher.cfg
 
 The launcher's background part reads a small settings file:
-`%LOCALAPPDATA%\com.nodemp.launcher\helper\Launcher.cfg`. You rarely need it: the launcher passes
-everything a join needs by itself. One useful line is `StrictRecheckMin`: how many minutes apart a
-strict server re-checks your game files during a session (default `10`, `0` turns the repeats off).
-Keep the file valid JSON, or the launcher can't connect.
+`%LOCALAPPDATA%\NodeMP\helper\Launcher.cfg`. You rarely need it: the launcher passes everything a
+join needs by itself. Keep the file valid JSON, or the launcher can't connect.

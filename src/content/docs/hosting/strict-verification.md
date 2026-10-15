@@ -93,8 +93,11 @@ install joins as anywhere else. On a mismatch the launcher explains what's wrong
 command that lists every problem. The player's side is on
 [When something breaks](/players/troubleshooting/#a-strict-server-refuses-you).
 
-During the session the launcher checks again when files change, and every 10 minutes. A check that
-finds a mismatch ends the session.
+During the session the launcher checks again when files change, and the server asks for a check
+every `[integrity] recheck_sec` seconds: 600 (ten minutes) by default, `0` turns the schedule off,
+and anything under 60 counts as 60. The interval is yours to set, not the player's. A check that
+finds a mismatch ends the session. Checks during a session leave out the game's binaries: a running
+game can't swap them, and the next join checks them again.
 
 ## For plugin authors
 

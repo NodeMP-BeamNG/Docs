@@ -173,6 +173,7 @@ disconnect_sec = 60
 |---|---|---|---|---|---|
 | `[integrity]` | `verify` | string | `"size"` | `NODE_VERIFY_GAME` | Насколько строго проверять файлы игры у игрока: `off`, `size`, `scripts`, `full` или `strict`. |
 | `[integrity]` | `manifests` | string | `"integrity"` | `NODE_INTEGRITY_DIR` | Папка с эталонными манифестами для `strict`. |
+| `[integrity]` | `recheck_sec` | int | `600` | `NODE_INTEGRITY_RECHECK_SEC` | При `strict` — раз во сколько секунд файлы каждого игрока проверяются снова во время сессии. `0` — никогда; всё меньше `60` считается за `60`. Начиная с 1.12.0. |
 
 ### `[network]`
 

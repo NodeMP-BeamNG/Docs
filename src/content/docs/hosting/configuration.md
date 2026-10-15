@@ -173,6 +173,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 |---|---|---|---|---|---|
 | `[integrity]` | `verify` | string | `"size"` | `NODE_VERIFY_GAME` | How closely a player's game files are checked: `off`, `size`, `scripts`, `full` or `strict`. |
 | `[integrity]` | `manifests` | string | `"integrity"` | `NODE_INTEGRITY_DIR` | The folder with the reference manifests for `strict`. |
+| `[integrity]` | `recheck_sec` | int | `600` | `NODE_INTEGRITY_RECHECK_SEC` | Under `strict`, how many seconds apart each player's files are checked again during the session. `0`: never; anything under `60` counts as `60`. Since 1.12.0. |
 
 ### `[network]`
 

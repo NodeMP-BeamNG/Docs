@@ -65,6 +65,9 @@ The settings are in **Settings → Launcher → Updates**:
 
 - **Update channel**: *Release*, or *Beta*, which gets new versions first.
 - **Check for updates automatically**: at start-up and before each join.
+- **Download updates in the background**: turn it off and the launcher only tells you a new version
+  is out, then downloads it when you click **Update now**. An update that servers require is still
+  installed before a join.
 - **Go back to v…**: reinstalls the previous version if the new one gives you trouble.
 
 The latest installer is always on the [download page](https://nodemp.com/download), and you can run
