@@ -46,7 +46,7 @@ guests = true  # players without a NodeMP account
   how a typo shows up. A table written twice stops the server from starting. Usually that's a
   second `[listing]` pasted under the one already in the file: move its keys into the first one and
   delete the second.
-- **Lists** (`connection_limit_exempt`, `masked_commands`) can be a comma-separated string or a TOML
+- **Lists** (`connection_limit_exempt`, `masked_commands`, `trusted`) can be a comma-separated string or a TOML
   list.
 - **A file from before 1.9.0** (`[General]`, `[Directory]` and the rest) is converted once, on the
   first start of 1.9.0. The server writes it in the new layout with the same settings and keeps the
@@ -235,7 +235,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
 | `[resources]` | `obfuscate` | bool | `true` | `NODE_OBFUSCATE` | Obfuscate the client scripts of resources. `false` sends them as they are. |
-| `[resources]` | `trusted` | list | `[]` | `NODE_RESOURCES_TRUSTED` | Resources whose Lua gets the whole standard library: files anywhere, programs, the environment. `"*"` trusts every one. Others reach only their own folder ([what a resource can do](/plugins/resources/#the-lua-environment)). |
+| `[resources]` | `trusted` | string | `""` | `NODE_RESOURCES_TRUSTED` | Resources whose Lua gets the whole standard library: files anywhere, programs, the environment. `"*"` trusts every one. Others reach only their own folder ([what a resource can do](/plugins/resources/#the-lua-environment)). |
 
 ### `[experimental]`
 
