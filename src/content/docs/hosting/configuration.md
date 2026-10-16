@@ -9,8 +9,8 @@ starts with how the file behaves, then the settings people change most, and ends
 
 ## How the file works
 
-On the first start the server writes a short file with the two tables a host fills in: `[server]`
-and `[listing]`.
+On the first start the server writes a short file with the tables a host fills in: `[server]`,
+`[listing]` and `[vehicles]`.
 
 ```toml
 # NodeMP server settings: https://docs.nodemp.com/hosting/configuration/
@@ -23,6 +23,12 @@ max_players = 8
 cars_per_player = 1
 map = "/levels/gridmap_v2/info.json"
 mods = "content"  # folder of mod zips players download
+
+[vehicles]
+queue = "allow"  # "off": every client applies at once (races, leagues)
+queue_max_delay_sec = 0  # not 0: a client must apply within N s
+edit_interval_sec = 5  # edits of one car reach the others at most once per N s
+spawn_interval_sec = 2  # one player's new cars at most once per N s
 
 [listing]
 url = ""  # "https://api.nodemp.com" to be listed in the launcher
@@ -76,6 +82,24 @@ site and voice chat. [Get listed](/hosting/registering/) explains how to fill it
 
 **Chat** is part of the server. `[chat] max_length`, `rate_per_sec` and `burst` keep it from being
 flooded: extra lines just aren't sent, and nobody is kicked for chatting.
+
+**Other players' cars.** A new car, or a change of a car's parts, tuning or model, has to be built
+on every player's machine, and building stops the game for a moment. So each player's mod holds
+other players' new cars and changes and builds them when the player stops, every 30 seconds at the
+latest, or on a click ([what players see](/players/settings/#other-players-new-cars-and-changes)).
+For a race or a league, where everyone must see the same cars at once, turn it off; or keep it and
+have everything built within a time you set:
+
+```toml
+[vehicles]
+queue = "off"            # or: queue = "allow" and queue_max_delay_sec = 10
+```
+
+A resource can switch it during the session too, and have everything built right before a start
+([plugin API](/plugins/players-and-vehicles/#scheduled-changes)). Two more settings keep the
+rebuilds few to begin with: the edits of one car reach the others at most once per
+`edit_interval_sec` (5), the latest one, and one player's new cars come at most once per
+`spawn_interval_sec` (2); a car spawned sooner is refused with *Wait 2 s*.
 
 **Bad connections.** A player silent for `lag_grace_sec` seconds (8) shows as lagging. After
 `disconnect_sec` (30) they are dropped, and that's also how long the server waits for a broken
@@ -143,6 +167,15 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[server]` | `mods` | string | `"content"` | `NODE_CONTENT_FOLDER` | The folder with the mod zips players download. |
 | `[server]` | `address` | string | `"::"` | `NODE_IP` | The address to listen on. `"::"` is every address, IPv4 and IPv6. Not your public address. |
 | `[server]` | `console` | bool | `false` | `NODE_CONSOLE` | Read console commands from standard input even without a terminal. |
+
+### `[vehicles]`
+
+| Section | Key | Type | Default | Environment | What it does |
+|---|---|---|---|---|---|
+| `[vehicles]` | `queue` | string | `"allow"` | `NODE_VEHICLES_QUEUE` | `"allow"`: each player's mod may hold other players' new cars and part, tuning or model changes until the player takes them, as the player chose. `"off"`: every change is built as it arrives. |
+| `[vehicles]` | `queue_max_delay_sec` | int | `0` | `NODE_VEHICLES_QUEUE_MAX_DELAY_SEC` | Not `0`: every player builds what waits no later than this many seconds after the first of it came, whatever they chose. Up to `3600`. |
+| `[vehicles]` | `edit_interval_sec` | int | `5` | `NODE_VEHICLES_EDIT_INTERVAL_SEC` | The edits of one car reach the other players at most once per this many seconds, as the latest config; the editor's own car changes at once. `0`: every edit as it comes. |
+| `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | One player's new cars at most once per this many seconds; one sooner is refused with *Wait N s*. Walking and replacing your own car don't count. `0`: no limit. |
 
 ### `[listing]`
 
