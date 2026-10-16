@@ -193,6 +193,18 @@ disconnect_sec = 60
 | `[network]` | `handshake_timeout_sec` | int | `20` | `NODE_NETWORK_HANDSHAKE_TIMEOUT_SEC` | Сколько секунд у нового подключения на рукопожатие и начало входа. |
 | `[network]` | `download_stall_sec` | int | `60` | `NODE_NETWORK_DOWNLOAD_STALL_SEC` | Загрузка мода обрывается, если столько секунд она не продвигалась. Медленную загрузку не обрывают. |
 
+### `[queue]`
+
+| Секция | Ключ | Тип | По умолчанию | Переменная | Что делает |
+|---|---|---|---|---|---|
+| `[queue]` | `enabled` | bool | `true` | `NODE_QUEUE_ENABLED` | Когда сервер заполнен, игроки с аккаунтом ждут в его [очереди на вход](/ru/hosting/join-queue/), а не получают отказ. Только у сервера в списке (`[listing] url`): там проверяются аккаунты. |
+| `[queue]` | `max_waiting` | int | `50` | `NODE_QUEUE_MAX_WAITING` | Сколько игроков может ждать одновременно, от 0 до 1000. `0` — не ждёт никто. |
+| `[queue]` | `max_waiting_per_ip` | int | `1` | `NODE_QUEUE_MAX_WAITING_PER_IP` | Сколько может ждать с одного адреса, от 1 до 1000. Адреса из `[network] connection_limit_exempt` не ограничены. |
+| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | Сколько ждущих скачивают моды одновременно, от 1 до 64, по порядку очереди. Загрузки тех, кто уже входит на свободное место, тоже считаются и идут первыми. |
+| `[queue]` | `max_no_shows` | int | `3` | `NODE_QUEUE_MAX_NO_SHOWS` | После стольких неявок за `no_show_window_min` аккаунт не может встать в очередь `no_show_bar_min` минут. Неявка — игрок получил место и ушёл, не дойдя до мира. `0` — никогда. |
+| `[queue]` | `no_show_window_min` | int | `60` | `NODE_QUEUE_NO_SHOW_WINDOW_MIN` | За сколько минут считаются неявки, от 1 до 10080. |
+| `[queue]` | `no_show_bar_min` | int | `30` | `NODE_QUEUE_NO_SHOW_BAR_MIN` | На сколько минут очередь закрывается для такого аккаунта, до 10080. `0` — не закрывается. |
+
 ### `[chat]`
 
 | Секция | Ключ | Тип | По умолчанию | Переменная | Что делает |

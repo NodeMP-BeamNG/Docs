@@ -193,6 +193,18 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[network]` | `handshake_timeout_sec` | int | `20` | `NODE_NETWORK_HANDSHAKE_TIMEOUT_SEC` | Seconds a new connection gets for the handshake and the first steps of joining. |
 | `[network]` | `download_stall_sec` | int | `60` | `NODE_NETWORK_DOWNLOAD_STALL_SEC` | A mod download ends after this many seconds without progress. A slow one is never cut off. |
 
+### `[queue]`
+
+| Section | Key | Type | Default | Environment | What it does |
+|---|---|---|---|---|---|
+| `[queue]` | `enabled` | bool | `true` | `NODE_QUEUE_ENABLED` | When the server is full, signed-in players wait in its [join queue](/hosting/join-queue/) instead of being turned away. Only on a listed server (`[listing] url`), where accounts are checked. |
+| `[queue]` | `max_waiting` | int | `50` | `NODE_QUEUE_MAX_WAITING` | How many players may wait at once, from 0 to 1000. `0`: nobody waits. |
+| `[queue]` | `max_waiting_per_ip` | int | `1` | `NODE_QUEUE_MAX_WAITING_PER_IP` | How many may wait from one address, from 1 to 1000. Addresses in `[network] connection_limit_exempt` are not limited. |
+| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | How many waiting players download mods at once, from 1 to 64, in queue order. Players joining a free place count too, and go first. |
+| `[queue]` | `max_no_shows` | int | `3` | `NODE_QUEUE_MAX_NO_SHOWS` | After this many no-shows within `no_show_window_min`, an account may not queue for `no_show_bar_min`. A no-show is a player who got a place and left before reaching the world. `0`: never. |
+| `[queue]` | `no_show_window_min` | int | `60` | `NODE_QUEUE_NO_SHOW_WINDOW_MIN` | The minutes over which no-shows are counted, from 1 to 10080. |
+| `[queue]` | `no_show_bar_min` | int | `30` | `NODE_QUEUE_NO_SHOW_BAR_MIN` | How many minutes the queue stays closed to such an account, up to 10080. `0`: never closed. |
+
 ### `[chat]`
 
 | Section | Key | Type | Default | Environment | What it does |
