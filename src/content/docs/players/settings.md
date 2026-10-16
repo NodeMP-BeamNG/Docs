@@ -54,8 +54,30 @@ value comes back when you leave the server.
 |---|---|
 | **Players** | Name tags over cars: whether to show them, your own tag, an *Empty* tag on empty cars, the distance, fading out far away, shortening long names, player IDs. Markers for deleted cars and for players in free camera. The character you walk as. |
 | **Chat** | How many lines stay visible while the chat is closed, how many seconds a line stays, the time in front of each line, words hidden as `***` on your screen only. A separate overlay window with the chat and the player list. |
-| **Cars & network** | Your cars: whether edits are sent automatically, protecting your configs from copying, who may get into your cars, whether others may use your triggers and grab your cars with Ctrl. Other cars: see-through after a reset, simplified models, holding them tightly on their real path. *Use my local mods in multiplayer*. |
+| **Cars & network** | Your cars: whether edits are sent automatically, protecting your configs from copying, who may get into your cars, whether others may use your triggers and grab your cars with Ctrl. Other cars: when their new cars and changes are built ([below](#other-players-new-cars-and-changes)), see-through after a reset, simplified models, holding them tightly on their real path. *Use my local mods in multiplayer*. |
 | **Debug** | Detailed logs and switches for finding problems. Leave them alone unless a developer asks. **Tools** opens the diagnostics window. |
+
+### Other players' new cars and changes
+
+When another player spawns a car or changes its parts, tuning or model, your game has to build that
+car, and building stops the game for a moment. NodeMP holds these and builds them when it suits you,
+so somebody else's rebuild doesn't freeze your game mid-corner. The session panel shows how many
+cars are waiting after the player count, *· 3 scheduled*; clicking it builds them all now. A key
+bound to *NodeMP: Load scheduled changes* does the same.
+
+When they are built on their own is set under *Cars & network → Other players' cars*:
+
+| Setting | |
+|---|---|
+| **Schedule other players' car changes** | On by default. Off: every change is built the moment it arrives. |
+| **Apply scheduled changes** | *When I stop, at least every N s* (the default), *Every N s*, *Only when I stop*, *Only with the button*. |
+| **N: longest wait** | 30 seconds by default, counted from the first change that came. |
+| **Stopped: slower than**, **for at least** | 5 km/h for 2 seconds by default. On foot or without a car counts as stopped. |
+
+Some things never wait: deletions, resets, colour changes, people on foot, and the car you sit in,
+also as a passenger. While a new car waits, its name tag already shows where it drives. A server can
+switch this off for everyone (a race or a league) or have everything built within a set time; the
+row then says *Set by the server*.
 
 ## Chat
 
@@ -81,6 +103,7 @@ Change them in the game's controls options, in the *gameplay* category:
 | `T` | NodeMP: Chat | Open the chat. |
 | `Tab` | NodeMP: Player list | Show or hide the player list. |
 | not bound | NodeMP: Settings | Open the NodeMP tab. |
+| not bound | NodeMP: Load scheduled changes | Build every car waiting for you now. |
 | not bound | NodeMP: Diagnostics window | Open the diagnostics window. |
 | not bound | NodeMP: Toggle debug chat | Show or hide the overlay chat window. |
 
