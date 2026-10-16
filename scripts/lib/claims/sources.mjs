@@ -60,6 +60,14 @@ export function fmtToWildcards(s) {
     .replace(/\u0001/g, '{').replace(/\u0002/g, '}');
 }
 
+// `1'000'000`: the quote sits inside a number, between two of its digits.
+function isDigitSeparator(src, i) {
+  if (!/[0-9A-Fa-f]/.test(src[i + 1] || '')) return false;
+  let k = i - 1;
+  while (k >= 0 && /[0-9A-Za-z'.]/.test(src[k])) k--;
+  return /^[0-9]/.test(src.slice(k + 1, i));
+}
+
 // Low-level scan: literals with the code that preceded them inside the same
 // statement (`before`), a flag when a statement boundary was crossed, and the line.
 function readCppLiterals(src) {
@@ -91,6 +99,11 @@ function readCppLiterals(src) {
     }
     if (c === '#' && src.slice(lineStart, i).trim() === '') { // preprocessor line
       while (i < src.length && src[i] !== '\n') i++;
+      continue;
+    }
+    if (c === "'" && isDigitSeparator(src, i)) {
+      before += c;
+      i++;
       continue;
     }
     if (c === "'") { // char literal
