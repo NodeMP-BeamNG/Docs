@@ -61,9 +61,9 @@ value comes back when you leave the server.
 
 When another player spawns a car or changes its parts, tuning or model, your game has to build that
 car, and building stops the game for a moment. NodeMP holds these and builds them when it suits you,
-so somebody else's rebuild doesn't freeze your game mid-corner. The session panel shows how many
-cars are waiting after the player count, *· 3 scheduled*; clicking it builds them all now. A key
-bound to *NodeMP: Load scheduled changes* does the same.
+so somebody else's rebuild doesn't freeze your game mid-corner. While cars are waiting, a lime tab
+with their number slides out of the session panel's left edge; clicking it builds them all now. A
+key bound to *NodeMP: Load scheduled changes* does the same.
 
 When they are built on their own is set under *Cars & network → Other players' cars*:
 
