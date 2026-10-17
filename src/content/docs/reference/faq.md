@@ -92,8 +92,8 @@ More on [When the server misbehaves](/hosting/troubleshooting/#players-are-refus
 
 ### How do I lift a ban?
 
-Stop the server and run `Node-Server --bans remove <address or nodemp:<id>>`. On a running server a
-plugin can lift it. More on [Console, kicks and bans](/hosting/administration/#bans).
+Stop the server and run `Node-Server --bans remove <address, nodemp:<id> or install:<id>>`. On a
+running server a plugin can lift it. More on [Console, kicks and bans](/hosting/administration/#bans).
 
 ### Do I need Windows for the strict check?
 

@@ -60,10 +60,11 @@ end)
 ### Kicks and bans
 
 - `player:kick(reason)` disconnects the player, who sees the reason.
-- `player:ban(reason)` bans the account (if signed in) and the address, and kicks.
+- `player:ban(reason)` bans the account (if signed in), the launcher installation (if the launcher
+  reports one) and the address, and kicks.
 - `player:ban(reason, os.time() + 3600)` bans for an hour; the server lifts it by itself.
-- `node.bans.add(who, reason, untilUnix)` bans an address or an account number of someone who isn't
-  on the server; `node.bans.remove(who)` lifts a ban.
+- `node.bans.add(who, reason, untilUnix)` bans an address, an account number or a
+  `player.installId` of someone who isn't on the server; `node.bans.remove(who)` lifts a ban.
 
 Bans are kept in `bans.json` and survive restarts ([Console, kicks and bans](/hosting/administration/#bans)).
 A moderation command with these calls is on [Chat and commands](/plugins/chat/#commands-for-moderators).
