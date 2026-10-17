@@ -81,6 +81,17 @@ test('cpp templates: adjacent concatenation, + and << splices, fmt placeholders,
   assert.match(kick.head, /ClientKick\(/);
 });
 
+test('cpp templates: digit separators are not char literals', () => {
+  const src = `
+    constexpr int64_t Ns = 5'000'000'000;
+    Kick(c, "after an odd number of separators");
+    const char8_t Narrow = u8'a';
+    Kick(c, "after a prefixed char literal");
+  `;
+  const t = cppTemplates(src).map((x) => show(x.text));
+  assert.deepEqual(t, ['after an odd number of separators', 'after a prefixed char literal']);
+});
+
 test('config: Config.cpp + Settings.cpp -> ordered reference with type, default and env', () => {
   const config = `
     static constexpr std::string_view StrDebug = "Debug";

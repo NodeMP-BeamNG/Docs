@@ -54,11 +54,11 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
 
 ## Packets by category
 
-### Handshake (16)
+### Handshake (18)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
-| `Hello` | L→S, T | The protocol version and the name the player asked for. A version mismatch is refused with both versions named. |
+| `Hello` | L→S, T | The protocol version, the helper's capability bits and the name the player asked for. A version mismatch is refused with both versions named. |
 | `Welcome` | S→L, T | The player's id, a resume token, the resume window and the server's capability bits. |
 | `Ping` | L→S, T and U | Liveness and round-trip probe; an optional stamp comes back in `Pong`. |
 | `Pong` | S→L, T and U | The answer to `Ping`. |
@@ -74,6 +74,8 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
 | `IntegrityManifestDone` | S→L, T | Every slice was sent; the hash the launcher checks before caching the file. |
 | `Resume` | L→S, T | Sent after `Hello` instead of `Identity`, to take a broken session back within the resume window. |
 | `UdpHelloAck` | S→L, U | Confirms an accepted `UdpHello` to the bound address. |
+| `Queued` | S→L, T | The server is full and the join waits in its queue: the place, how many wait, and the host's note while the queue is paused. Instead of `Welcome`, then again when the place changes. |
+| `QueueAdmit` | S→L, T | A place is free for this join; `Welcome` follows. |
 
 ### Session (10)
 
@@ -90,7 +92,7 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
 | `Reconnecting` | L→G, R | The link broke and the helper is resuming; the attempt and the next wait. |
 | `Resumed` | L→G, R | The server took the session back. |
 
-### Content (8)
+### Content (9)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -102,6 +104,7 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
 | `SyncDone` | L→S, T | The helper has every file it needs. |
 | `ResourceChunk` | S→G, T and R | One part of one resource's client scripts, as JSON. |
 | `ResourceDone` | S→G, T and R | Every resource has been delivered. |
+| `ModsReady` | L→S, T | A join in the queue has every mod in its cache; only then it can get a place. |
 
 ### Vehicle (30)
 
@@ -206,6 +209,12 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
    one, runs the check and sends `VerifyReport`. A failed check is a `Kick` before any download.
 4. The mods: `ModsRequest`, `ModsInfo`, then `FileRequest` and `FileBegin` or `FileDeny` for each
    missing file, until `SyncDone`.
+
+A full server can take a signed-in player into its [join queue](/hosting/join-queue/) instead of
+refusing him: it answers `Queued` where `Welcome` would be, and steps 3 and 4 happen while he
+waits -- up to `ModsReady` instead of `SyncDone`. The helper pings every 30 seconds while it
+waits. When a place frees, `QueueAdmit` and `Welcome` come, the helper puts the mods into the game
+and sends `SyncDone`, and the join goes on at step 5.
 5. `UdpToken` and `MapInfo`, followed right away by the resources' client scripts (`ResourceChunk`
    … `ResourceDone`). The server fires `playerJoining`; the game loads the map.
 6. The helper binds UDP with `UdpHello` and sends `JoinWorld`.
@@ -217,4 +226,6 @@ the server's TCP channel, **U** its UDP channel, **R** the relay port and **CC**
 The protocol version goes up with every change on the wire and is carried in `Hello` and
 `Command::Version`. Versions must match exactly: a launcher speaking another version is refused
 with a message that names both. Additions that older peers can safely ignore, such as the
-capability bits at the end of `Welcome`, come without a new version.
+capability bits at the end of `Welcome` and the helper's in `Hello`, come without a new version. A
+helper says in `Hello` that it can wait in a queue; one that does not is told "Server full!" as
+before.

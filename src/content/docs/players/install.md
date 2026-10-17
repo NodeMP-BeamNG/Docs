@@ -18,7 +18,7 @@ launcher at it, see [below](#the-launcher-cant-find-the-game).
 
 ## Install
 
-1. Download `NodeMP-Setup-1.1.25.exe` from the [download page](https://nodemp.com/download).
+1. Download `NodeMP-Setup-1.1.26.exe` from the [download page](https://nodemp.com/download).
 2. Run it. It installs for your Windows user only, so it doesn't ask for administrator rights.
 3. The launcher opens when the installer is done.
 
