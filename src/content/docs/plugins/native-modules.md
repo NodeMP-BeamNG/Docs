@@ -54,11 +54,11 @@ On Windows, build with the static C runtime so the DLL needs nothing beside it.
 
 ## ABI versions
 
-The ABI version reads `major.minor`; this server speaks 2.7. `NodeApi` is a struct read by position,
+The ABI version reads `major.minor`; this server speaks 2.8. `NodeApi` is a struct read by position,
 so its layout is a contract: new functions are only ever added at the end, which raises the minor.
 
 - **A different major** is refused at load, before the module can touch anything:
-  `module '…' was built against SDK ABI 1.12, this server speaks 2.7 -- refusing to load it. Rebuild the module.`
+  `module '…' was built against SDK ABI 1.12, this server speaks 2.8 -- refusing to load it. Rebuild the module.`
 - **An older minor** loads: everything the module knows is where it expects it.
 - **A newer minor** loads with a warning: the module may call functions this server doesn't have.
   Check `api->struct_size` before using a function added after the version you require.

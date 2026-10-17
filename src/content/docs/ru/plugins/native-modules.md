@@ -60,7 +60,7 @@ NODE_EXPORT void node_plugin_shutdown(void) {
 и от этого растёт младшая версия.
 
 - **Другая старшая версия** — отказ при загрузке, раньше, чем модуль чего-то коснётся:
-  `module '…' was built against SDK ABI 1.12, this server speaks 2.7 -- refusing to load it. Rebuild the module.`
+  `module '…' was built against SDK ABI 1.12, this server speaks 2.8 -- refusing to load it. Rebuild the module.`
 - **Младшая версия старее** — модуль загрузится: всё, что он знает, лежит там, где он ожидает.
 - **Младшая версия новее** — модуль загрузится с предупреждением: он может вызвать функции, которых у
   этого сервера нет. Прежде чем вызвать функцию, добавленную позже нужной вам версии, проверьте
