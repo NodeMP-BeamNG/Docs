@@ -67,10 +67,10 @@ the archive adds `/help`, `/me` and `/pm`. More on [Resources](/hosting/resource
 
 ### I pasted the keys from the website and the server isn't listed.
 
-The site shows the keys under the names from before server 1.9.0: `Url`, `HostId` and `HostSecret`.
-A 1.9.0 server doesn't read them and names them in a warning in the log. Write them as `url`,
-`host_id` and `host_secret` in the `[listing]` table that is already in the file: a second
-`[listing]` stops the server from starting.
+The log says why, and [the table on Get listed](/hosting/registering/#the-server-isnt-in-the-list)
+explains each line. The usual causes: a key made before NodeMP started afresh (create a new one), a
+server released before that (update it), `public = false`, or a second `[listing]` pasted under the
+one already in the file, which stops the server from starting: set the three keys in the first one.
 More on [Get listed](/hosting/registering/#put-the-key-into-the-settings).
 
 ### After the update there's a `server.toml.old` next to `server.toml`.
@@ -92,8 +92,8 @@ More on [When the server misbehaves](/hosting/troubleshooting/#players-are-refus
 
 ### How do I lift a ban?
 
-Stop the server and run `Node-Server --bans remove <address or nodemp:<id>>`. On a running server a
-plugin can lift it. More on [Console, kicks and bans](/hosting/administration/#bans).
+Stop the server and run `Node-Server --bans remove <address, nodemp:<id> or install:<id>>`. On a
+running server a plugin can lift it. More on [Console, kicks and bans](/hosting/administration/#bans).
 
 ### Do I need Windows for the strict check?
 

@@ -28,7 +28,7 @@ running.
 
 ## The server can't be reached
 
-The launcher says it can't reach the server, or the server never shows up in the list.
+The launcher says it can't reach the server, or the list marks it as one players can't connect to.
 
 1. **The port must be open for both TCP and UDP.** TCP is for joining and everything reliable, UDP
    for the cars' positions. Check the firewall on the machine and the port forwarding on the router.
@@ -84,8 +84,10 @@ terminal (`-it`, or `stdin_open` and `tty` in Compose) and connect with `docker 
 
 ## The server isn't listed
 
-See [Get listed](/hosting/registering/#the-server-isnt-in-the-list). Most often it's the port:
-NodeMP has to reach the server from outside before it shows it.
+See [Get listed](/hosting/registering/#the-server-isnt-in-the-list): the log says why. Most often
+it's a key made before NodeMP started afresh, or a server released before that. A closed port doesn't
+keep the server out of the list: the list marks it as one players can't connect to
+([above](#the-server-cant-be-reached)).
 
 ## A player says it lags
 

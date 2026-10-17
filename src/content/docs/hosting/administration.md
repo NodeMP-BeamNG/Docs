@@ -50,13 +50,14 @@ resources, such as a `/ban` command for moderators ([example](/plugins/chat/#com
 ### Bans
 
 Bans are kept in `bans.json` in the working directory. It's one JSON object: each key is a banned
-address or a NodeMP account as `nodemp:<id>`, and each value holds the reason, the time and the
-player's name:
+address, a NodeMP account as `nodemp:<id>` or a launcher installation as `install:<id>` (64 hex
+digits), and each value holds the reason, the time and the player's name:
 
 ```json
 {
   "203.0.113.7": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
-  "nodemp:108": { "reason": "Spamming", "at": 1789558100, "name": "Bob" }
+  "nodemp:108": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
+  "install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff00f1d6c166d39f57fd4": { "reason": "Spamming", "at": 1789558100, "name": "Bob" }
 }
 ```
 
@@ -64,8 +65,15 @@ A timed ban also has `"until"`, the moment it ends in Unix seconds. When it come
 the ban by itself.
 
 Banning a player who is on the server bans their address and, if they're signed in, their account,
-so the ban follows them to another network. A banned player trying to join sees the reason, or
-`You are banned from this server` when there is none.
+so the ban follows them to another network. It also bans their launcher installation when the
+launcher reports one, so that launcher is refused with any account and in Test Drive. The
+installation's id is this server's own (other servers know the same launcher by other ids) and
+changes when NodeMP rotates its key, after which a ban on the old id no longer matches. A banned
+player trying to join sees the reason, or `You are banned from this server` when there is none.
+
+NodeMP can also ban an account from every server at once. Such a player gets no join ticket for any
+listed server, and one already playing is disconnected at the server's next report to NodeMP with
+`This account is banned from NodeMP`.
 
 To lift a ban, **stop the server** and run:
 
@@ -73,11 +81,12 @@ To lift a ban, **stop the server** and run:
 Node-Server --bans list
 Node-Server --bans remove 203.0.113.7
 Node-Server --bans remove nodemp:108
+Node-Server --bans remove install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff00f1d6c166d39f57fd4
 ```
 
-`list` shows every ban, `remove` lifts one: by address, by `nodemp:<id>` or by a bare account
-number. Editing the file by hand works too, also with the server stopped. A running server keeps the
-list in memory and overwrites the file on the next ban.
+`list` shows every ban, `remove` lifts one: by address, by `nodemp:<id>` or a bare account
+number, or by `install:<id>`. Editing the file by hand works too, also with the server stopped. A
+running server keeps the list in memory and overwrites the file on the next ban.
 
 ## Restarting with a warning
 
