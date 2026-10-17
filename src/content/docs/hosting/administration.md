@@ -67,6 +67,10 @@ Banning a player who is on the server bans their address and, if they're signed 
 so the ban follows them to another network. A banned player trying to join sees the reason, or
 `You are banned from this server` when there is none.
 
+NodeMP can also ban an account from every server at once. Such a player gets no join ticket for any
+listed server, and one already playing is disconnected at the server's next report to NodeMP with
+`This account is banned from NodeMP`.
+
 To lift a ban, **stop the server** and run:
 
 ```
