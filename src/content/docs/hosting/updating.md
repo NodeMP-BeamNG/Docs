@@ -185,6 +185,15 @@ you trust it, list it:
 trusted = ["backup"]
 ```
 
+## NodeMP's new service
+
+When NodeMP moved to a new service, it started its accounts and server list from scratch, and the
+server released with the move speaks only to the new one. An older server can't be listed, and the
+new one isn't listed with a key made before the move. Update the server, create a new key in
+[**My servers**](https://nodemp.com/account/servers) and put it into `[listing]`
+([Get listed](/hosting/registering/)). The `[listing]` keys and the rest of `server.toml` stay as
+they are.
+
 ## When players need a new launcher
 
 The launcher and the server speak a versioned protocol. Server 1.12.0 speaks v23, like the releases
