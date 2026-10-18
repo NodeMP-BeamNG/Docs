@@ -5,14 +5,14 @@ description: Download Node-Server for Windows, check the archive, start it, open
 
 ## Download
 
-On the [release page](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.12.0),
-download two files: `Node-Server-1.12.0-windows-x64.zip` and
-`Node-Server-1.12.0-windows-x64.zip.sha256`.
+On the [release page](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.13.0),
+download two files: `Node-Server-1.13.0-windows-x64.zip` and
+`Node-Server-1.13.0-windows-x64.zip.sha256`.
 
 To check that the archive arrived whole, run this in PowerShell in your downloads folder:
 
 ```powershell
-$zip = "Node-Server-1.12.0-windows-x64.zip"
+$zip = "Node-Server-1.13.0-windows-x64.zip"
 (Get-FileHash $zip).Hash.ToLower()
 (Get-Content "$zip.sha256").Split(" ")[0]
 ```
