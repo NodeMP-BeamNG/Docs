@@ -32,8 +32,8 @@ NodeMP позволяет кататься в [BeamNG.drive](https://www.beamng.
 
 | Часть | Версия | Где взять |
 |---|---|---|
-| Сервер (`Node-Server`) | 1.12.0 | [Релизы на GitHub](https://github.com/NodeMP-BeamNG/releases/releases): Windows, Linux, Docker |
-| Лаунчер | 1.1.25 | [nodemp.com/download](https://nodemp.com/download) |
+| Сервер (`Node-Server`) | 1.13.0 | [Релизы на GitHub](https://github.com/NodeMP-BeamNG/releases/releases): Windows, Linux, Docker |
+| Лаунчер | 1.2.0 | [nodemp.com/download](https://nodemp.com/download) |
 | Клиентский мод (`NodeMP.zip`) | 1.7.7 | Ставит лаунчер |
 
 Клиентский мод собран под BeamNG.drive 0.39.4.0. Лаунчер и сервер говорят по сетевому протоколу

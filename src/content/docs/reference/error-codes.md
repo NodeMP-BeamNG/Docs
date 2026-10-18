@@ -79,7 +79,10 @@ can kick with their own text, which you then see as it is.
 |---|---|---|
 | `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | The launcher and the server speak different protocol versions (the numbers are the real ones). With the launcher behind, shown as `This server needs a newer launcher — update now` with **Update now**; with the server behind, as `This server runs an older NodeMP server (protocol v21; this launcher speaks v22)`. | **Update now** updates the launcher and joins again. If the server is behind, tell its host. |
 | `Your NodeMP mod is out of date for this server (it speaks wire protocol …, the server …). Reinstall it from the launcher.` | Your client mod speaks another protocol version than the server. | Close the game, **Settings → Launcher → Client mod → Check now**, join again. |
-| `Server full!` | The server has as many players as it allows. | Use the *Free slots* filter, or wait. |
+| `Server full!` | The server has as many players as it allows, and you can't wait in its queue: you joined without an account, your launcher is too old for queues, or the server has none. | Use the *Free slots* filter, or wait. |
+| `The server is full and so is its join queue` | As many players as the server lets wait already wait in its [join queue](/hosting/join-queue/). Shown as a short notice. | Try again later. |
+| `Someone from your address is already in this server's join queue` | Only one player per address may wait in the queue, and a shared connection counts as one address. | Wait until the other player is in, or join from another connection. |
+| `You did not join after your turn too often; this server's join queue is closed to you until …` | Your turn in the queue came several times and you left before reaching the world. A time in UTC follows: when you may queue again; the launcher shows it in your own time. | Wait until then; joining a server with a free place still works. |
 | `The server is starting up; join again in a moment.` | The server is still loading its plugins. | Try again in a minute. |
 | `Server shutdown` | The server is stopping; everyone on it gets this. | Wait for the host to bring it back. |
 | `You are banned from this server` | Your address or account is on this server's ban list, without a reason. A ban with a reason shows that reason instead. | Ask the host. |
@@ -105,7 +108,7 @@ can kick with their own text, which you then see as it is.
 | `Packet rate limit exceeded` | Your game sent packets faster than the server allows. | Join again; report it if it repeats. |
 | `Disconnected after failing to receive packets` | The server couldn't deliver data to you. | Join again. |
 | `TCP send of MODS_INFO failed` | The server couldn't send its mod list; the connection was already gone. | Join again. |
-| `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent a compressed packet that does not decompress`, `Malformed game verification report` | The launcher sent something the server doesn't accept. Only a modified or broken launcher does that. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
+| `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent a compressed packet that does not decompress`, `Malformed game verification report`, `Unexpected packet while waiting in the join queue` | The launcher sent something the server doesn't accept. Only a modified or broken launcher does that. | Reinstall the launcher from [nodemp.com/download](https://nodemp.com/download). |
 
 **Session ended** with no reason at all means BeamNG.drive was closed.
 

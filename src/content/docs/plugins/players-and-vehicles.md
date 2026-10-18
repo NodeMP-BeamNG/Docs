@@ -60,10 +60,11 @@ end)
 ### Kicks and bans
 
 - `player:kick(reason)` disconnects the player, who sees the reason.
-- `player:ban(reason)` bans the account (if signed in) and the address, and kicks.
+- `player:ban(reason)` bans the account (if signed in), the launcher installation (if the launcher
+  reports one) and the address, and kicks.
 - `player:ban(reason, os.time() + 3600)` bans for an hour; the server lifts it by itself.
-- `node.bans.add(who, reason, untilUnix)` bans an address or an account number of someone who isn't
-  on the server; `node.bans.remove(who)` lifts a ban.
+- `node.bans.add(who, reason, untilUnix)` bans an address, an account number or a
+  `player.installId` of someone who isn't on the server; `node.bans.remove(who)` lifts a ban.
 
 Bans are kept in `bans.json` and survive restarts ([Console, kicks and bans](/hosting/administration/#bans)).
 A moderation command with these calls is on [Chat and commands](/plugins/chat/#commands-for-moderators).
@@ -155,6 +156,40 @@ end)
 
 `cars_per_player` applies to `spawnVehicle` as it does to the player's own spawns: the second value says why
 a spawn didn't happen (`"max_cars"`, `"bad_config"`, `"not_joined"`).
+
+### Scheduled changes
+
+A new car, or a change of a car's parts, tuning or model, has to be built in every other player's
+game, and building stops the game for a moment. So each player's mod holds other players' new cars
+and changes until the player stops, a set time passes, or they click the count in the session
+panel ([what players see](/players/settings/#other-players-new-cars-and-changes)). Deletions,
+resets, colour changes and the car a player sits in never wait. `[vehicles]` in `server.toml` sets
+how a session starts ([settings](/hosting/configuration/#vehicles)); a resource can change it while
+the server runs:
+
+| Call | What it does |
+|---|---|
+| `node.vehicles.setQueue("off")` | Every change is built the moment it arrives, for everyone. `"allow"` gives the choice back to the players. |
+| `node.vehicles.setQueueMaxDelay(10)` | Every player builds what waits within 10 seconds of the first change; `0` lifts the limit. |
+| `node.vehicles.applyScheduled()` | Every player builds everything waiting, now. |
+| `player:setVehicleQueue("off")` | The same for one player; `nil` follows the server's mode again. |
+| `player:applyScheduled()` | One player builds everything waiting, now. |
+
+Before a race start every car should look the same in every game:
+
+<!-- doctest: skip needs a server newer than the published release -->
+```lua
+node.on("chatMessageRequest", function(player, msg)
+    if msg.text ~= "/start" then return end
+    node.vehicles.setQueue("off")
+    node.vehicles.applyScheduled()
+    node.chat.say("The race starts in 10 seconds")
+    return { handled = true }
+end)
+```
+
+The server itself relays the edits of one car at most once per `edit_interval_sec`, as the latest
+config; `applyScheduled` sends what it still holds first, so those are built too.
 
 ### Many cars at once
 

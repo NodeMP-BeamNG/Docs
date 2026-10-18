@@ -11,6 +11,13 @@ With a key the server introduces itself to NodeMP, shows up in the launcher and 
 
 ## Create a key
 
+:::caution[Keys made before NodeMP started afresh]
+NodeMP moved to a new service and started its accounts and server list from scratch. Accounts and
+server keys made before that are gone, and a server with an old key is refused. Sign up again, link
+Discord and create a new key. Update the server too: a release from before the move can't be listed
+([Updating](/hosting/updating/)).
+:::
+
 You need a NodeMP account with a confirmed e-mail and a linked Discord account. Discord is linked
 under **Connections** in your account.
 
@@ -20,6 +27,12 @@ under **Connections** in your account.
 3. The site shows the **Host ID** and the **Host secret**. The secret is shown once: copy it now.
 
 One key is for one server. **My servers** lists all your keys and when each server last checked in.
+How many keys an account may have depends on its roles; the page shows how many you have left.
+
+When the site won't create a key, it says why: Discord isn't linked, the e-mail isn't confirmed, the
+account has all the keys it may have (delete one you no longer use, or rotate the secret of an
+existing key instead), or the request was refused to protect the service. In that last case the site
+shows a decision number: ask for help on Discord and quote it.
 
 ## Put the key into the settings
 
@@ -33,15 +46,10 @@ host_id = "…"
 host_secret = "…"
 ```
 
-:::caution[Write the names as above]
-The site shows these keys with capital letters, `HostId = "…"`: those are the names from before
-server 1.9.0. It's best to take the values and write them under the names above. Since server 1.9.1
-the server also reads the site's lines pasted at the end of the file or at its top, and says in the log
-which line it read as which key. A 1.9.0 server ignores the old names, stays out of the list and
-says so in the log: `server.toml has settings this server does not read: [listing] Url, …`.
-
-Don't add a second `[listing]` either: TOML doesn't allow the same table twice, and the server won't
-start. Fill in the one already in the file.
+:::caution[One `[listing]` table]
+The site shows these three lines ready to copy. Set them in the `[listing]` table already in the
+file; don't add a second `[listing]`: TOML doesn't allow the same table twice, and the server won't
+start.
 :::
 
 The same as environment variables, for Docker or systemd. These names didn't change:
@@ -59,13 +67,17 @@ password.
 ## What happens next
 
 At start the server logs `announcing this server to https://api.nodemp.com`, and once the key is
-accepted, `listed in the server browser`. From then on it reports regularly, usually every 15
-seconds: name, map, players and slots, tags and the list of mods. If NodeMP can't be reached, the server keeps running
-and retries on its own.
+accepted and the list shows the server, `listed in the server browser`. From then on it reports
+regularly, usually every 15 seconds: name, map, players and slots, tags, the list of mods and the
+fingerprint of its certificate. If NodeMP can't be reached, the server keeps running and retries on
+its own.
 
-NodeMP also checks from outside that it can reach the server on its port. A server it can't reach
-isn't shown, even with `listed in the server browser` in the log. So the port has to be open and
-forwarded, and you have to test it from outside your own network.
+NodeMP never connects to your server, so nothing checks the port from outside before players do.
+When players get join tickets for your server and none of them reaches it, NodeMP marks the server
+**Can't connect** in **My servers**, the launcher marks it in the list, and the server's log says
+`Listed in the server browser, but players cannot connect: …` with the port to forward. The mark
+goes once a player gets through. So open and forward the port for TCP and UDP, and test it from
+outside your own network.
 
 While the server is listed, every join is checked: the player's launcher brings a one-time ticket,
 the server checks it with NodeMP and gets the account name. A Test Drive player gets a guest name.
@@ -134,9 +146,10 @@ The server's card shows a picture of the map. It comes from:
 ## The server's fingerprint
 
 Launchers know a server by the fingerprint of its TLS certificate, logged at every start:
-`TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. It changes only if `node_cert.pem` and
-`node_key.pem` are lost or replaced, so keep them in your backups. Players who joined by address
-remember the fingerprint and won't connect to a server with a different one.
+`TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. The server sends it to NodeMP with every
+report, and a launcher joining from the list accepts only that certificate. It changes only if
+`node_cert.pem` and `node_key.pem` are lost or replaced, so keep them in your backups. Players who
+joined by address remember the fingerprint and won't connect to a server with a different one.
 
 ## Change or delete the key
 
@@ -148,9 +161,13 @@ working. Put the new `host_secret` in and restart. Do this whenever the secret m
 
 | In the log | Why | What to do |
 |---|---|---|
-| `The directory refused this server's credentials: …` | A wrong Host ID or secret, a rotated secret or a deleted key. | Compare with **My servers**. If unsure, rotate the secret and put in the new one. |
+| `The directory refused this server's credentials: …` | A wrong Host ID or secret, a rotated secret, a deleted key, or a key made before NodeMP started afresh. | Compare with **My servers**. If unsure, rotate the secret and put in the new one. An old key needs a new one. |
+| `The directory refused this server: This server is banned from the directory.` | NodeMP's staff banned this server. | Ask on Discord. |
 | `This server is NOT announced to a directory: …` | `host_id` or `host_secret` is missing. | Fill in `url`, `host_id` and `host_secret` in `[listing]`. |
-| `server.toml has settings this server does not read: [listing] Url, …` | The keys under the names from before 1.9.0, on a 1.9.0 server. | Write them as `url`, `host_id` and `host_secret`, or update the server to 1.9.1. |
 | `Could not reach the directory at https://api.nodemp.com: …` | No outgoing HTTPS, a DNS problem, or NodeMP is down. | Try `curl https://api.nodemp.com/healthz` on the server's machine. The server retries on its own. |
-| `listed in the server browser`, but the server isn't in the launcher | NodeMP can't reach the port from outside, or `public = false`. | Open and forward the port. The list updates within about 15 seconds. |
-| Players are refused with `The server could not verify your account with the directory (…)` | NodeMP couldn't be reached when they joined. | Wait. On a server that allows Test Drive you can turn on `admit_when_down`. |
+| `The directory answered 429 …: Too many requests. Try again later.` or `The directory answered 503 …` | Too many attempts in a short time (a restart loop, say), or NodeMP is busy. The text after the colon is NodeMP's own reason. | Nothing: the server waits as long as NodeMP asks and tries again. |
+| `not shown in the server browser: [listing] public is false; …` | `public = false`. | Remove it, or set `public = true`, and restart. |
+| `Not shown in the server browser: the directory's staff have hidden it` | NodeMP's staff hid the server from the list. | Ask on Discord. |
+| `Not shown in the server browser: another server key already announces this address and port, …` | Two keys announce the same address and port, and only one of them is listed. | One key per server: delete the other key in **My servers**. |
+| `Listed in the server browser, but players cannot connect: …` | Players got join tickets, but none of them reached the server. | Forward the port named in the line for TCP and UDP and open it in the firewall. |
+| Players are refused with `The server could not verify your account with the directory (…)` | NodeMP couldn't be reached when they joined, or was too busy. | Wait. On a server that allows Test Drive you can turn on `admit_when_down`. |

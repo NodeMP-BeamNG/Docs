@@ -79,7 +79,10 @@ description: Все сообщения, которыми может законч
 |---|---|---|
 | `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | Лаунчер и сервер говорят на разных версиях протокола (числа в сообщении настоящие). Если отстаёт лаунчер, показывается `This server needs a newer launcher — update now` с кнопкой **Обновить сейчас**; если сервер — `This server runs an older NodeMP server (protocol v21; this launcher speaks v22)`. | **Обновить сейчас** обновит лаунчер и зайдёт снова. Если отстаёт сервер, скажите хосту. |
 | `Your NodeMP mod is out of date for this server (it speaks wire protocol …, the server …). Reinstall it from the launcher.` | Клиентский мод говорит на другой версии протокола, чем сервер. | Закройте игру, нажмите **Настройки → Лаунчер → Клиентский мод → Проверить** и зайдите снова. |
-| `Server full!` | На сервере столько игроков, сколько он пускает. | Включите фильтр *Есть места* или подождите. |
+| `Server full!` | На сервере столько игроков, сколько он пускает, а ждать в его очереди нельзя: вы зашли без аккаунта, ваш лаунчер слишком старый для очередей или очереди на сервере нет. | Включите фильтр *Есть места* или подождите. |
+| `The server is full and so is its join queue` | В [очереди на вход](/ru/hosting/join-queue/) уже ждут столько игроков, сколько сервер разрешает. Лаунчер показывает короткое уведомление. | Попробуйте позже. |
+| `Someone from your address is already in this server's join queue` | С одного адреса в очереди может ждать только один игрок, а общее подключение — это один адрес. | Дождитесь, пока второй игрок войдёт, или зайдите с другого подключения. |
+| `You did not join after your turn too often; this server's join queue is closed to you until …` | Ваша очередь подходила несколько раз, а вы уходили, не дойдя до мира. Дальше идёт время по UTC — когда снова можно встать в очередь; лаунчер показывает его по вашему времени. | Подождите до этого времени; на сервер со свободным местом можно заходить и сейчас. |
 | `The server is starting up; join again in a moment.` | Сервер ещё загружает плагины. | Попробуйте через минуту. |
 | `Server shutdown` | Сервер останавливается, это получают все, кто на нём. | Дождитесь, пока хост его поднимет. |
 | `You are banned from this server` | Ваш адрес или аккаунт в бан-листе сервера, без причины. Если причина указана, вы увидите её. | Спросите хоста. |
@@ -105,7 +108,7 @@ description: Все сообщения, которыми может законч
 | `Packet rate limit exceeded` | Игра слала пакеты быстрее, чем разрешает сервер. | Зайдите снова. Если повторяется, сообщите об этом. |
 | `Disconnected after failing to receive packets` | Сервер не смог доставить вам данные. | Зайдите снова. |
 | `TCP send of MODS_INFO failed` | Сервер не смог отправить список модов: соединения уже не было. | Зайдите снова. |
-| `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent a compressed packet that does not decompress`, `Malformed game verification report` | Лаунчер прислал то, чего сервер не принимает. Так ведёт себя только изменённый или сломанный лаунчер. | Переустановите лаунчер с [nodemp.com/download](https://nodemp.com/download). |
+| `Expected HELLO`, `Malformed HELLO`, `Expected IDENTITY after HELLO`, `Unknown packet type during handshake`, `Frame length cap exceeded`, `Per-type body cap exceeded`, `Malformed frame`, `Packet decode failed`, `Sent a compressed packet that does not decompress`, `Malformed game verification report`, `Unexpected packet while waiting in the join queue` | Лаунчер прислал то, чего сервер не принимает. Так ведёт себя только изменённый или сломанный лаунчер. | Переустановите лаунчер с [nodemp.com/download](https://nodemp.com/download). |
 
 **Сессия завершена** совсем без причины значит, что BeamNG.drive закрыли.
 

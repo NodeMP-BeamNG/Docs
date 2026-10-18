@@ -9,8 +9,8 @@ starts with how the file behaves, then the settings people change most, and ends
 
 ## How the file works
 
-On the first start the server writes a short file with the two tables a host fills in: `[server]`
-and `[listing]`.
+On the first start the server writes a short file with the tables a host fills in: `[server]`,
+`[listing]` and `[vehicles]`.
 
 ```toml
 # NodeMP server settings: https://docs.nodemp.com/hosting/configuration/
@@ -23,6 +23,12 @@ max_players = 8
 cars_per_player = 1
 map = "/levels/gridmap_v2/info.json"
 mods = "content"  # folder of mod zips players download
+
+[vehicles]
+queue = "allow"  # "off": every client applies at once (races, leagues)
+queue_max_delay_sec = 0  # not 0: a client must apply within N s
+edit_interval_sec = 5  # edits of one car reach the others at most once per N s
+spawn_interval_sec = 2  # one player's new cars at most once per N s
 
 [listing]
 url = ""  # "https://api.nodemp.com" to be listed in the launcher
@@ -76,6 +82,24 @@ site and voice chat. [Get listed](/hosting/registering/) explains how to fill it
 
 **Chat** is part of the server. `[chat] max_length`, `rate_per_sec` and `burst` keep it from being
 flooded: extra lines just aren't sent, and nobody is kicked for chatting.
+
+**Other players' cars.** A new car, or a change of a car's parts, tuning or model, has to be built
+on every player's machine, and building stops the game for a moment. So each player's mod holds
+other players' new cars and changes and builds them when the player stops, every 30 seconds at the
+latest, or on a click ([what players see](/players/settings/#other-players-new-cars-and-changes)).
+For a race or a league, where everyone must see the same cars at once, turn it off; or keep it and
+have everything built within a time you set:
+
+```toml
+[vehicles]
+queue = "off"            # or: queue = "allow" and queue_max_delay_sec = 10
+```
+
+A resource can switch it during the session too, and have everything built right before a start
+([plugin API](/plugins/players-and-vehicles/#scheduled-changes)). Two more settings keep the
+rebuilds few to begin with: the edits of one car reach the others at most once per
+`edit_interval_sec` (5), the latest one, and one player's new cars come at most once per
+`spawn_interval_sec` (2); a car spawned sooner is refused with *Wait 2 s*.
 
 **Bad connections.** A player silent for `lag_grace_sec` seconds (8) shows as lagging. After
 `disconnect_sec` (30) they are dropped, and that's also how long the server waits for a broken
@@ -144,6 +168,15 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[server]` | `address` | string | `"::"` | `NODE_IP` | The address to listen on. `"::"` is every address, IPv4 and IPv6. Not your public address. |
 | `[server]` | `console` | bool | `false` | `NODE_CONSOLE` | Read console commands from standard input even without a terminal. |
 
+### `[vehicles]`
+
+| Section | Key | Type | Default | Environment | What it does |
+|---|---|---|---|---|---|
+| `[vehicles]` | `queue` | string | `"allow"` | `NODE_VEHICLES_QUEUE` | `"allow"`: each player's mod may hold other players' new cars and part, tuning or model changes until the player takes them, as the player chose. `"off"`: every change is built as it arrives. |
+| `[vehicles]` | `queue_max_delay_sec` | int | `0` | `NODE_VEHICLES_QUEUE_MAX_DELAY_SEC` | Not `0`: every player builds what waits no later than this many seconds after the first of it came, whatever they chose. Up to `3600`. |
+| `[vehicles]` | `edit_interval_sec` | int | `5` | `NODE_VEHICLES_EDIT_INTERVAL_SEC` | The edits of one car reach the other players at most once per this many seconds, as the latest config; the editor's own car changes at once. `0`: every edit as it comes. |
+| `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | One player's new cars at most once per this many seconds; one sooner is refused with *Wait N s*. Walking and replacing your own car don't count. `0`: no limit. |
+
 ### `[listing]`
 
 | Section | Key | Type | Default | Environment | What it does |
@@ -192,6 +225,18 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[network]` | `connection_limit_exempt` | string | `"127.0.0.0/8, ::1/128, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, fd00::/8"` | `NODE_NETWORK_CONNECTION_LIMIT_EXEMPT` | Address ranges without the per-address limit. `""` or `"none"`: no exceptions. |
 | `[network]` | `handshake_timeout_sec` | int | `20` | `NODE_NETWORK_HANDSHAKE_TIMEOUT_SEC` | Seconds a new connection gets for the handshake and the first steps of joining. |
 | `[network]` | `download_stall_sec` | int | `60` | `NODE_NETWORK_DOWNLOAD_STALL_SEC` | A mod download ends after this many seconds without progress. A slow one is never cut off. |
+
+### `[queue]`
+
+| Section | Key | Type | Default | Environment | What it does |
+|---|---|---|---|---|---|
+| `[queue]` | `enabled` | bool | `true` | `NODE_QUEUE_ENABLED` | When the server is full, signed-in players wait in its [join queue](/hosting/join-queue/) instead of being turned away. Only on a listed server (`[listing] url`), where accounts are checked. |
+| `[queue]` | `max_waiting` | int | `50` | `NODE_QUEUE_MAX_WAITING` | How many players may wait at once, from 0 to 1000. `0`: nobody waits. |
+| `[queue]` | `max_waiting_per_ip` | int | `1` | `NODE_QUEUE_MAX_WAITING_PER_IP` | How many may wait from one address, from 1 to 1000. Addresses in `[network] connection_limit_exempt` are not limited. |
+| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | How many waiting players download mods at once, from 1 to 64, in queue order. Players joining a free place count too, and go first. |
+| `[queue]` | `max_no_shows` | int | `3` | `NODE_QUEUE_MAX_NO_SHOWS` | After this many no-shows within `no_show_window_min`, an account may not queue for `no_show_bar_min`. A no-show is a player who got a place and left before reaching the world. `0`: never. |
+| `[queue]` | `no_show_window_min` | int | `60` | `NODE_QUEUE_NO_SHOW_WINDOW_MIN` | The minutes over which no-shows are counted, from 1 to 10080. |
+| `[queue]` | `no_show_bar_min` | int | `30` | `NODE_QUEUE_NO_SHOW_BAR_MIN` | How many minutes the queue stays closed to such an account, up to 10080. `0`: never closed. |
 
 ### `[chat]`
 

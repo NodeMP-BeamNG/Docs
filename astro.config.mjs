@@ -140,6 +140,7 @@ export default defineConfig({
           { slug: 'hosting/mods' },
           { slug: 'hosting/resources' },
           { slug: 'hosting/administration' },
+          { slug: 'hosting/join-queue' },
           { slug: 'hosting/strict-verification' },
           { slug: 'hosting/updating' },
           { slug: 'hosting/troubleshooting' },

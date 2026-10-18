@@ -70,6 +70,17 @@ While you wait, the button shows what's happening, and **Cancel** stops it. In o
 6. BeamNG.drive starts. This is the longest step.
 7. The server's map loads and you appear in the world.
 
+### When the server is full
+
+A full server may let you wait in its queue, if you are signed in. The button then reads
+**In queue: 3 of 7**, next to the download progress: while you wait, the launcher checks your game
+files and downloads the server's mods, so the game starts as soon as your turn comes. Places go in
+queue order, to the first player whose mods are ready.
+
+If the host paused the queue, his note shows under your place. **Cancel** leaves the queue; joining
+again puts you at the end. With Test Drive, or on a server without a queue, a full server says
+*Server full!*. More on [The join queue](/hosting/join-queue/#what-the-player-sees).
+
 If something goes wrong, the launcher tells you what and why, and the notification stays under the
 bell icon. Common cases are on [When something breaks](/players/troubleshooting/).
 

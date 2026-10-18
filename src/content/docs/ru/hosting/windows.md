@@ -5,13 +5,13 @@ description: Скачать Node-Server для Windows, проверить ар�
 
 ## Скачать
 
-На [странице релиза](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.12.0) скачайте
-два файла: `Node-Server-1.12.0-windows-x64.zip` и `Node-Server-1.12.0-windows-x64.zip.sha256`.
+На [странице релиза](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.13.0) скачайте
+два файла: `Node-Server-1.13.0-windows-x64.zip` и `Node-Server-1.13.0-windows-x64.zip.sha256`.
 
 Проверить, что архив скачался целиком, можно в PowerShell, в папке с загрузками:
 
 ```powershell
-$zip = "Node-Server-1.12.0-windows-x64.zip"
+$zip = "Node-Server-1.13.0-windows-x64.zip"
 (Get-FileHash $zip).Hash.ToLower()
 (Get-Content "$zip.sha256").Split(" ")[0]
 ```

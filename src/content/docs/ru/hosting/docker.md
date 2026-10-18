@@ -8,15 +8,15 @@ Lua 5.1 для обфускатора и проверка здоровья ко�
 
 ## Загрузить образ
 
-Образ лежит в релизе файлом. Скачайте `nodemp-server-v1.12.0-image.tar` со
-[страницы релиза](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.12.0) и загрузите
+Образ лежит в релизе файлом. Скачайте `nodemp-server-v1.13.0-image.tar` со
+[страницы релиза](https://github.com/NodeMP-BeamNG/releases/releases/tag/server-v1.13.0) и загрузите
 его в Docker:
 
 ```bash
-docker load -i nodemp-server-v1.12.0-image.tar
+docker load -i nodemp-server-v1.13.0-image.tar
 ```
 
-Docker ответит `Loaded image: nodemp-server:1.12.0-d939044`. Этот тег и запускают.
+Docker ответит `Loaded image: nodemp-server:1.13.0-78abbaa`. Этот тег и запускают.
 
 ## Как устроен контейнер
 
@@ -45,7 +45,7 @@ docker run -d --name nodemp --restart unless-stopped \
   -e NODE_TLS_KEY=/data/tls/node_key.pem \
   -e NODE_NAME="Вечерний фрирум" \
   -e NODE_MAP=/levels/west_coast_usa/info.json \
-  nodemp-server:1.12.0-d939044
+  nodemp-server:1.13.0-78abbaa
 ```
 
 Лог смотрят так:
@@ -64,7 +64,7 @@ docker logs -f nodemp
 ```yaml
 services:
   nodemp:
-    image: nodemp-server:1.12.0-d939044
+    image: nodemp-server:1.13.0-78abbaa
     restart: unless-stopped
     ports: ["30814:30814/tcp", "30814:30814/udp"]
     volumes: ["./data:/data"]
