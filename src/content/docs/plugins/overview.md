@@ -41,16 +41,6 @@ catches it with `node.on("name", ...)` and answers with `player:send` or `node.b
 client's message goes no further than the server by itself: if other players should see it, the
 resource passes it on.
 
-## How code runs
-
-Every handler of every resource runs on one worker thread of the server, one at a time. Two handlers
-never run at once, so you need no locks. But a long handler delays everyone else: the server warns in
-the log when a handler holds the thread longer than 250 ms. Long work goes into coroutines and
-background jobs, see [Timers and coroutines](/plugins/concurrency/).
-
-Each resource has its own Lua state. Resources don't see each other's variables; they talk through
-the [bus](/plugins/bus/).
-
 ## Where to start
 
 1. [Your first resource](/plugins/getting-started/): from an empty folder to a working resource with

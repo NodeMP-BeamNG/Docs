@@ -70,15 +70,19 @@ The same welcome and command, as a NodeMP resource:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/hello"}]]} -->
 ```lua
-node.on("playerJoined", function(player)
+local function announceJoin(player)
     node.chat.say("%s joined the server", player.name)
-end)
+end
 
-node.on("chatMessageRequest", function(player, msg)
+node.on("playerJoined", announceJoin)
+
+local function answerHello(player, msg)
     if msg.text ~= "/hello" then return end
     player:tell("Hello, %s!", player.name)
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", answerHello)
 
 -- expect-client: Alice chat:msg .*Alice joined the server
 -- expect-client: Alice chat:msg .*Hello, Alice!
@@ -114,9 +118,9 @@ plugin expects.
 resources/
 └── my-plugin/
     ├── resource.toml
-    ├── main.lua         ← the plugin's files, unchanged
+    ├── main.lua         ← файлы плагина, без изменений
     ├── commands.lua
-    └── client/          ← the client mod's files, unpacked (optional)
+    └── client/          ← файлы клиентского мода, распакованные (необязательно)
 ```
 
 ```toml
