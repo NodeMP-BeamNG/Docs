@@ -206,8 +206,10 @@ and a unit test fails when a file of theirs is copied there.
 ## Writing pages
 
 Content lives in `src/content/docs/`: English directly under it, Russian under `ru/` at the same
-relative path. Every English page has a Russian twin with the same heading structure; code blocks,
-config keys, URLs and log lines are identical in both.
+relative path. Every English page has a Russian twin with the same heading structure; config keys,
+URLs and log lines are identical in both. The Lua blocks under `plugins/` are byte-identical (the
+doctest compares them); other code blocks may differ only in placeholders and sample text, which
+follow the page's language (`STYLE.md`).
 
 To add a page:
 

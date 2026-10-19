@@ -118,12 +118,13 @@
 - Шаги — нумерованный список, по одному действию в шаге и в повелительном наклонении. Результат шага (что появится на экране) — в том же пункте, после точки.
 - Список из двух пунктов и меньше превращаем в предложение. Таблица нужна, когда есть два измерения (сообщение → что значит → что делать); для одномерного перечня таблица не нужна.
 - Блоки кода — только то, что читатель вводит или видит в консоли. Команды и их результат разделяем. Язык блока указываем всегда, для вывода консоли и деревьев папок это `text`.
-- Всё, что внутри блока кода, одинаково на русской и английской странице, комментарии тоже: `npm run doctest` сравнивает Lua-блоки двух языков побайтно, а остальные блоки должны совпадать по тому же правилу. Поэтому комментарии в коде пишем по-английски.
+- Lua-блоки на страницах `plugins/` одинаковы на русской и английской странице побайтно, комментарии и строки тоже: `npm run doctest` запускает их и сравнивает двойников. Поэтому комментарии и тексты в коде пишем по-английски.
+- В остальных блоках (команды, настройки, вывод консоли, строка Lua на странице хоста) код тоже одинаковый, а заполнители и примеры текста пишут на языке страницы: `<тег>` и `<tag>`, `<версия>` и `<version>`, название сервера, причина бана, строка чата. Комментарии и там по-английски.
 - Пример кода читается сверху вниз, как код в настоящем плагине. Обработчик — отдельная именованная функция, подписка — отдельной строкой после неё; имя говорит, что функция делает или на что отвечает:
 
   ```lua
   local function greet(player)
-    player:tell("Привет, %s!", player.name)
+    player:tell("Hello, %s!", player.name)
   end
 
   node.on("playerJoined", greet)
@@ -147,9 +148,9 @@
 The English pages are redone from the Russian ones, after the Russian section is approved. Not a translation of the old English text.
 
 - Write from the facts and from the Russian page. Same structure, same headings, same set of facts, same links. If the Russian page links instead of repeating, the English one does too.
-- Plain, direct English. Address the reader as "you", use the imperative for steps ("click", "choose"). No filler: "Note that", "It is important to", "allows you to", "in order to", "simply", "just", "easily".
+- Plain, direct English. Address the reader as "you", use the imperative for steps ("click", "choose"). No filler: "Note that", "It is important to", "It is worth", "allows you to", "in order to", "simply", "just", "easily", "please". No signposting: "In this section", "Below we", "As mentioned above", and no closing summary.
 - One fact has one home. Do not restate it: link.
 - UI names exactly as in the English interface (`UI-launcher/src/lib/i18n/en.ts`, `settingsSchema.lua`, `strings.js`), bold; messages in italics; server texts in backticks.
 - Terms as in `reference/glossary.md`. "Plugin" is the general word, as in Russian; "resource" stays where the code says resource (`resources/`, `resource.toml`, `node.resources`, `[resources]`, `resourceUnload`). NodeMP is its own project: never "fork", "based on" or "compatible with" another multiplayer.
 - No product versions, as in the Russian pages (rule 13).
-- Spelling: the pages and the interface mix British and American ("colour", "Favorites"). The English pass picks one and applies it everywhere.
+- Spelling is American (color, meters, canceled, favorite), like the launcher's and the site's English strings. Identifiers, code and quoted strings stay as the code has them, British spellings too: the launcher's *Connection cancelled* is quoted as it is.

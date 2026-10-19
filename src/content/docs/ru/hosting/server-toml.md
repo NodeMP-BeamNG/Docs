@@ -79,7 +79,7 @@ guests = true  # players without a NodeMP account
 
 ```toml
 [vehicles]
-queue = "off"            # или: queue = "allow" и queue_max_delay_sec = 10
+queue = "off"            # or: queue = "allow" and queue_max_delay_sec = 10
 ```
 
 Плагин тоже может переключать это во время сессии и строить всё перед стартом ([Игроки и машины](/ru/plugins/players-and-vehicles/)). Число перестроек сокращают ещё `edit_interval_sec` и `spawn_interval_sec` ([Справочник настроек](/ru/hosting/configuration/#vehicles)).
