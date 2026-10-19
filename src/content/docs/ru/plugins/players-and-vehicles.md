@@ -164,7 +164,7 @@ node.on("chatMessageRequest", spawnCar)
 
 Перед стартом гонки каждая машина должна выглядеть одинаково во всех играх:
 
-<!-- doctest: skip needs a server newer than the published release -->
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/start"}]]} -->
 ```lua
 local function startRace(player, msg)
     if msg.text ~= "/start" then return end
@@ -175,6 +175,8 @@ local function startRace(player, msg)
 end
 
 node.on("chatMessageRequest", startRace)
+
+-- expect-client: Alice chat:msg .*The race starts in 10 seconds
 ```
 
 Сам сервер пересылает правки одной машины не чаще раза в `edit_interval_sec`, последней конфигурацией. `applyScheduled` сначала отправляет то, что сервер ещё держит, так что строится и это.

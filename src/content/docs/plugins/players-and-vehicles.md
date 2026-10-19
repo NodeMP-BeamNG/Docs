@@ -183,7 +183,7 @@ the server runs:
 
 Before a race start every car should look the same in every game:
 
-<!-- doctest: skip needs a server newer than the published release -->
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/start"}]]} -->
 ```lua
 local function startRace(player, msg)
     if msg.text ~= "/start" then return end
@@ -194,6 +194,8 @@ local function startRace(player, msg)
 end
 
 node.on("chatMessageRequest", startRace)
+
+-- expect-client: Alice chat:msg .*The race starts in 10 seconds
 ```
 
 The server itself relays the edits of one car at most once per `edit_interval_sec`, as the latest
