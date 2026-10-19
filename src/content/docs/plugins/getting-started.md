@@ -1,18 +1,15 @@
 ---
-title: Your first resource
-description: A resource from an empty folder, step by step - a greeting, a chat command, settings in resource.toml, a client half - then reloading it and reading its errors.
+title: Your first plugin
+description: Build a plugin from an empty folder, step by step. It greets players, answers a chat command, reads its settings, runs a client half and reloads.
 ---
 
-This page builds a resource called `greeter`, one step at a time: it greets players, answers the
-`/online` command, takes its greeting from the settings, and shows a message in the player's game.
-Nothing needs installing: Lua is built into the server.
+These steps build a plugin called `greeter`. It greets players, answers the `/online` command, takes its greeting from the settings and shows a message in the player's game. There is nothing to install: Lua is built into the server.
 
-You need a server you can start ([Run a server](/hosting/quick-start/)) and, for the client half, a
-launcher to join it with.
+You need a server ([Run a server](/hosting/quick-start/)) and the launcher to join it.
 
 ## 1. The folder
 
-Resources live in `resources/`, next to `server.toml`. Make this tree:
+Plugins live in `resources/`, next to `server.toml`. Make this tree:
 
 ```text
 resources/
@@ -22,8 +19,7 @@ resources/
         └── main.lua
 ```
 
-The folder name is the resource's name unless `resource.toml` says otherwise. A `client/` folder
-comes in step 7.
+The folder name becomes the plugin's name unless `resource.toml` says otherwise. The `client/` folder comes in step 7.
 
 ## 2. resource.toml
 
@@ -32,13 +28,11 @@ name = "greeter"
 version = "1.0"
 ```
 
-That's enough for now. Every key the file takes is on
-[How a resource is built](/plugins/resources/#resourcetoml).
+That is enough for now. Every key of the file is on [How a plugin is built](/plugins/resources/#resourcetoml).
 
 ## 3. The server half
 
-`server/main.lua` runs once, when the server loads the resource. The code at the top level
-subscribes to events; the server calls the handlers later, as things happen.
+`server/main.lua` runs once, when the server loads the plugin. Top-level code subscribes to events; the server calls the handlers later, when something happens.
 
 <!-- doctest: server+client -->
 ```lua
@@ -63,31 +57,25 @@ node.on("playerLeft", sayGoodbye)
 -- expect: Alice left: \S
 ```
 
-- `node.log` writes to the server's console under the resource's name. Extra arguments work like
-  `string.format`.
-- `node.on(name, handler)` subscribes to an event. `playerJoined` passes a `Player` object: `name`
-  and `id` are fields, `tell` and `kick` are methods.
-- `player:tell` puts a system line into that player's chat. Chat is part of the server, so this works
-  with no other resource installed.
+- `node.log` writes to the server console under the plugin's name. Extra arguments work as in `string.format`.
+- `node.on(name, handler)` subscribes a function to an event. `playerJoined` passes a `Player` object: `name` and `id` are fields, `tell` and `kick` are methods.
+- `player:tell` writes a system line into that player's chat. Chat is built into the server, so this works without any other plugin.
 - `playerLeft` also gets the reason the session ended.
 
-## 4. Start it
+## 4. Start the server
 
-Start the server. The console shows your log line and then the server's line about the resource:
+Start the server. The console shows your line, then the server's line about the plugin:
 
 ```text
 greeter · greeter loaded
 greeter v1.0 loaded — lua · server 1 file · 0 client files
 ```
 
-Join from the launcher, and the console says `greeter · Alice joined` while your chat shows the
-greeting.
+Join the server. The console shows `greeter · <your name> joined` and the chat shows the greeting.
 
 ## 5. A chat command
 
-Chat commands are ordinary chat lines that start with `/`. Every line passes through
-`chatMessageRequest` before the server sends it on. A handler that recognises its command answers
-`{ handled = true }`: the line isn't shown to anyone, and the resource replies itself.
+Commands are ordinary chat lines that start with `/`. Every line passes through `chatMessageRequest` before the server sends it on. A handler that knows its command returns `{ handled = true }`: nobody sees the line, and the plugin sends its own reply.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
@@ -106,19 +94,18 @@ node.on("chatMessageRequest", answerOnline)
 -- expect-client: Alice chat:msg .*Online \(1\): Alice
 ```
 
-A line that isn't `/online` gets no answer from the handler (`return` with nothing), so it goes to
-the chat as usual. More about commands is on [Chat and commands](/plugins/chat/).
+For any other line the handler returns nothing (a bare `return`), so the line goes to chat as usual. More on commands: [Chat and commands](/plugins/chat/).
 
 ## 6. Settings
 
-Settings the host may change go into the `[config]` table of `resource.toml`:
+Settings the host can change go in the `[config]` table of `resource.toml`:
 
 ```toml
 [config]
 greeting = "Hello from the docs"
 ```
 
-The resource reads them as `node.config`:
+The plugin reads them as `node.config`:
 
 <!-- doctest: server+client {"config": {"greeting": "Hello from the docs"}} -->
 ```lua
@@ -133,13 +120,11 @@ node.on("playerJoined", greetFromConfig)
 -- expect-client: Alice chat:msg .*Hello from the docs, Alice!
 ```
 
-`node.config` is read once, when the resource loads. After changing the file, reload the resource
-([below](#8-reload-it)).
+`node.config` is read once, when the plugin loads. After you edit the file, reload the plugin ([below](#8-reload-the-plugin)).
 
 ## 7. The client half
 
-Everything in `client/` goes to every player on join and runs inside the game. Let the server send
-the player an event on join:
+Files in `client/` run in the game of every player ([Client scripts](/plugins/client-scripting/)). Let the server send the player an event when they join:
 
 <!-- doctest: server+client -->
 ```lua
@@ -152,8 +137,7 @@ node.on("playerJoined", sendHello)
 -- expect-client: Alice greeter:hello .*Welcome, Alice
 ```
 
-`player:send(name, data)` sends a **wire event** to that player; a table is turned into JSON. Create
-`client/main.lua`: it catches the event, shows the text on screen and reports back.
+`player:send(name, data)` sends a wire event to that player, and a table becomes JSON. Create `client/main.lua`: it catches the event, shows the text on screen and answers the server.
 
 <!-- doctest: client -->
 ```lua
@@ -166,9 +150,7 @@ end
 node.on("greeter:hello", showHello)
 ```
 
-On the client, a handler gets the data as the string the server sent, so it's decoded with the
-game's `jsonDecode`. `ui_message` is the game's own on-screen message. `node.emitServer` sends a
-wire event back, again as a string. The server half picks it up:
+On the client a handler gets the data as a string, exactly as the server sent it, so the game function `jsonDecode` parses it. `ui_message` is a game function that shows a message on screen. `node.emitServer` sends a wire event back, also as a string. The server half receives it:
 
 <!-- doctest: server+client {"emit": [["greeter:seen", "Welcome, Alice"]]} -->
 ```lua
@@ -181,29 +163,24 @@ node.on("greeter:seen", logSeen)
 -- expect: Alice saw: Welcome, Alice
 ```
 
-Any event name that isn't one of the server's own is a wire event. Name them `<resource>:<what>`,
-in lower case, so two resources don't collide. [Client scripts](/plugins/client-scripting/) has
-the rest of the client side.
+Name wire events `<plugin>:<what>`, in lower case ([Events](/plugins/events/#kinds-of-events)).
 
-## 8. Reload it
+## 8. Reload the plugin
 
-You don't need to restart the server after changing the server half. Type in the server console:
+After changing the server half you don't need to restart the server. Type in the server console:
 
 ```text
 reload greeter
 ```
 
-The resource stops (its handlers and timers are dropped) and loads again from its folder. Client
-files are packed when the server starts, so changes to `client/` reach players after a restart.
+The plugin loads again from its folder. Changes in `client/` reach players only after a server restart ([How a plugin is built](/plugins/resources/#reloading)).
 
 ## 9. When something breaks
 
-An error in a handler doesn't stop the server or the resource: the server logs it with the file, the
-line and a traceback, and goes on.
+An error in a handler stops neither the server nor the plugin. The server logs it with the file, line and traceback, and calls the handler again on the next event.
 
 ```text
 greeter · error in builtin 'playerJoined': …/server/main.lua:4: attempt to …
 ```
 
-The other handlers keep working, and the same handler runs again on the next event. A syntax error
-in `main.lua` shows up the same way when the resource loads.
+How this line looks for timers, coroutines and load errors: [API conventions](/plugins/conventions/#errors-in-handlers).
