@@ -1,26 +1,23 @@
 ---
 title: Storage and files
-description: Keeping data across restarts with node.storage, reading and writing files in the resource folder, safe writes, watching a file, and when to use a database instead.
+description: Keeping data with node.storage, files in the plugin's folder, safe writes, watching a file, and when a database fits better.
 ---
 
-Lua variables live as long as the resource: a reload or a restart clears them. Data that must last
-goes into storage, into files, or into a [database](/plugins/database/).
+Lua variables are lost when a plugin reloads or the server restarts. Put what must survive in `node.storage`, in files or in a [database](/plugins/database/).
 
 ## node.storage
 
-Every resource has a key-value store of its own, in the `storage/` folder of the server's working
-directory: `<resource>.json` with the data and `<resource>.log` with the changes since. Values are
-anything JSON can hold: numbers, strings, booleans, tables. Every `set` is on disk before it returns,
-so a crash doesn't lose it.
+Each plugin has its own key-value store in the `storage/` folder of the server's working directory: `<plugin name>.json` holds the data and `<plugin name>.log` the changes made since. Values are stored as JSON, so they can be numbers, strings, booleans and tables. Each `set` is on disk before it returns, so a server crash doesn't lose it. A power cut isn't covered.
 
 | Call | What it does |
 |---|---|
-| `node.storage.get(key, default)` | The stored value, or `default` when there is none. |
-| `node.storage.set(key, value)` | Stores the value. |
-| `node.storage.delete(key)` | Removes the key. |
+| `node.storage.get(key, default)` | The stored value, or `default` if there is none. |
+| `node.storage.set(key, value)` | Stores the value; `false` if the key is unsuitable or the write to disk failed. |
+| `node.storage.delete(key)` | Removes the key; `false` if there is no such key. |
 
-Counting a player's visits, keyed by the account so it follows the player across names and
-addresses:
+A key is a non-empty string of at most 256 bytes. You choose the keys, and a prefix keeps them apart: `visits:42`, `settings`.
+
+A visit counter keyed by account doesn't depend on the player's name or address:
 
 <!-- doctest: server+client -->
 ```lua
@@ -37,7 +34,7 @@ node.on("playerJoined", countVisit)
 -- expect-client: Alice chat:msg .*Visit number \d+
 ```
 
-A table goes in and comes out whole:
+A table is stored and returned whole:
 
 <!-- doctest: server -->
 ```lua
@@ -49,24 +46,25 @@ node.log("laps=%d track=%s", race.laps, race.track)
 -- expect: laps=3 track=west
 ```
 
-The whole store is kept in memory, and you can only look things up by key. That suits settings,
-counters and per-player records. Data you want to search, sort or share between servers belongs in a
-database.
+The whole store lives in memory and can only be searched by key. That is fine for settings, counters and per-player records. Data you need to search, sort or share between servers belongs in a database.
 
-## Files in the resource folder
+## Files in the plugin's folder
 
-`node.fs` reads and writes files inside the resource's own folder. A path is relative to that folder,
-with forward slashes; a path that leads outside it is refused.
+`node.fs` reads and writes files inside the plugin's own folder. A path counts from that folder and uses forward slashes. The server refuses an absolute path and a `..` step.
 
 | Call | What it does |
 |---|---|
 | `node.fs.read(path)` | The file's contents, or `nil`. |
-| `node.fs.write(path, data)` | Writes the file, creating folders on the way. |
-| `node.fs.list(path)` | The folder's entries: `name`, `dir`, `size`. |
+| `node.fs.write(path, data)` | Writes the file, creating folders along the path. |
+| `node.fs.list(path)` | The folder's contents as records with `name`, `dir` and `size`. |
 | `node.fs.exists(path)` | `"file"`, `"dir"` or `nil`. |
-| `node.fs.mkdir(path)` | Creates a folder and its parents. |
-| `node.fs.remove(path, recursive)` | Deletes a file, or a folder. |
+| `node.fs.stat(path)` | `{ dir, size, mtime }`, or `nil` and the reason `"outside"` or `"not found"`. |
+| `node.fs.mkdir(path)` | Creates a folder together with its parents. |
+| `node.fs.remove(path, recursive)` | Deletes a file or an empty folder; a folder with contents only with `recursive = true`. |
 | `node.fs.rename(from, to)` | Renames or moves, replacing the target. |
+| `node.fs.copy(from, to)` | Copies a file, replacing the target. |
+
+For paths there are `node.fs.join`, `node.fs.dirname`, `node.fs.basename` and `node.fs.extension`.
 
 <!-- doctest: server -->
 ```lua
@@ -80,8 +78,7 @@ node.log("read back: %s", back.ok and "ok" or "?")
 -- expect: read back: ok
 ```
 
-`node.fs.write` isn't atomic: a crash in the middle leaves half a file. When that matters, write to a
-temporary name and rename, which replaces the old file in one step:
+`node.fs.write` isn't atomic: if the server crashes in the middle of a write, half a file remains. When that matters, write to a temporary file and rename it: renaming replaces the old file in one step.
 
 <!-- doctest: server -->
 ```lua
@@ -96,13 +93,11 @@ node.log("saved: %s", tostring(saveFile("state.json", "{}")))
 -- expect: saved: true
 ```
 
-For a big file that would hold the worker up, `node.fs.writeAsync(path, data, done)` writes on a
-background thread and calls `done(ok)` afterwards.
+For a big file whose write would hold up the worker thread, use `node.fs.writeAsync(path, data, done)`: it writes on a background thread and then calls `done(ok)`.
 
 ## Watching a file
 
-`node.fs.watch(path, fn)` calls `fn(path, "changed")` or `fn(path, "removed")` within about a second
-of a change. Handy for a list the host edits by hand while the server runs:
+`node.fs.watch(path, fn)` calls `fn(path, "changed")` or `fn(path, "removed")` about a second after a change. It suits a list the host edits by hand while the server runs:
 
 <!-- doctest: server -->
 ```lua
@@ -121,4 +116,4 @@ node.after(1500, writeNotes)
 -- expect: notes.txt changed
 ```
 
-`node.fs.unwatch(id)` stops a watch; watches end with the resource.
+`node.fs.watch` returns a watch id, and `node.fs.unwatch(id)` stops that watch. A plugin can have at most 64 watches; the next call returns `nil, "limit"`. Watches end when the plugin unloads.
