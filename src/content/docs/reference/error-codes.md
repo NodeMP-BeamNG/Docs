@@ -40,7 +40,7 @@ A notification has a title that names the step and, under it, the reason; the ta
 | *Could not connect* · `Could not reach the server` | Nothing answers at that address: the server is off, its port is closed, or a firewall is in the way. | Refresh the list. If it's your server, check that the port is open for TCP and UDP. |
 | *Could not connect* · `DNS Lookup Failed` | The name you entered in Direct Connect can't be found. | Check the spelling or enter the IP address. |
 | *Could not connect* · `server certificate fingerprint mismatch` | The server's certificate isn't the one the launcher expected: for a listed server, the one NodeMP knows; for an unlisted one, the one the launcher remembered on the first connection. | Ask the host: they may have reinstalled the server. If the server isn't listed, delete its line from `known_servers.json` in the launcher's cache folder. |
-| *Could not connect* · `TLS handshake failed: …`, `server presented no certificate` | Something other than a NodeMP server answered, or the connection broke during the handshake. | Check the address and port and try again. Through a VPN: [A bad connection](/players/connection/#connection-error-messages). |
+| *Could not connect* · `TLS handshake failed: …`, `server presented no certificate` | Something other than a NodeMP server answered, or the connection broke during the handshake. | Check the address and port and try again. Through a VPN: [A bad connection and VPNs](/players/connection/#connection-error-messages). |
 
 ### Downloading the server's mods
 

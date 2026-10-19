@@ -83,7 +83,7 @@ description: Все настройки сервера по таблицам, с 
 | `[queue]` | `enabled` | bool | `true` | `NODE_QUEUE_ENABLED` | Когда сервер заполнен, игроки с аккаунтом ждут в [очереди на вход](/ru/hosting/join-queue/), а не получают отказ. Работает только на сервере в списке (`[listing] url`): там проверяются аккаунты. |
 | `[queue]` | `max_waiting` | int | `50` | `NODE_QUEUE_MAX_WAITING` | Сколько игроков может ждать одновременно, от 0 до 1000. `0` значит, что не ждёт никто. |
 | `[queue]` | `max_waiting_per_ip` | int | `1` | `NODE_QUEUE_MAX_WAITING_PER_IP` | Сколько может ждать с одного адреса, от 1 до 1000. Адреса из `[network] connection_limit_exempt` не ограничены. |
-| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | Сколько ждущих скачивают моды одновременно, от 1 до 64, по порядку очереди. Загрузки тех, кто входит на свободное место, тоже считаются и идут первыми. |
+| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | Сколько ждущих скачивают моды одновременно, от 1 до 64, по порядку очереди. |
 | `[queue]` | `max_no_shows` | int | `3` | `NODE_QUEUE_MAX_NO_SHOWS` | После стольких неявок за `no_show_window_min` аккаунт не может встать в очередь на `no_show_bar_min` минут. Неявка значит, что игрок получил место и ушёл, не дойдя до мира. `0` отключает запрет. |
 | `[queue]` | `no_show_window_min` | int | `60` | `NODE_QUEUE_NO_SHOW_WINDOW_MIN` | За сколько минут считаются неявки, от 1 до 10080. |
 | `[queue]` | `no_show_bar_min` | int | `30` | `NODE_QUEUE_NO_SHOW_BAR_MIN` | На сколько минут очередь закрывается для такого аккаунта, до 10080. `0` значит, что не закрывается. |

@@ -47,7 +47,7 @@ If you have written plugins for BeamMP or KissMP, most of what you know still ap
 | `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)` or `node.broadcast` |
-| `MP.TriggerGlobalEvent` | `node.bus.call`, which returns the handlers' answers, or `node.bus.emit` if no answer is needed ([The bus](/plugins/bus/#asking-and-answering)) |
+| `MP.TriggerGlobalEvent` | `node.bus.call`, which returns the handlers' answers, or `node.bus.emit` if no answer is needed ([The bus between plugins](/plugins/bus/#asking-and-answering)) |
 | `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)`; `CallStrategy.Precise` is `node.every(ms, fn, { precise = true })` |
 | `onConsoleInput` | `node.console.command(name, fn)` or the `consoleInput` event for whole lines |
 | `MP.Sleep` | `node.sleep(ms)` inside `node.async`, without blocking |

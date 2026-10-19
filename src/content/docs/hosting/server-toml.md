@@ -82,11 +82,11 @@ The client mod holds back other players' new cars and changes so that the game d
 queue = "off"            # or: queue = "allow" and queue_max_delay_sec = 10
 ```
 
-A plugin can also switch this during a session and build everything before a start ([plugin API](/plugins/players-and-vehicles/)). `edit_interval_sec` and `spawn_interval_sec` cut the number of rebuilds further ([settings reference](/hosting/configuration/#vehicles)).
+A plugin can also switch this during a session and build everything before a start ([Players and vehicles](/plugins/players-and-vehicles/)). `edit_interval_sec` and `spawn_interval_sec` cut the number of rebuilds further ([Settings reference](/hosting/configuration/#vehicles)).
 
 ### Bad connections
 
-A player who is silent for `lag_grace_sec` seconds counts as lagging, and after `disconnect_sec` the player is disconnected ([settings reference](/hosting/configuration/#network)). For players on mobile data or a VPN, allow more time:
+A player who is silent for `lag_grace_sec` seconds counts as lagging, and after `disconnect_sec` the player is disconnected ([Settings reference](/hosting/configuration/#network)). For players on mobile data or a VPN, allow more time:
 
 ```toml
 [network]
@@ -119,8 +119,8 @@ A few variables aren't settings:
 | `--working-directory=DIR` | The working directory: every relative path starts there, including the path in `--config`. |
 | `--version` | Print the version and exit. |
 | `--help` | Print the help and exit. |
-| `--gen-integrity GAMEDIR` | Make the reference manifest for the strict check ([more](/hosting/strict-verification/#make-the-manifest)). |
-| `--bans list`, `--bans remove …` | Show or lift bans while the server is stopped ([more](/hosting/administration/#bans)). |
+| `--gen-integrity GAMEDIR` | Make the reference manifest for the strict check ([Strict file check](/hosting/strict-verification/#make-the-manifest)). |
+| `--bans list`, `--bans remove …` | Show or lift bans while the server is stopped ([Console, kicks and bans](/hosting/administration/#bans)). |
 | `--obf-selftest` | Check that the obfuscator works. |
 
 A value may also follow its option after a space: `--port 30815`. To run two servers on one machine, give each its own working directory and port:

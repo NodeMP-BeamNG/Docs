@@ -36,7 +36,7 @@ The handlers of all plugins run one after another on a single thread, so a slow 
 
 1. [Your first plugin](/plugins/getting-started/): from an empty folder to a chat command and a client half.
 2. [How a plugin is built](/plugins/resources/): files, `resource.toml`, reloading, load errors.
-3. The topics, in order: [events](/plugins/events/), [players and vehicles](/plugins/players-and-vehicles/), [chat](/plugins/chat/), [timers](/plugins/concurrency/), [storage](/plugins/storage/), [the database](/plugins/database/), [HTTP](/plugins/http/), [the bus](/plugins/bus/), [client scripts](/plugins/client-scripting/), [API conventions](/plugins/conventions/).
+3. The topics, in order: [Events](/plugins/events/), [Players and vehicles](/plugins/players-and-vehicles/), [Chat and commands](/plugins/chat/), [Timers and coroutines](/plugins/concurrency/), [Storage and files](/plugins/storage/), [The db module](/plugins/database/), [HTTP requests](/plugins/http/), [The bus between plugins](/plugins/bus/), [Client scripts](/plugins/client-scripting/), [API conventions](/plugins/conventions/).
 4. [The example plugins](/plugins/examples/): ready-made plugins from the server archive.
 5. [Moving from other platforms](/plugins/migrating/): if you have written plugins for another multiplayer mod.
 

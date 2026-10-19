@@ -62,7 +62,7 @@ A manifest describes one game version. When BeamNG updates, the server stops let
 
 A clean install joins as usual. What the launcher shows on a mismatch and what the player does: [When something breaks](/players/troubleshooting/#a-strict-server-refuses-you).
 
-During play the launcher checks again when files change, and the server asks for a check every `[integrity] recheck_sec` seconds, by default every ten minutes ([settings reference](/hosting/configuration/#integrity)). If a mismatch is found, the session ends. Checks during a session don't recompute the game's programs: a replaced library takes effect only after the game restarts, and the next join checks the programs again.
+During play the launcher checks again when files change, and the server asks for a check every `[integrity] recheck_sec` seconds, by default every ten minutes ([Settings reference](/hosting/configuration/#integrity)). If a mismatch is found, the session ends. Checks during a session don't recompute the game's programs: a replaced library takes effect only after the game restarts, and the next join checks the programs again.
 
 ## For plugin authors
 

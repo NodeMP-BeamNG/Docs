@@ -47,7 +47,7 @@ cars_per_player = 2
 
 The map is the path to its `info.json`: `/levels/<map folder>/info.json`. To use a map of your own, see [Mods and maps](/hosting/mods/). `max_players` is how many players the server takes, and `cars_per_player` how many cars each of them can have.
 
-Save the file and restart the server. The other settings are in [Configuring the server](/hosting/server-toml/) and the [settings reference](/hosting/configuration/). In Docker there is no file; the same settings are environment variables ([Server in Docker](/hosting/docker/)).
+Save the file and restart the server. The other settings are in [Configuring the server](/hosting/server-toml/) and [Settings reference](/hosting/configuration/). In Docker there is no file; the same settings are environment variables ([Server in Docker](/hosting/docker/)).
 
 ## Join your server
 

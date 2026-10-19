@@ -23,7 +23,7 @@ description: Чему в NodeMP соответствуют понятия BeamMP
 |---|---|
 | Серверные плагины в `Resources/Server/<плагин>/` | `resources/<имя>/`, точка входа `server/main.lua` |
 | Клиентские моды в `Resources/Client/` | Zip-моды в `content/`; Lua для игры в `resources/<имя>/client/` |
-| `ServerConfig.toml` | `server.toml` ([Настройки сервера](/ru/hosting/configuration/)) |
+| `ServerConfig.toml` | `server.toml` ([Справочник настроек](/ru/hosting/configuration/)) |
 | Собственный файл настроек плагина | Таблица `[config]` в `resource.toml`, читается как `node.config` |
 
 ## Понятия BeamMP в NodeMP
@@ -47,7 +47,7 @@ description: Чему в NodeMP соответствуют понятия BeamMP
 | `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)` или `node.broadcast` |
-| `MP.TriggerGlobalEvent` | `node.bus.call`, он возвращает то, что вернули обработчики, или `node.bus.emit`, если отвечать никому не нужно ([Шина](/ru/plugins/bus/#запрос-и-ответ)) |
+| `MP.TriggerGlobalEvent` | `node.bus.call`, он возвращает то, что вернули обработчики, или `node.bus.emit`, если отвечать никому не нужно ([Шина между плагинами](/ru/plugins/bus/#запрос-и-ответ)) |
 | `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)`; `CallStrategy.Precise` соответствует `node.every(ms, fn, { precise = true })` |
 | `onConsoleInput` | `node.console.command(name, fn)` или событие `consoleInput` для целых строк |
 | `MP.Sleep` | `node.sleep(ms)` внутри `node.async`, без блокировки |

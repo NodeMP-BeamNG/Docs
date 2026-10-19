@@ -54,7 +54,7 @@ While the server is listed, every join is checked: the player's launcher brings 
 
 ## How the server looks in the list
 
-The other `[listing]` keys set the server's card and whom it lets in ([settings reference](/hosting/configuration/#listing)):
+The other `[listing]` keys set the server's card and whom it lets in ([Settings reference](/hosting/configuration/#listing)):
 
 ```toml
 [listing]
