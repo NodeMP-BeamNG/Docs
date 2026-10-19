@@ -34,11 +34,13 @@ local M = {}
 
 local shown = 0
 
-node.on("race:start", function(data)
+local function showRace(data)
     local race = jsonDecode(data)
     ui_message("Race: " .. race.laps .. " laps", 5, "race")
     shown = 0
-end)
+end
+
+node.on("race:start", showRace)
 
 function M.onUpdate(dt)
     shown = shown + dt
@@ -105,7 +107,7 @@ leaves.
 <!-- doctest: client -->
 ```lua
 -- client/modScript.lua
-load("race_core")      -- the resource's: client/lua/ge/extensions/race/core.lua
+load("race_core")      -- the plugin's: client/lua/ge/extensions/race/core.lua
 load("bigmap_sounds")  -- the game's: an extension of a mod in content/
 ```
 
@@ -124,11 +126,13 @@ The server side of the same conversation:
 
 <!-- doctest: server+client {"emit": [["race:ready", "{\"car\": \"pickup\"}"]]} -->
 ```lua
-node.on("race:ready", function(player, data)
+local function startRace(player, data)
     local ready = node.json.decode(data)
     node.log("%s is ready in a %s", player.name, ready.car)
     player:send("race:start", { laps = 3 })
-end)
+end
+
+node.on("race:ready", startRace)
 
 -- expect: Alice is ready in a pickup
 -- expect-client: Alice race:start .*"laps":3
@@ -178,12 +182,14 @@ the session: they show as **Set by the server** and go back to the player's own 
 
 <!-- doctest: server+client {"emit": [["modules:request", ""]]} -->
 ```lua
-node.on("modules:request", function(player)
+local function answerModulesRequest(player)
     player:send("modules:manifest", { modules = {
         nametags = { enabled = true, config = { maxDistance = 40 } },
         settings = { config = { ["nodemp.chat.visibleLines"] = 4 } },
     } })
-end)
+end
+
+node.on("modules:request", answerModulesRequest)
 
 -- expect-client: Alice modules:manifest .*maxDistance
 ```
