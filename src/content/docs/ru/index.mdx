@@ -31,7 +31,8 @@ import SectionGrid from '../../../components/SectionGrid.astro';
           { href: '/ru/players/join/', text: 'Как зайти на сервер' },
         ]},
         { label: 'Когда понадобится', links: [
-          { href: '/ru/players/settings/', text: 'Настройки и управление' },
+          { href: '/ru/players/in-game/', text: 'В игре' },
+          { href: '/ru/players/settings/', text: 'Настройки' },
           { href: '/ru/players/connection/', text: 'Плохое соединение и VPN' },
           { href: '/ru/players/troubleshooting/', text: 'Если что-то не работает' },
         ]},
@@ -43,11 +44,12 @@ import SectionGrid from '../../../components/SectionGrid.astro';
       groups: [
         { label: 'С чего начать', links: [
           { href: '/ru/hosting/quick-start/', text: 'Запуск сервера' },
-          { href: '/ru/hosting/registering/', text: 'Попасть в список' },
+          { href: '/ru/hosting/registering/', text: 'Попасть в список серверов' },
           { href: '/ru/hosting/mods/', text: 'Моды и карты' },
         ]},
         { label: 'Каждый день', links: [
-          { href: '/ru/hosting/configuration/', text: 'Настройки сервера' },
+          { href: '/ru/hosting/server-toml/', text: 'Настройка сервера' },
+          { href: '/ru/hosting/configuration/', text: 'Справочник настроек' },
           { href: '/ru/hosting/administration/', text: 'Консоль, кики и баны' },
           { href: '/ru/hosting/updating/', text: 'Обновление сервера' },
         ]},
@@ -55,10 +57,10 @@ import SectionGrid from '../../../components/SectionGrid.astro';
     },
     {
       title: 'Разработка плагинов',
-      lede: 'Ресурсы на Lua, а когда нужно — JavaScript и C.',
+      lede: 'Плагины на Lua, а когда нужно, на JavaScript или в нативных модулях.',
       groups: [
         { label: 'С чего начать', links: [
-          { href: '/ru/plugins/getting-started/', text: 'Первый ресурс' },
+          { href: '/ru/plugins/getting-started/', text: 'Первый плагин' },
           { href: '/ru/plugins/events/', text: 'События' },
           { href: '/ru/plugins/examples/', text: 'Примеры плагинов' },
         ]},
@@ -71,11 +73,12 @@ import SectionGrid from '../../../components/SectionGrid.astro';
     },
     {
       title: 'Справочник',
-      lede: 'Сообщения, короткие ответы и слова, которыми пользуется документация.',
+      lede: 'Сообщения, короткие ответы, сетевой протокол и слова, которыми пользуется документация.',
       groups: [
         { label: 'Под рукой', links: [
           { href: '/ru/reference/error-codes/', text: 'Сообщения об ошибках' },
           { href: '/ru/reference/faq/', text: 'Частые вопросы' },
+          { href: '/ru/reference/protocol/', text: 'Сетевой протокол' },
         ]},
         { label: 'Для понимания', links: [
           { href: '/ru/introduction/what-is-nodemp/', text: 'Что такое NodeMP' },

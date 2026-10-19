@@ -1,130 +1,90 @@
 ---
 title: Console, kicks and bans
-description: The server console's commands, kicking and banning players, lifting a ban, restarting with a warning, and what to look for in the log.
+description: The server console's commands, how to kick and ban a player, lift a ban, restart the server with a warning and what to look for in the log.
 ---
 
 ## The console
 
-A server started in a terminal takes commands right in its window. On Windows that's the
-`Node-Server.exe` window, on Linux the terminal you started it from.
+A server started in a terminal takes commands right in its window. On Windows that is the `Node-Server.exe` window, on Linux the terminal you started it from.
 
 | Command | What it does |
 |---|---|
-| `help` | Lists the commands. |
-| `status` | Version, uptime, players, cars, resources, memory. |
-| `players` | Everyone on the server: id, name, ping, cars and address (with its last part hidden). |
-| `kick <id\|name> [reason]` | Disconnects a player, who sees the reason. A name with spaces goes in quotes. |
-| `say <text>` | A system line in every player's chat. |
-| `reload <resource>` | Runs a resource again. |
-| `stop` | Stops the server. `exit` and `quit` do the same. |
+| `help` | The list of commands. |
+| `status` | Version, uptime, players, cars, plugins, memory. |
+| `players` | Everyone on the server: id, name, ping, cars and address (the last part is hidden). |
+| `kick <id\|name> [reason]` | Disconnect a player and show them the reason. Put a name with spaces in quotes. |
+| `say <text>` | A system message in the chat for all players. |
+| `reload <resource>` | Restart a plugin. |
+| `stop` | Stop the server. `exit` and `quit` do the same. |
 
-Resources can add commands of their own; `help` lists them under "from resources:", each with the
-resource it comes from. A word nobody takes is answered `unknown command, try help`.
+Plugins can add commands of their own, and `help` lists them under `from resources:` with the name of the plugin. Input that no command takes gets the answer `unknown command, try help`.
 
-Without a reason, a kicked player sees `Kicked by the server`. Players can't reach the console: a
-`/kick 1` typed in chat is an ordinary chat line. It becomes a command only if a resource takes it
-as one.
+A player kicked without a reason sees `Kicked by the server`. Players have no access to the console: a `/kick 1` typed in chat stays a chat line until some plugin takes it.
 
-Under systemd and in Docker without a terminal, the console is off. The [Linux](/hosting/linux/#a-systemd-service)
-and [Docker](/hosting/docker/#the-console) pages say how to turn it on.
+A systemd service has no console ([A systemd service](/hosting/linux/#a-systemd-service)). In Docker the console appears if you give the container a terminal ([The console](/hosting/docker/#the-console)).
 
 ### The chat in the console
 
-The console shows the chat as players write, with each player's id:
+The console shows the chat as players write, with the player's id:
 
-```
+```text
 17:51:12.345  Chat   › (0) Alice: hello
 17:51:16.000  Chat   › System -> all: Restart in 5 minutes  [console]
 ```
 
-A line that wasn't sent says why, and a line a resource took as its command is marked
-`[handled by a resource]`. The arguments of commands that take a password (`/login`, `/register` and
-the others in `[chat] masked_commands`) show as `***`. `[chat] log = false` keeps the chat
-out of the console and the log.
+If a line wasn't sent, the reason is written beside it, and a line that a plugin took as a command is marked `[handled by a resource]`. The arguments of commands with passwords (`/login`, `/register` and the others in `[chat] masked_commands`) are replaced with `***`. `[chat] log = false` takes the chat out of the console and the log.
 
 ## Kicks and bans
 
-Kicking is the console command above. There is no ban command in the console: bans come from
-resources, such as a `/ban` command for moderators ([example](/plugins/chat/#commands-for-moderators)).
+You can kick from the console with the command above. There is no ban command in the console: plugins ban, for example with a `/ban` command for moderators ([example](/plugins/chat/)).
 
 ### Bans
 
-Bans are kept in `bans.json` in the working directory. It's one JSON object: each key is a banned
-address, a NodeMP account as `nodemp:<id>` or a launcher installation as `install:<id>` (64 hex
-digits), and each value holds the reason, the time and the player's name:
+Bans are kept in `bans.json` in the working directory, as one JSON object. A record's key names what is blocked: an address, a NodeMP account as `nodemp:<id>`, or a launcher installation as `install:<id>` (64 hexadecimal digits). The value holds the reason, the time and the player's name:
 
 ```json
 {
-  "203.0.113.7": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
-  "nodemp:108": { "reason": "Spamming", "at": 1789558100, "name": "Bob" },
-  "install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff00f1d6c166d39f57fd4": { "reason": "Spamming", "at": 1789558100, "name": "Bob" }
+  "203.0.113.7": { "reason": "Spam", "at": 1789558100, "name": "Bob" },
+  "nodemp:108": { "reason": "Spam", "at": 1789558100, "name": "Bob" },
+  "install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff00f1d6c166d39f57fd4": { "reason": "Spam", "at": 1789558100, "name": "Bob" }
 }
 ```
 
-A timed ban also has `"until"`, the moment it ends in Unix seconds. When it comes, the server lifts
-the ban by itself.
+A timed ban also has the field `"until"`: the end time in Unix seconds. When it comes, the server removes the ban by itself.
 
-Banning a player who is on the server bans their address and, if they're signed in, their account,
-so the ban follows them to another network. It also bans their launcher installation when the
-launcher reports one, so that launcher is refused with any account and in Test Drive. The
-installation's id is this server's own (other servers know the same launcher by other ids) and
-changes when NodeMP rotates its key, after which a ban on the old id no longer matches. A banned
-player trying to join sees the reason, or `You are banned from this server` when there is none.
+Banning a player who is on the server blocks their address and, if they are signed in, their account, so the ban works from another network too. On a listed server it also blocks the player's launcher installation, whose id the server gets from NodeMP when the player joins: that launcher can't join with any account or in Test Drive. The installation id is different on each server (other servers know the same launcher by other ids) and changes when NodeMP changes its key, after which a ban on the old id no longer matches. A banned player sees the reason when joining, or `You are banned from this server` if there is none.
 
-NodeMP can also ban an account from every server at once. Such a player gets no join ticket for any
-listed server, and one already playing is disconnected at the server's next report to NodeMP with
-`This account is banned from NodeMP`.
+NodeMP can ban an account on every server at once. Such a player gets no join ticket for any listed server, and a player who is already playing is disconnected at the server's next report to NodeMP, with `This account is banned from NodeMP`.
 
-To lift a ban, **stop the server** and run:
+To lift a ban, stop the server and run:
 
-```
+```text
 Node-Server --bans list
 Node-Server --bans remove 203.0.113.7
 Node-Server --bans remove nodemp:108
 Node-Server --bans remove install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff00f1d6c166d39f57fd4
 ```
 
-`list` shows every ban, `remove` lifts one: by address, by `nodemp:<id>` or a bare account
-number, or by `install:<id>`. Editing the file by hand works too, also with the server stopped. A
-running server keeps the list in memory and overwrites the file on the next ban.
+`list` shows all bans, and `remove` lifts one: by address, by `nodemp:<id>` or the bare account number, or by `install:<id>`. You can also edit the file by hand, but only while the server is stopped. A running server keeps the list in memory and rewrites the file at the next ban.
 
 ## Restarting with a warning
 
-`stop` sends everyone away at once. To warn players first, a resource schedules the stop:
-`node.server.shutdown("Nightly restart", 5 * 60 * 1000)` stops the server in five minutes. Players
-see that reason, resources save their data and the server exits with code 0. A systemd service with
-`Restart=always` or a container with `restart: unless-stopped` starts it again, so this is a
-restart. [Timers and coroutines](/plugins/concurrency/#a-restart-with-a-countdown) has an example
-with a countdown in chat.
+`stop` disconnects everyone at once. To warn players first, a plugin schedules the restart: the call `node.server.shutdown("Nightly restart", 5 * 60 * 1000)` stops the server in five minutes. Players see that reason, plugins save their data and the server exits with code 0. A systemd service with `Restart=always` or a container with `restart: unless-stopped` then starts it again. An example with a countdown in chat: [Timers and coroutines](/plugins/concurrency/).
 
 ## The log
 
-Everything the server prints also goes to `logs/server.log`, and the file has more. The console
-shows what you act on: joins and leaves, spawns, refusals, chat, warnings and errors. Statistics and
-housekeeping, such as the `netstats` lines, seat changes and failed connection attempts, go only to
-the file, unless `[logs] details = true` puts them on the console too. A new file starts at every
-start and when the old one grows past 50 MB. Five old ones are kept as `server.1.log`,
-`server.2.log` and so on (`[logs] max_size_mb`, `keep`).
+Everything the server writes to the console also goes to `logs/server.log`, and the file has more. The console shows what needs a reaction: joins and leaves, spawns, refusals, chat, warnings and errors. Statistics and housekeeping lines, such as `netstats`, go only to the file unless `[logs] details = true`. The server starts a new file at every start and when the current one grows past 50 MB, and keeps five old ones as `server.1.log`, `server.2.log` and so on (`[logs] max_size_mb` and `keep`).
 
-Lines worth knowing:
+The main lines of the log:
 
 | Line | What it means |
 |---|---|
-| `server is ready` | The server started completely. |
-| `started, but … failed — what they do may not work` | A part didn't start. The lines above say why. |
+| `server is ready` | The server has fully started. |
+| `started, but … failed — what they do may not work` | Some part didn't start ([The server won't start](/hosting/troubleshooting/#the-server-wont-start)). |
 | `listed in the server browser` | The server is in the list ([Get listed](/hosting/registering/)). |
-| `<name> kicked — <reason>` | The server refused a player or ended their session, in the words the player saw. |
-| `netstats id=… rtt=… loss=…` | In the file, every 15 seconds for each player: ping, traffic, losses. Useful when a player says it lags. |
+| `<name> kicked — <reason>` | The server refused a player or ended their session, in the same words the player saw. |
+| `netstats id=… rtt=… loss=…` | In the file, every 15 seconds for each player: ping, traffic, loss ([A player says it lags](/hosting/troubleshooting/#a-player-says-it-lags)). |
 
 ## A player can't get in
 
-The player usually sends you the launcher's message. Every message is on
-[Error messages](/reference/error-codes/). What to check on your side:
-
-- The log has every refusal and kick under the `Kick` tag, in the words the player saw.
-- `Connection refused` with nothing else: a resource turned the player away without a reason. Look
-  for lines with that resource's name.
-- A ban: the entry is in `bans.json`, [see above](#bans).
-- Anything about game files: the `[integrity] verify` level ([Strict file check](/hosting/strict-verification/)).
-- Several players from one place can't get in: see
-  [When the server misbehaves](/hosting/troubleshooting/#players-are-refused-at-the-door).
+The player usually sends the text from the launcher. What it means is in [Error messages](/reference/error-codes/), and in the log the same text is in a line with the `Kick` tag. If several players from one place can't get in, read [Players are refused at the door](/hosting/troubleshooting/#players-are-refused-at-the-door).

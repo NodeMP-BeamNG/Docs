@@ -1,20 +1,17 @@
 ---
-title: Первый ресурс
-description: Ресурс с нуля, по шагам — приветствие, команда в чате, настройки в resource.toml, клиентская часть, затем перезагрузка и чтение ошибок.
+title: Первый плагин
+description: Плагин с нуля по шагам, от приветствия и команды в чате до настроек в resource.toml, клиентской части, перезагрузки и чтения ошибок.
 ---
 
-На этой странице мы по шагам соберём ресурс `greeter`: он здоровается с игроками, отвечает на
-команду `/online`, берёт текст приветствия из настроек и показывает сообщение в игре у игрока.
-Ничего ставить не нужно: Lua встроена в сервер.
+По шагам получится плагин `greeter`, который здоровается с игроками, отвечает на команду `/online`, берёт текст приветствия из настроек и показывает сообщение в игре у игрока. Ничего ставить не нужно, Lua встроена в сервер.
 
-Понадобится сервер, который вы можете запускать ([Запуск сервера](/ru/hosting/quick-start/)), а для
-клиентской части — лаунчер, чтобы на него зайти.
+Понадобится сервер ([Запуск сервера](/ru/hosting/quick-start/)) и лаунчер, чтобы зайти на него.
 
 ## 1. Папка
 
-Ресурсы лежат в `resources/` рядом с `server.toml`. Создайте такое дерево:
+Плагины лежат в `resources/` рядом с `server.toml`. Создайте такое дерево:
 
-```
+```text
 resources/
 └── greeter/
     ├── resource.toml
@@ -22,8 +19,7 @@ resources/
         └── main.lua
 ```
 
-Имя папки — это имя ресурса, если в `resource.toml` не сказано другое. Папка `client/` появится на
-шаге 7.
+Имя папки становится именем плагина, если в `resource.toml` не сказано другое. Папка `client/` появится на шаге 7.
 
 ## 2. resource.toml
 
@@ -32,26 +28,28 @@ name = "greeter"
 version = "1.0"
 ```
 
-Пока этого хватит. Все ключи файла описаны на странице
-[Устройство ресурса](/ru/plugins/resources/#resourcetoml).
+Пока этого хватит. Все ключи файла описаны на странице [Устройство плагина](/ru/plugins/resources/#resourcetoml).
 
 ## 3. Серверная часть
 
-`server/main.lua` выполняется один раз, когда сервер загружает ресурс. Код верхнего уровня
-подписывается на события, а обработчики сервер вызывает потом, когда что-то происходит.
+`server/main.lua` выполняется один раз, когда сервер загружает плагин. Код верхнего уровня подписывается на события, а обработчики сервер вызывает потом, когда что-то происходит.
 
 <!-- doctest: server+client -->
 ```lua
 node.log("greeter loaded")
 
-node.on("playerJoined", function(player)
+local function greet(player)
     node.log("%s joined", player.name)
     player:tell("Welcome, %s!", player.name)
-end)
+end
 
-node.on("playerLeft", function(player, reason)
+node.on("playerJoined", greet)
+
+local function sayGoodbye(player, reason)
     node.log("%s left: %s", player.name, reason)
-end)
+end
+
+node.on("playerLeft", sayGoodbye)
 
 -- expect: greeter loaded
 -- expect: Alice joined
@@ -59,34 +57,29 @@ end)
 -- expect: Alice left: \S
 ```
 
-- `node.log` пишет в консоль сервера от имени ресурса. Дополнительные аргументы работают как в
-  `string.format`.
-- `node.on(имя, обработчик)` подписывает на событие. `playerJoined` передаёт объект `Player`: `name`
-  и `id` — поля, `tell` и `kick` — методы.
-- `player:tell` пишет системную строку в чат этому игроку. Чат встроен в сервер, так что это работает
-  без других ресурсов.
-- `playerLeft` получает ещё и причину, по которой сессия закончилась.
+- `node.log` пишет в консоль сервера от имени плагина. Дополнительные аргументы работают как в `string.format`.
+- `node.on(имя, обработчик)` подписывает функцию на событие. `playerJoined` передаёт объект `Player`: `name` и `id` — поля, `tell` и `kick` — методы.
+- `player:tell` пишет системную строку в чат этому игроку. Чат встроен в сервер, так что это работает без других плагинов.
+- `playerLeft` получает ещё и причину, по которой закончилась сессия.
 
 ## 4. Запуск
 
-Запустите сервер. В консоли будет ваша строка, а за ней — строка сервера о ресурсе:
+Запустите сервер. В консоли будет ваша строка, а за ней строка сервера о плагине:
 
-```
+```text
 greeter · greeter loaded
 greeter v1.0 loaded — lua · server 1 file · 0 client files
 ```
 
-Зайдите из лаунчера: в консоли появится `greeter · Alice joined`, а у вас в чате — приветствие.
+Зайдите на сервер, и в консоли появится `greeter · <ваш ник> joined`, а в чате приветствие.
 
 ## 5. Команда в чате
 
-Команды — это обычные строки чата, которые начинаются с `/`. Каждая строка проходит через
-`chatMessageRequest`, прежде чем сервер её разошлёт. Обработчик, который узнал свою команду,
-возвращает `{ handled = true }`: строку никто не увидит, а ответ ресурс пришлёт сам.
+Команды — это обычные строки чата, которые начинаются с `/`. Каждая строка проходит через `chatMessageRequest`, прежде чем сервер её разошлёт. Обработчик, который узнал свою команду, возвращает `{ handled = true }`: строку никто не увидит, а ответ плагин присылает сам.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
+local function answerOnline(player, msg)
     if msg.text ~= "/online" then return end
     local names = {}
     for _, p in ipairs(node.players.all()) do
@@ -94,13 +87,14 @@ node.on("chatMessageRequest", function(player, msg)
     end
     player:tell("Online (%d): %s", #names, table.concat(names, ", "))
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", answerOnline)
 
 -- expect-client: Alice chat:msg .*Online \(1\): Alice
 ```
 
-На любую другую строку обработчик ничего не возвращает (`return` без значения), и она уходит в чат
-как обычно. Подробнее о командах — на странице [Чат и команды](/ru/plugins/chat/).
+На любую другую строку обработчик ничего не возвращает (`return` без значения), и она уходит в чат как обычно. Подробнее о командах: [Чат и команды](/ru/plugins/chat/).
 
 ## 6. Настройки
 
@@ -111,92 +105,82 @@ end)
 greeting = "Hello from the docs"
 ```
 
-Ресурс читает их как `node.config`:
+Плагин читает их как `node.config`:
 
 <!-- doctest: server+client {"config": {"greeting": "Hello from the docs"}} -->
 ```lua
 local greeting = node.config.greeting or "Welcome"
 
-node.on("playerJoined", function(player)
+local function greetFromConfig(player)
     player:tell("%s, %s!", greeting, player.name)
-end)
+end
+
+node.on("playerJoined", greetFromConfig)
 
 -- expect-client: Alice chat:msg .*Hello from the docs, Alice!
 ```
 
-`node.config` читается один раз, при загрузке ресурса. После правки файла перезагрузите ресурс
-([ниже](#8-перезагрузка)).
+`node.config` читается один раз, при загрузке плагина. После правки файла перезагрузите плагин ([ниже](#8-перезагрузка)).
 
 ## 7. Клиентская часть
 
-Всё, что лежит в `client/`, уходит каждому игроку при входе и выполняется в игре. Пусть сервер
-отправит игроку событие, когда тот зайдёт:
+Файлы из `client/` выполняются в игре у каждого игрока ([Клиентские скрипты](/ru/plugins/client-scripting/)). Пусть сервер отправит игроку событие, когда тот зайдёт:
 
 <!-- doctest: server+client -->
 ```lua
-node.on("playerJoined", function(player)
+local function sendHello(player)
     player:send("greeter:hello", { text = "Welcome, " .. player.name })
-end)
+end
+
+node.on("playerJoined", sendHello)
 
 -- expect-client: Alice greeter:hello .*Welcome, Alice
 ```
 
-`player:send(имя, данные)` отправляет игроку **сетевое событие**, таблица превращается в JSON.
-Создайте `client/main.lua`: он поймает событие, покажет текст на экране и ответит серверу.
+`player:send(имя, данные)` отправляет игроку сетевое событие, таблица превращается в JSON. Создайте `client/main.lua`, который поймает событие, покажет текст на экране и ответит серверу.
 
 <!-- doctest: client -->
 ```lua
-node.on("greeter:hello", function(data)
+local function showHello(data)
     local hello = jsonDecode(data)
     ui_message(hello.text, 8, "greeter")
     node.emitServer("greeter:seen", hello.text)
-end)
+end
+
+node.on("greeter:hello", showHello)
 ```
 
-На клиенте обработчик получает данные строкой, как их прислал сервер, поэтому их разбирает игровая
-функция `jsonDecode`. `ui_message` — собственное экранное сообщение игры. `node.emitServer`
-отправляет сетевое событие обратно, тоже строкой. Серверная часть его ловит:
+На клиенте обработчик получает данные строкой, как их прислал сервер, поэтому их разбирает игровая функция `jsonDecode`. `ui_message` — функция игры, которая выводит сообщение на экран. `node.emitServer` отправляет сетевое событие обратно, тоже строкой. Серверная часть его принимает:
 
 <!-- doctest: server+client {"emit": [["greeter:seen", "Welcome, Alice"]]} -->
 ```lua
-node.on("greeter:seen", function(player, text)
+local function logSeen(player, text)
     node.log("%s saw: %s", player.name, text)
-end)
+end
+
+node.on("greeter:seen", logSeen)
 
 -- expect: Alice saw: Welcome, Alice
 ```
 
-Любое имя события, которое не входит в собственные события сервера, — сетевое событие. Называйте их
-`<ресурс>:<что>`, строчными буквами, чтобы два ресурса не столкнулись. Остальное о клиентской
-стороне — на странице [Клиентские скрипты](/ru/plugins/client-scripting/).
+Сетевые события называйте `<плагин>:<что>`, строчными буквами ([События](/ru/plugins/events/#виды-событий)).
 
 ## 8. Перезагрузка
 
 После правки серверной части перезапускать сервер не нужно. Наберите в консоли сервера:
 
-```
+```text
 reload greeter
 ```
 
-Ресурс остановится (его обработчики и таймеры снимаются) и загрузится заново из своей папки.
-Клиентские файлы упаковываются при запуске сервера, так что изменения в `client/` дойдут до игроков
-после перезапуска.
+Плагин загрузится заново из своей папки. Изменения в `client/` дойдут до игроков только после перезапуска сервера ([Устройство плагина](/ru/plugins/resources/#перезагрузка)).
 
 ## 9. Если что-то сломалось
 
-Ошибка в обработчике не останавливает ни сервер, ни ресурс. Сервер пишет её в лог с файлом, строкой и
-трассировкой и работает дальше.
+Ошибка в обработчике не останавливает ни сервер, ни плагин. Сервер пишет её в лог с файлом, строкой и трассировкой, а обработчик снова вызовется на следующем событии.
 
+```text
+greeter · error in builtin 'playerJoined': …/server/main.lua:4: attempt to …
 ```
-greeter · error in event 'playerJoined': …/server/main.lua:4: attempt to …
-```
 
-Остальные обработчики продолжают работать, а этот снова вызовется на следующем событии. Синтаксическая
-ошибка в `main.lua` выглядит так же, только появляется при загрузке ресурса.
-
-## Что дальше
-
-- [Устройство ресурса](/ru/plugins/resources/) — все файлы и ключи, несколько Lua-файлов,
-  перезагрузка.
-- [События](/ru/plugins/events/) — все виды событий и порядок, в котором заходит игрок.
-- [Примеры плагинов](/ru/plugins/examples/) — ресурсы побольше, на которых можно учиться.
+Как такая строка выглядит для таймеров, корутин и ошибок при загрузке, описано на странице [Общие правила API](/ru/plugins/conventions/#ошибки-в-обработчиках).
