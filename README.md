@@ -43,7 +43,7 @@ the generated pages.** The Russian copy of the reference is the English text by 
 | `npm run check` | Runs `check:locales`, `check:stale` and `check:claims`; exit code 1 on the first problem. |
 | `npm run doctest` | Runs every Lua example of the plugin guides against a real `Node-Server` ([Doctests](#doctests)). `-- --only <page>`, `-- --keep`, `-- --list`. |
 | `npm run check:locales` | EN/RU parity: every page under `src/content/docs/` needs a twin at `ru/<same path>`, and every RU page needs an EN original. The generated `plugins/api/` is exempt. |
-| `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line. The generated `plugins/api/` is exempt. |
+| `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line, and on product versions and «ресурс» for «плагин» on the pages the rewrite has reached (below). The generated `plugins/api/` is exempt. |
 | `npm run check:claims` | Compares what the pages state with the code that defines it (section below). Needs the `server`, `sdk`, `launcher`, `NodeMP` and `UI-launcher` checkouts beside this repository; without one of them the checks that need it are skipped with a warning (CI fails instead). |
 | `npm run gen:api` | Runs the API import on its own (useful before `npm start`, which has no hook). |
 
@@ -76,6 +76,11 @@ allow-listed by path: `plugins/migrating.md` (Moving from other platforms) names
 files and words on purpose, and `reference/glossary.md` names the retired variants in order to
 retire them (both in both locales). Add a phrase to `DEFAULT_PHRASES` rather than weakening a
 page; add a page to `DEFAULT_ALLOW` only when it has to name the old words.
+
+Rewritten pages (`STYLE.md`) also fail on a three-part number such as `1.13.0` (a product version;
+addresses and four-part game numbers pass), on "protocol v23" outside backticks and, in Russian,
+on «ресурс». `reference/protocol.md` may state the protocol version. `PENDING` in
+`scripts/check-stale.mjs` lists the pages the rewrite has not reached; each section deletes its line.
 
 `reference/glossary.md` is the arbiter for terminology: one word per thing, in both locales, with
 the Russian term beside each English one. When a page needs a word for something the glossary
