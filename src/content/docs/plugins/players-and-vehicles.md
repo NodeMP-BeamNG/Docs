@@ -1,44 +1,43 @@
 ---
 title: Players and vehicles
-description: Player and Vehicle objects - who a player is, finding players, roles, kicks and bans, freezing and teleporting, spawning cars, tags and locks, seats, reading many cars at once.
+description: Player and Vehicle objects, finding players, roles, kicks and bans, freezing, teleporting, spawning cars, tags, locks and scheduled changes.
 ---
 
-Handlers receive players and cars as objects: a `Player` and a `Vehicle`. Both are light: a table
-with an `id`, whose other fields are fetched from the server on first read. The full list of fields
-and methods is in the [API reference](/plugins/api/lua/#player-objects).
+Handlers receive players and cars as `Player` and `Vehicle` objects. An object costs almost nothing: it is a table with an `id`, and the server supplies the other fields on first access. All fields and methods are listed in the [API reference](/plugins/api/lua/#player-objects).
 
 ## Players
 
 ### Finding players
 
-| Call | Gives |
+| Call | What it returns |
 |---|---|
-| `node.players.all()` | Every connected player, by id. |
-| `node.players.get(id)` | The player with this id. |
-| `node.players.find(name)` | The player with this name, any case; `nil` when nobody. |
-| `node.players.count()` | How many are connected. |
+| `node.players.all()` | Every connected player, in ascending id order. |
+| `node.players.get(id)` | The player with this id. For an unknown id it returns a player whose `isConnected()` is `false`. |
+| `node.players.find(name)` | The player with this name, ignoring case; `nil` if there is none. |
+| `node.players.count()` | How many players are connected. |
 
-`tostring(player)` reads `Player#3 Alice`. Two objects for the same player are equal (`==`).
+`tostring(player)` looks like `Player#3 Alice`. Two objects for the same player are equal (`==`).
 
 ### Who a player is
 
-| Field | What it says |
+| Field | What it means |
 |---|---|
-| `name` | The name in the game. Still readable in `playerLeft`. |
-| `accountId` | The NodeMP account's number; `nil` for a guest. The key to save anything by. |
-| `verified` | `true` when the server checked the player's ticket with NodeMP. |
-| `guest` | `true` without an account: Test Drive, or nothing verified. |
-| `accountRoles` | NodeMP's own role for the account, such as `"ADM"`; empty for everyone else. |
-| `locale` | The game's language, such as `"ru_RU"`, for answering in it. |
-| `role` | This server's role, set by a resource with `player:setRole`. |
+| `name` | The in-game name. Still available in `playerLeft`. |
+| `accountId` | The NodeMP account number; `nil` for a guest. |
+| `verified` | `true` if the server checked the player's ticket with NodeMP. Always `false` on a server that is not in the list. |
+| `guest` | `true` if there is no account: Test Drive, or a join with nothing verified. |
+| `accountRoles` | The account's role in NodeMP itself, for example `"ADM"`; an empty string for everyone else. |
+| `locale` | The game language, for example `"ru_RU"`, so you can answer in it. |
+| `role` | The role on this server, set by a plugin with `player:setRole`. |
+| `ip` | The player's address as text. |
+| `installId` | The launcher installation as NodeMP names it to the server: 64 hexadecimal digits, different on every server. `nil` if the launcher didn't report one or the player isn't verified. Other players can't see it. |
+| `identifiers` | An array of strings like `nodemp:<id>`, `discord:<id>`, `ip:<address>`. Empty for an unverified player. |
 
-Fields are read once and kept on the object. Within one handler that's what you want; to see changes
-later, call `player:refresh()` or get a fresh object with `node.players.get(id)`.
+Fields are read on first access and kept in the object. To see changes later, for example in a timer or a coroutine, call `player:refresh()` or get a new object with `node.players.get(id)`.
 
 ### Roles
 
-A role is a word the server keeps for the session and the game shows next to the name. Here
-accounts listed in `[config]` become admins:
+A role is a word the server keeps for the session and the game shows next to the name. Here the accounts listed in `[config]` become admins:
 
 <!-- doctest: server+client {"config": {"admins": [42]}} -->
 ```lua
@@ -62,50 +61,43 @@ node.on("playerJoined", assignRole)
 ### Kicks and bans
 
 - `player:kick(reason)` disconnects the player, who sees the reason.
-- `player:ban(reason)` bans the account (if signed in), the launcher installation (if the launcher
-  reports one) and the address, and kicks.
-- `player:ban(reason, os.time() + 3600)` bans for an hour; the server lifts it by itself.
-- `node.bans.add(who, reason, untilUnix)` bans an address, an account number or a
-  `player.installId` of someone who isn't on the server; `node.bans.remove(who)` lifts a ban.
+- `player:ban(reason)` bans the account (if the player signed in), the launcher installation (if the launcher reported one) and the address, and kicks the player.
+- `player:ban(reason, os.time() + 3600)` bans for an hour, and the server lifts the ban itself.
+- `node.bans.add(who, reason, untilUnix)` bans an address, an account number or an `installId` of someone who isn't on the server; `node.bans.remove(who)` lifts a ban.
 
-Bans are kept in `bans.json` and survive restarts ([Console, kicks and bans](/hosting/administration/#bans)).
-A moderation command with these calls is on [Chat and commands](/plugins/chat/#commands-for-moderators).
+Bans are stored in `bans.json` and survive a restart ([Console, kicks and bans](/hosting/administration/#bans)). A moderator command that uses these calls is on [Chat and commands](/plugins/chat/#commands-for-moderators).
 
 ### Freezing and teleporting
 
-`player:freeze(true)` holds the player in place: their cars stop for everyone, and spawns, resets
-and seat changes are refused with `You are frozen by the server`. `player:freeze(false)` lets go.
+`player:freeze(true)` holds the player in place: their cars stand still for everyone, and spawns, edits, resets and seat changes are refused with `You are frozen by the server`. `player:freeze(false)` lets go. The freeze lasts until the end of the session: a player who joins again isn't frozen.
 
-`player:teleport({ pos = { x = 0, y = 0, z = 1 } })` moves the car the player drives, or the player
-on foot, without repairing anything. Both look right in the player's game since client mod 1.7.4;
-with an older mod a teleport repairs the car.
+`player:teleport({ pos = { x = 0, y = 0, z = 1 } })` moves the car the player drives, or the player if on foot, and repairs nothing. If nothing can be moved, the call returns `nil` and a reason: `"not_driver"` for a passenger (move the car instead), `"no_avatar"` when the player has neither a car nor an avatar yet, `"bad_transform"` or `"unknown player"`.
 
 ### Separate worlds
 
-`player:setGroup(n)` and `vehicle:setGroup(n)` put players and cars into numbered groups. Group 0 is
-the shared world; players in different groups don't see each other's cars, and `local` chat stays
-within a group. Move a player's cars together with the player.
+`player:setGroup(n)` and `vehicle:setGroup(n)` put players and cars into numbered groups. Group 0 is the shared world. Players in different groups don't see each other's cars, and `local` chat stays inside the group. Move a player's cars together with the player.
 
 ## Vehicles
 
+`node.vehicles.all()` returns the cars without walking avatars, and `node.vehicles.all(true)` returns them too. `node.vehicles.get(id)` returns one car, and `node.vehicles.count()` counts all of them, avatars included.
+
 ### Who's who in a car
 
-| Field | What it says |
+| Field | What it means |
 |---|---|
-| `spawner` | The player who spawned it; `nil` for a car the server spawned. |
-| `driver` | The player at the wheel; `nil` when empty. |
-| `authority` | The player whose game simulates the car; usually the driver. |
+| `name` | The owner's label: the name of the player who spawned the car, or the name the server created it with. |
+| `spawner` | Who spawned the car; `nil` if the server created it or that player has left. |
+| `driver` | Who is at the wheel; `nil` if nobody is. |
+| `authority` | Whose game simulates the car; usually the driver. |
 | `passengers` | The passengers, as a list of players. |
-| `isUnicycle` | `true` for a player walking on foot: the server sees walkers as vehicles too. |
-| `idleSeconds` | How long nobody has driven it. |
+| `isUnicycle` | `true` for a walking player: the server counts a player on foot as a car too. |
+| `idleSeconds` | How many seconds nobody has driven the car. |
 
-When a player leaves, their cars stay in the world without an owner. Deleting them is up to a
-resource; `vehicle-cleanup` in the [examples](/plugins/examples/) does it.
+When a player leaves, their cars stay in the world without an owner. A plugin has to delete them; `vehicle-cleanup` from the [examples](/plugins/examples/) does.
 
 ### Tags and locks
 
-Tags are short `key = value` notes the server keeps on a car and sends to every player. This
-handler tags every new car, including the one the `/car` command below spawns:
+Tags are short `key = value` notes that the server keeps on a car and sends to every player. A key is at most 64 bytes, a value at most 256, and a car has at most 32 keys; anything over is refused. This handler tags every new car, including the one the `/car` command below spawns:
 
 <!-- doctest: server+client -->
 ```lua
@@ -121,9 +113,7 @@ node.on("vehicleSpawned", tagTeam)
 
 `node.vehicles.byTag("team", "red")` finds every car with that tag.
 
-`vehicle:lock("locked", { player })` lets only the listed players take a seat; `"driver-only"`
-keeps the driver's seat for them; `vehicle:unlock()` opens it. A lock only stops new seats: nobody
-already inside is thrown out.
+`vehicle:lock("locked", { player })` lets only the listed players into the car, `"driver-only"` locks only the driver's seat, and `vehicle:unlock()` opens the car. The list can also hold `{ account = id }`, which survives the player rejoining. A lock stops only new seatings: it doesn't throw out anyone already inside. Until the plugin calls `vehicle:releaseLock()`, the car owner's own setting doesn't change the lock.
 
 ### Spawning, moving, deleting
 
@@ -132,14 +122,12 @@ already inside is thrown out.
 | `player:spawnVehicle(config, transform)` | Spawns a car for the player and seats them in it. |
 | `node.vehicles.spawn(config)` | Spawns a car without an owner. |
 | `vehicle:teleport(transform)` | Moves the car without repairing it. |
-| `vehicle:reset(transform)` | Repairs the car, where it stands or at a new place. |
+| `vehicle:reset(transform)` | Repairs the car where it stands or at a new place. |
 | `vehicle:delete()` | Deletes the car for everyone. |
-| `player:seat(vehicle, "passenger")` | Puts a player into a seat, past any lock. |
-| `player:unseat()` | Puts the player on foot. |
+| `player:seat(vehicle, "passenger")` | Seats the player in the car, past any lock. |
+| `player:unseat()` | Takes the player out of the car. |
 
-A config is the same table the game sends when a player spawns: `jbm` is the model, `vcf` the
-configuration. A transform is `{ pos = { x, y, z }, rot = { x, y, z, w } }`, and `rot` may be left
-out.
+The config is the same table the game sends when a player spawns a car: `jbm` is the model and `vcf` the parts configuration. Give a position as `{ pos = { x, y, z }, rot = { x, y, z, w } }`; `rot` can be left out.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/car"}]]} -->
 ```lua
@@ -160,28 +148,21 @@ node.on("chatMessageRequest", spawnCar)
 -- expect-client: Alice chat:msg .*Your car is number \d+
 ```
 
-`cars_per_player` applies to `spawnVehicle` as it does to the player's own spawns: the second value says why
-a spawn didn't happen (`"max_cars"`, `"bad_config"`, `"not_joined"`).
+`cars_per_player` applies to `spawnVehicle` as it does to the player's own cars. The second return value says why no car appeared (`"max_cars"`, `"bad_config"`, `"not_joined"`). `vehicleSpawnRequest` isn't called: the server doesn't ask itself for permission.
 
 ### Scheduled changes
 
-A new car, or a change of a car's parts, tuning or model, has to be built in every other player's
-game, and building stops the game for a moment. So each player's mod holds other players' new cars
-and changes until the player stops, a set time passes, or they click the count in the session
-panel ([what players see](/players/settings/#other-players-new-cars-and-changes)). Deletions,
-resets, colour changes and the car a player sits in never wait. `[vehicles]` in `server.toml` sets
-how a session starts ([settings](/hosting/configuration/#vehicles)); a resource can change it while
-the server runs:
+To show another player's new car, or a change to a car's parts, tuning or model, the game builds the car and freezes for that time. So the client mod holds such changes back until the player is ready to take them. What waits and when it is built: [Settings](/players/settings/#other-players-new-cars-and-changes). How a session starts is set by `[vehicles]` in `server.toml` ([settings reference](/hosting/configuration/#vehicles)), and a plugin can change it while the server runs:
 
 | Call | What it does |
 |---|---|
-| `node.vehicles.setQueue("off")` | Every change is built the moment it arrives, for everyone. `"allow"` gives the choice back to the players. |
-| `node.vehicles.setQueueMaxDelay(10)` | Every player builds what waits within 10 seconds of the first change; `0` lifts the limit. |
-| `node.vehicles.applyScheduled()` | Every player builds everything waiting, now. |
-| `player:setVehicleQueue("off")` | The same for one player; `nil` follows the server's mode again. |
-| `player:applyScheduled()` | One player builds everything waiting, now. |
+| `node.vehicles.setQueue("off")` | Every change is built at once, for everyone. `"allow"` gives the choice back to the players. |
+| `node.vehicles.setQueueMaxDelay(10)` | Every player builds what is waiting no later than 10 seconds after the first change; `0` removes the limit. |
+| `node.vehicles.applyScheduled()` | Every player builds everything that is waiting, right now. |
+| `player:setVehicleQueue("off")` | The same for one player; `nil` hands the decision back to the server. |
+| `player:applyScheduled()` | One player builds everything that is waiting, right now. |
 
-Before a race start every car should look the same in every game:
+Before a race starts, every car must look the same in every game:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/start"}]]} -->
 ```lua
@@ -198,13 +179,11 @@ node.on("chatMessageRequest", startRace)
 -- expect-client: Alice chat:msg .*The race starts in 10 seconds
 ```
 
-The server itself relays the edits of one car at most once per `edit_interval_sec`, as the latest
-config; `applyScheduled` sends what it still holds first, so those are built too.
+The server itself forwards the edits of one car at most once per `[vehicles] edit_interval_sec`, as the latest configuration. `applyScheduled` first sends such held-back edits, so they get built too.
 
 ### Many cars at once
 
-Reading every car one by one in a fast loop is slow. `node.vehicles.transforms` reads all of them in
-one call, and only the fields you ask for:
+`node.vehicles.transforms` reads all cars in one call, and only the fields you ask for:
 
 <!-- doctest: server+client -->
 ```lua
@@ -218,5 +197,4 @@ node.every(1000, countCars)
 -- expect: \d+ car\(s\) reported
 ```
 
-Each entry has the car's `id` and the fields asked for: `pos`, `rot`, `vel` and more, as listed in
-the [reference](/plugins/api/lua/#nodevehiclestransformsselect---arrayrecordidposrotvelangveltimepingseqpausedtransitioningteleportvelocitystephascontrolscontrolselectricsageseconds).
+Each entry has the car's `id` and the fields you asked for: `pos`, `rot`, `vel` and others from the [reference](/plugins/api/lua/#nodevehiclestransformsselect---arrayrecordidposrotvelangveltimepingseqpausedtransitioningteleportvelocitystephascontrolscontrolselectricsageseconds).
