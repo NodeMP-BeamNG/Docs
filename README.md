@@ -82,7 +82,7 @@ page; add a page to `DEFAULT_ALLOW` only when it has to name the old words.
 Rewritten pages (`STYLE.md`) also fail on a three-part number such as `1.13.0` (a product version;
 addresses and four-part game numbers pass), on "protocol v23" outside backticks and, in Russian,
 on «ресурс». `reference/protocol.md` may state the protocol version. `PENDING` in
-`scripts/check-stale.mjs` lists the pages the rewrite has not reached; each section deletes its line.
+`scripts/check-stale.mjs` lists the pages the rewrite has not reached: the English ones.
 `scripts/check-style.mjs` reads the same list.
 
 `reference/glossary.md` is the arbiter for terminology: one word per thing, in both locales, with

@@ -38,12 +38,9 @@ export function findStale(files, phrases = DEFAULT_PHRASES, allow = DEFAULT_ALLO
   return hits;
 }
 
-// Pages the rewrite has not reached. Each section deletes its line when it is done, the last
-// deletes the list; the English pages go when they are redone from the Russian.
+// Pages the rewrite has not reached: the English ones, until they are redone from the Russian.
 export const PENDING = [
   /^(?!ru[\\/])/,
-  /^ru[\\/]introduction[\\/]/,
-  /^ru[\\/]reference[\\/]faq\.md$/,
 ];
 
 const IDENTIFIER_PAGES = [/reference[\\/]protocol\.md$/];
