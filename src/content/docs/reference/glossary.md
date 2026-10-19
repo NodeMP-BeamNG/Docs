@@ -37,7 +37,7 @@ and the page with more. Where the software prints another word, the row says so.
 | Word | What it means | More |
 |---|---|---|
 | **Plugin** (плагин) | Anything that extends the server: a resource or a native module. | [Overview](/plugins/overview/) |
-| **Resource** (ресурс) | A folder in `resources/`: a server half in Lua (or another language) and, if needed, client scripts. | [How a resource is built](/plugins/resources/) |
+| **Resource** (плагин) | A plugin that is a folder in `resources/`: a server half in Lua (or another language) and, if needed, client scripts. "Resource" is the code's word, as in `resources/`, `resource.toml`, `node.resources`, `[resources]` and `resourceUnload`; the Russian docs say «плагин» for it. | [How a resource is built](/plugins/resources/) |
 | **Native module** (нативный модуль) | A `.dll` or `.so` in `modules/` that works through the C ABI. | [Native modules](/plugins/native-modules/) |
 | **C ABI** | The binary interface between the server and native modules, described in `node.h`. Its version reads "major.minor". | [Native modules](/plugins/native-modules/) |
 | **Language host** (языковой хост) | A native module that runs resources of its own `type`, such as `js-host` for JavaScript. | [JavaScript resources](/plugins/js-host/) |
