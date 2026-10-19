@@ -7,7 +7,7 @@ description: Questions from players, hosts and plugin authors, each with a link 
 
 ### Do I need an account?
 
-No. Without one you can play in Test Drive mode, but some servers don't let guests in ([Your account](/players/sign-in/)).
+No, you can play without one in Test Drive mode, but some servers don't let guests in ([Your account](/players/sign-in/)).
 
 ### Which BeamNG.drive version do I need?
 
@@ -23,7 +23,7 @@ The launcher downloads them when you join, before it starts BeamNG.drive ([Join 
 
 ### Will a drop of a few seconds throw me off?
 
-No. The launcher reconnects by itself, and if the connection is back within 30 seconds, the game carries on ([A bad connection and VPNs](/players/connection/)).
+No, the launcher reconnects by itself, and if the connection is back within 30 seconds, the game carries on ([A bad connection and VPNs](/players/connection/)).
 
 ### Does the server check my files? What about my mods?
 
@@ -33,7 +33,7 @@ Your game files are checked (on a strict server, your user folder too), and your
 
 You pick another server in the launcher; you can't switch from inside the game ([In the game](/players/in-game/)).
 
-### My message isn't on these pages. What now?
+### My message isn't in the docs. What now?
 
 If it isn't on [Error messages](/reference/error-codes/), send it with your `launcher.log` to Discord ([When something breaks](/players/troubleshooting/#what-to-send-when-you-ask-for-help)).
 
@@ -41,11 +41,11 @@ If it isn't on [Error messages](/reference/error-codes/), send it with your `lau
 
 ### What does my server need to be listed?
 
-A NodeMP account with Discord linked, a server key, and a port open for TCP and UDP ([Get listed](/hosting/registering/)).
+A NodeMP account with Discord linked and a server key in the settings, and for players to reach it, a port open for TCP and UDP ([Get listed](/hosting/registering/)).
 
 ### Do I need a plugin for chat?
 
-No. Chat is built into the server, and plugins add commands to it ([Chat and commands](/plugins/chat/)).
+No, chat is built into the server, and plugins add commands to it ([Chat and commands](/plugins/chat/)).
 
 ### I pasted the keys from the website and the server isn't listed.
 
@@ -53,7 +53,7 @@ The server log says why, and the table on [Get listed](/hosting/registering/#the
 
 ### My Docker server ignores `server.toml`.
 
-That's on purpose: the image takes its settings from environment variables ([Server in Docker](/hosting/docker/)).
+That's on purpose: by default the image takes its settings from environment variables ([When the server misbehaves](/hosting/troubleshooting/#servertoml-isnt-read)).
 
 ### Several players on one VPN can't get in.
 
@@ -61,7 +61,7 @@ The server limits how many joins from one address can be in progress, and the ho
 
 ### How do I lift a ban?
 
-Stop the server and run `Node-Server --bans remove` ([Console, kicks and bans](/hosting/administration/#bans)).
+Stop the server, find the ban in `Node-Server --bans list` and lift it with `Node-Server --bans remove` ([Console, kicks and bans](/hosting/administration/#bans)).
 
 ### Do I need Windows for the strict check?
 
