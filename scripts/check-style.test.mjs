@@ -28,8 +28,11 @@ test('a clean page has no hits', () => {
 
 test('pages the rewrite has not reached, and English pages, are skipped', () => {
   const text = `Это важно отметить.\nИ перенос.`;
-  assert.deepEqual(hitsFor(text, 'ru/introduction/what-is-nodemp.md'), []);
-  assert.deepEqual(hitsFor(text, 'players/join.md'), []);
+  const hitsWith = (path, pending) => findStyleHits([{ path, text }], LIMITS, pending);
+  const pending = [/^ru[\\/]introduction[\\/]/];
+  assert.deepEqual(hitsWith('ru/introduction/what-is-nodemp.md', pending), []);
+  assert.notDeepEqual(hitsWith('ru/introduction/what-is-nodemp.md', []), []);
+  assert.deepEqual(hitsWith('players/join.md', []), []);
 });
 
 test('a paragraph wrapped over several lines is reported once, at its first line', () => {

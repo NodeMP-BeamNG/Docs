@@ -53,5 +53,8 @@ test('ресурс is checked on Russian pages only, and the glossary may name i
 });
 
 test('pages the rewrite has not reached are skipped', () => {
-  assert.deepEqual(hitsFor('ru/introduction/what-is-nodemp.md', 'Начиная с сервера 1.9.0 ресурс'), []);
+  const files = [{ path: 'ru/introduction/what-is-nodemp.md', text: 'Начиная с сервера 1.9.0 ресурс' }];
+  const pending = [/^ru[\\/]introduction[\\/]/];
+  assert.deepEqual(findRuleHits(files, RULES, pending), []);
+  assert.deepEqual(findRuleHits(files, RULES, []).map((h) => h.rule), ['product version', 'ресурс for плагин']);
 });
