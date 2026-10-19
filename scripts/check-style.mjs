@@ -40,7 +40,8 @@ export const PHRASES = [
     rule: 'calque',
     re: word(['без лишних движений', 'что видно', 'подробнее — на странице', '(?<!нажмите и )держите кнопку', 'ресурсы не делят переменные']),
   },
-  { rule: 'English interface word', re: /(?<![\p{L}])(?:Leave|Direct Connect|Connect|Hold to play)(?![\p{L}])/gu },
+  // The glossary names the English words beside the Russian ones.
+  { rule: 'English interface word', re: /(?<![\p{L}])(?:Leave|Direct Connect|Connect|Hold to play)(?![\p{L}])/gu, except: /reference[\\/]glossary\.md$/ },
 ];
 
 const CLOSING_HEADING = /^#{2,6}\s*(?:Что дальше|Куда дальше|Вам сюда|Итог\p{L}*|Заключение|Резюме|Выводы?)\s*$/gimu;
@@ -98,7 +99,10 @@ export function findStyleHits(files, limits = LIMITS, pending = PENDING) {
     const add = (line, rule, phrase) => hits.push({ path, line, rule, phrase });
 
     for (const h of wrappedParagraphs(blocks)) add(h.line, 'wrapped paragraph', h.phrase);
-    for (const { rule, re } of PHRASES) for (const m of prose.matchAll(re)) add(lineOf(prose, m.index), rule, m[0]);
+    for (const { rule, re, except } of PHRASES) {
+      if (except?.test(path)) continue;
+      for (const m of prose.matchAll(re)) add(lineOf(prose, m.index), rule, m[0]);
+    }
     for (const m of prose.matchAll(CLOSING_HEADING)) add(lineOf(prose, m.index), 'signposting', m[0].trim());
     for (const m of prose.matchAll(BOLD_LEAD_IN)) add(lineOf(prose, m.index), 'bold lead-in', m[0].trim());
 

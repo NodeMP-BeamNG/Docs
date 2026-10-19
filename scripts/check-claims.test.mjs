@@ -592,6 +592,14 @@ test('protocol: taxonomy parsing and the page tables', () => {
   assert.ok(f.some((x) => x.check === 'protocol.limits' && x.actual === '8'));
 });
 
+test('protocol: the limits bullet is read with or without a bold lead-in', () => {
+  const wire = { categories: [], packets: {}, constants: { PRE_AUTH_FRAME_CAP: 4096, MAX_FRAME_LENGTH: 1048576, MAX_UDP_DATAGRAM: 10240 } };
+  const limits = (line) => checkProtocolPage({ path: 'ru/reference/protocol.md', locale: 'ru', text: line }, wire).map((x) => x.actual);
+  assert.deepEqual(limits('- Лимиты: кадр 4 КБ до `Welcome` и 1 МБ после.'), []);
+  assert.deepEqual(limits('- Лимиты: кадр 8 КБ до `Welcome` и 1 МБ после.'), ['8']);
+  assert.deepEqual(limits('- **Лимиты.** Кадр 8 КБ до `Welcome` и 1 МБ после.'), ['8']);
+});
+
 // --- other extractors and the runner ------------------------------------------------------
 
 test('literal extractors: ts template interpolation, rust char literals and raw strings, lua, env names', () => {

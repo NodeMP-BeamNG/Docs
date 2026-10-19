@@ -76,6 +76,11 @@ test('English interface words are reported in prose and ignored in code', () => 
   assert.deepEqual(rulesFor(page(['Нажмите `Connect`.'])), []);
 });
 
+test('the glossary may name the English words beside the Russian ones', () => {
+  assert.deepEqual(rulesFor(diluted('Прямое подключение (Direct Connect).'), 'ru/reference/glossary.md'), []);
+  assert.deepEqual(rulesFor(diluted('Прямое подключение (Direct Connect).')), ['English interface word']);
+});
+
 test('phrases inside code blocks and code spans are not prose', () => {
   assert.deepEqual(rulesFor(page(['Напишите `является`.', '```text\nВажно отметить\n```'])), []);
 });
