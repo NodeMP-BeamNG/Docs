@@ -1,25 +1,22 @@
 ---
-title: The bus between resources
-description: How resources on one server send each other messages, naming them, decoding the data, asking and answering, and what else travels on the bus.
+title: The bus between plugins
+description: How plugins on one server send each other messages, how to name them, parse the data, ask and answer, and what else travels on the bus.
 ---
 
-Resources don't share variables: each has its own Lua state. They talk over the **bus**, a
-publish-subscribe channel inside the server. One resource publishes a message under a name, and every
-resource subscribed to that name receives it.
+Plugins can't see each other's variables ([How a plugin is built](/plugins/resources/#the-lua-environment)), so they talk over the bus, a publish-subscribe channel inside the server: one plugin publishes a message under a name, and every plugin subscribed to that name gets it.
 
 | Call | What it does |
 |---|---|
-| `node.bus.emit(name, data)` | Publishes `data` under `name`. A table is turned into JSON. |
-| `node.bus.call(name, data)` | Asks every resource subscribed to `name` and returns their answers at once. |
+| `node.bus.emit(name, data)` | Publishes `data` under `name`. A table becomes JSON. |
+| `node.bus.call(name, data)` | Asks every plugin subscribed to `name` and returns their answers at once. |
 | `node.bus.on(name, fn)` | Calls `fn(source, data)` for every message under `name`. |
-| `node.bus.off(name, fn)` | Unsubscribes; without `fn`, every handler of this resource for `name`. |
+| `node.bus.off(name, fn)` | Unsubscribes; without `fn`, all of this plugin's handlers for `name`. |
 
-`source` is the name of the resource that sent the message; a native module shows as `"native"`.
-`data` arrives as a string: decode it with `node.json.decode`.
+`source` is the sending plugin's name, `"native"` for a native module. `data` arrives as a string; parse it with `node.json.decode`.
 
 ## Sending and receiving
 
-A `scores` resource keeps the totals:
+The `scores` plugin keeps the tally:
 
 <!-- doctest: server -->
 ```lua
@@ -36,7 +33,7 @@ node.bus.on("score:add", addScore)
 -- expect: \S+: Alice \+10 = 10
 ```
 
-Any other resource adds points:
+Any other plugin awards points:
 
 <!-- doctest: server -->
 ```lua
@@ -47,14 +44,11 @@ end
 node.after(500, awardPoints)
 ```
 
-Messages are delivered on the worker after the current handler finishes, never in the middle of it,
-and they reach the sender too if it subscribed to the name. Name them `<resource>:<what>`, like wire
-events, so two resources don't collide.
+The server delivers a message on the worker thread after the current handler finishes, not in the middle of it, and the sender gets it too if subscribed. Name messages `<plugin>:<what>`, like wire events, so two plugins don't collide ([Events](/plugins/events/#kinds-of-events)).
 
 ## Asking and answering
 
-`node.bus.call` asks a question and gets the answers right away. A handler answers by returning a
-value:
+`node.bus.call` asks a question and gets the answers at once; a handler answers with its return value:
 
 <!-- doctest: server -->
 ```lua
@@ -78,19 +72,13 @@ node.after(500, askPrice)
 -- expect: \S+ asks 250 cents
 ```
 
-- Every handler runs now, before `call` returns, so an answer is what the other resource knows at
-  that moment.
-- The answers come as a list of `{ source, value }`, in the order the handlers subscribed. A table
-  arrives as a table. A handler that returns `nil` is left out, so an empty list means nobody
-  answered.
-- The caller's own handlers are asked too.
-- A handler that calls back into the resource that asked, and so on, can nest calls only 8 deep;
-  past that `call` raises an error.
+- All handlers run immediately, before `call` returns, so the answer is what the other plugin knows at that moment.
+- Answers come as a list of `{ source, value }` in subscription order, a table as a table. A handler that returns `nil` is left out, so an empty list means nobody answered.
+- The asking plugin's own handlers get the question too.
+- A handler can itself `call`, at most eight levels deep; beyond that `call` raises an error.
 - A native module subscribed to the name sees the question but can't answer it.
 
-`call` was added in server 1.9.0. A handler that has to wait for something, a database or an HTTP
-request, can't answer by returning. Then put the name to answer under into the question and answer
-later with `emit`:
+A handler that must wait for something, such as a database or an HTTP request, can't answer with `return`. Put a reply name in the question and answer later with `emit`:
 
 <!-- doctest: server -->
 ```lua
@@ -121,11 +109,10 @@ node.after(500, askBalance)
 -- expect: balance: 1500 cents
 ```
 
-A name that includes the asking resource keeps answers apart. To wait for an answer in a coroutine,
-`node.suspend` turns a callback into a pause; the database module's `db.lua` is built that way.
+A reply name with the asking plugin's name in it keeps replies apart. To wait for the reply in a coroutine, use `node.suspend`, which turns a callback into a pause ([Timers and coroutines](/plugins/concurrency/#coroutines)), as the database module's `db.lua` does.
 
 ## What else travels on the bus
 
-- `player:tell` and `node.chat.say` publish `chat:say`, and the server shows it in the chat.
-- The [database module](/plugins/database/) answers resources over the bus.
-- Native modules send and receive bus messages too ([Native modules](/plugins/native-modules/)).
+- `player:tell` and `node.chat.say` publish `chat:say`, and the server shows it in chat.
+- The [database module](/plugins/database/) answers plugins over the bus.
+- Native modules also send and receive bus messages ([Native modules](/plugins/native-modules/)).

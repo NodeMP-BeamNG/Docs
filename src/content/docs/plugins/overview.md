@@ -1,58 +1,43 @@
 ---
 title: Overview
-description: What NodeMP plugins can do, how a resource differs from a native module, how the server and client halves work, and what order to read this section in.
+description: What NodeMP plugins can do, the kinds of plugin, how the server and client halves work, and what to read first.
 ---
 
-A plugin changes how the server behaves: chat commands, rules, game modes, admin tools, a link to a
-website or Discord. The server itself only passes data between players and keeps order; everything
-that makes a server special is written as plugins.
+A plugin changes how the server behaves: chat commands, rules, game modes, admin tools, a link to a website or Discord. The server itself passes data between players and keeps order; plugins make one server differ from another.
 
 ## What you can do
 
-- React to events: a player joined, spawned a car, got into it, wrote in the chat.
-- Refuse actions: keep a player out, forbid cars, edits and paint jobs, filter the chat. The player
-  sees your reason.
-- Manage players and cars: kick and ban, seat players, teleport, freeze, put tags and locks on cars.
-- Keep data across restarts, talk to a database and to HTTP services.
-- Send players Lua code of your own that runs in the game, and exchange messages with it.
+- React to events: a player joined, spawned a car, got into it, wrote in chat.
+- Refuse actions: keep a player out, forbid cars, edits and paint jobs, filter chat.
+- Manage players and cars: kick and ban, seat a player in a car, teleport, freeze, put tags and locks on cars.
+- Keep data across restarts, work with a database and call web services over HTTP.
+- Send players your own Lua code to run in the game, and exchange messages with it.
 
-## Three kinds of plugins
+## Kinds of plugin
 
 | Kind | What it is | When to choose it |
 |---|---|---|
-| **Lua resource** | A folder in `resources/` with Lua 5.4 code. Lua is built into the server. | Almost always: rules, commands, modes, anything about the game. |
-| **JavaScript resource** | The same kind of folder, with JavaScript code. Needs the `js-host` module. | When you need an npm package, or simply prefer JavaScript. |
-| **Native module** | A C or C++ library in `modules/`. | When code runs for every packet or frame and Lua can't keep up. |
-
-The rest of this section is mostly about Lua resources. JavaScript and native modules have pages of
-their own.
+| Lua plugin | A folder in `resources/` with Lua 5.4 code. Lua is built into the server. | Almost always: rules, commands, modes, anything about the game. |
+| JavaScript plugin | The same folder with JavaScript code. Needs the `js-host` module ([JavaScript plugins](/plugins/js-host/)). | When you need an npm package or prefer JavaScript. |
+| Native module | A C or C++ library in `modules/` ([Native modules](/plugins/native-modules/)). | When code runs for every packet or frame and Lua can't keep up. |
 
 ## The server half and the client half
 
-A resource can have two halves.
+A plugin can have two halves:
 
-- **The server half** (`server/main.lua`) runs on the server. It has the `node` API: players, cars,
-  events, timers, storage, HTTP.
-- **The client half** (files in `client/`) goes to every player on join and runs inside
-  BeamNG.drive. It has everything a game mod has, plus NodeMP's functions for talking to the server.
+- The server half (`server/main.lua`) runs on the server. It has the `node` API: players, cars, events, timers, storage, HTTP.
+- The client half (files in `client/`) runs in the game of every player. It has everything a game mod has, plus NodeMP functions for talking to the server ([Client scripts](/plugins/client-scripting/)).
 
-The halves talk through **wire events**: the client sends `node.emitServer("name", data)`, the server
-catches it with `node.on("name", ...)` and answers with `player:send` or `node.broadcast`. A
-client's message goes no further than the server by itself: if other players should see it, the
-resource passes it on.
+The halves talk through wire events: the client sends `node.emitServer("name", data)`, the server receives it in `node.on("name", handler)` and answers with `player:send` or `node.broadcast`.
+
+The handlers of all plugins run one after another on a single thread, so a slow handler holds up the rest ([Timers and coroutines](/plugins/concurrency/)). Plugins talk to each other over the [bus](/plugins/bus/).
 
 ## Where to start
 
-1. [Your first resource](/plugins/getting-started/): from an empty folder to a working resource with
-   a chat command and a client half.
-2. [How a resource is built](/plugins/resources/): files, `resource.toml`, reloading, errors.
-3. The topics, in order: [events](/plugins/events/), [players and vehicles](/plugins/players-and-vehicles/),
-   [chat](/plugins/chat/), [timers](/plugins/concurrency/), [storage](/plugins/storage/),
-   [the database](/plugins/database/), [HTTP](/plugins/http/), [the bus](/plugins/bus/),
-   [client scripts](/plugins/client-scripting/).
-4. [The example plugins](/plugins/examples/): ready-made resources from the server archive.
-5. [Moving from other platforms](/plugins/migrating/): if you wrote plugins for another multiplayer
-   mod before.
+1. [Your first plugin](/plugins/getting-started/): from an empty folder to a chat command and a client half.
+2. [How a plugin is built](/plugins/resources/): files, `resource.toml`, reloading, load errors.
+3. The topics, in order: [events](/plugins/events/), [players and vehicles](/plugins/players-and-vehicles/), [chat](/plugins/chat/), [timers](/plugins/concurrency/), [storage](/plugins/storage/), [the database](/plugins/database/), [HTTP](/plugins/http/), [the bus](/plugins/bus/), [client scripts](/plugins/client-scripting/), [API conventions](/plugins/conventions/).
+4. [The example plugins](/plugins/examples/): ready-made plugins from the server archive.
+5. [Moving from other platforms](/plugins/migrating/): if you have written plugins for another multiplayer mod.
 
-Keep the [API reference](/plugins/api/lua/) at hand: it lists every function and every
-[event](/plugins/api/events/). It's generated from the API's description.
+Keep the [API reference](/plugins/api/lua/) at hand: it lists every function and every [event](/plugins/api/events/). It is generated from the API description.
