@@ -1,63 +1,48 @@
 ---
 title: Mods and maps
-description: How to add a map, a car or any other BeamNG mod to the server, how players get them, and how to keep a mod from being sent.
+description: How to add your own map, a car or another BeamNG mod to the server, how players get them and how to keep a mod from being sent.
 ---
 
-Mods are ordinary BeamNG zips: a map, a car, a sound pack. The server hands them to players, and the
-launcher downloads them before the game starts. Players install nothing by hand.
+Mods are ordinary BeamNG zip archives: a map, a car, a sound pack. The server hands them to players, and the launcher downloads them before the game starts. Players don't install mods by hand.
 
 ## Add a mod
 
-1. Put the mod's zip into the `content/` folder next to `server.toml`. In Docker that's
-   `data/content/`.
-2. Restart the server. It reads the folder only when it starts.
+1. Put the mod's zip into the `content/` folder next to `server.toml`. In Docker that's `data/content/`.
+2. Restart the server. It reads the folder only at start.
 
-The log then has a line such as `serving 2 mods (148.3 MB) from content/`. A file that isn't a zip
-is skipped with `'…' is not a ZIP file and will be ignored`.
+The log then has a line such as `serving 2 mods (148.3 MB) from content/`. If a file isn't a zip, the server skips it and writes `'…' is not a ZIP file and will be ignored`.
 
-After replacing or removing a zip, restart the server too.
+After replacing or deleting a zip, restart the server too.
 
 ## A map of your own
 
-Put the map's zip into `content/` and name the map in `[server] map`:
+Put the map's zip into `content/` and set the map in `[server] map`:
 
 ```toml
 [server]
 map = "/levels/my_map/info.json"
 ```
 
-`my_map` is the map's folder inside the zip, under `levels/`. To find it, open the zip and look at
-the folder in `levels/`.
+Here `my_map` is the name of the map's folder inside the archive, under `levels/`. To find it, open the archive and look at which folder is in `levels/`.
 
-If the map has a picture of its own, the server shows it in the server list
-([Get listed](/hosting/registering/#the-picture)).
+If the map has a picture of its own, the server shows it in the server list ([The picture](/hosting/registering/#the-picture)).
 
 ## How players get mods
 
-Before a join, the launcher downloads the zips the player doesn't have yet and keeps them in its
-cache. The next visit downloads nothing. The server's card shows the files and their total size,
-and players can filter servers by download size. So keep the folder lean: every new player waits
-for every megabyte.
+Before joining, the launcher downloads from the server the archives the player doesn't have yet and keeps them in a cache ([Join a server](/players/join/#look-at-a-server)). Every new player waits for every megabyte, and the **Download size** filter in the list hides heavy servers, so it's best to remove mods you don't need.
 
 ## A mod that isn't sent
 
-Sometimes a mod may not be passed around and players have to get it themselves. Open
-`content/mods.json` (the server writes it) and set `"protected": true` on that zip:
+Sometimes a mod can't be distributed, and players have to download it themselves. Open `content/mods.json` (the server writes it) and set `"protected": true` for that archive:
 
 ```json
 "big-map.zip": { "protected": true }
 ```
 
-The entry has other fields too; leave them and change only `protected`. The server then never sends
-that file. A player who doesn't have the mod is told by the launcher which cache folder to put it
-in. The mark survives replacing the zip.
+The entry has other fields too; leave them alone and change only `protected`. The server then no longer sends that file. The launcher of a player who doesn't have the mod explains which cache folder to put it in. The mark stays even if you replace the archive.
 
-## Client scripts aren't mods
+## Plugins' client scripts
 
-Resources can send Lua scripts to players as well, but that's a different mechanism: the scripts
-arrive on join and don't go into `content/`. See [Resources](/hosting/resources/).
+Plugins can also send Lua scripts to players, but that is a different mechanism: the scripts arrive on join, and you don't put them in `content/` ([Plugins on the server](/hosting/resources/)).
 
-The two can work together. Since client mod 1.7.6 a resource's scripts can switch on Lua from a mod
-in `content/`. The mod then needs no start-up script (`scripts/…/modScript.lua`) of its own: its
-Lua runs when the resource loads it and is switched off when the player leaves.
-[Client scripts](/plugins/client-scripting/#mods-from-the-content-folder) shows how.
+The two mechanisms work together too: a plugin's scripts can switch on Lua from a mod in `content/`. The mod then needs no start script of its own (`scripts/…/modScript.lua`): the plugin loads its Lua and switches it off when the player leaves. How to do it is on the [Client scripts](/plugins/client-scripting/) page.
