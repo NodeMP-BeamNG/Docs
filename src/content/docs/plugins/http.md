@@ -24,13 +24,15 @@ When a request fails before any answer (no connection, a bad certificate, a time
 
 <!-- doctest: server -->
 ```lua
-node.http.get("http://127.0.0.1:9/", function(status, body)
+local function logAnswer(status, body)
     if status == -1 then
         node.log("failed: %s", body)
     else
         node.log("answer %d, %d bytes", status, #body)
     end
-end)
+end
+
+node.http.get("http://127.0.0.1:9/", logAnswer)
 
 -- expect: failed: .*blocked
 ```
@@ -45,10 +47,12 @@ row read top to bottom:
 
 <!-- doctest: server -->
 ```lua
-node.async(function()
+local function fetchStatus()
     local status, body = node.http.fetch("http://127.0.0.1:9/")
     node.log("status %d", status)
-end)
+end
+
+node.async(fetchStatus)
 
 -- expect: status -1
 ```
@@ -64,14 +68,18 @@ into `[config]`, not into the code:
 ```lua
 local webhook = node.config.webhook
 
-node.on("playerJoined", function(player)
+local function warnOnFailure(status, body)
+    if status ~= 204 then
+        node.log.warn("webhook answered %d: %s", status, body)
+    end
+end
+
+local function announceJoin(player)
     local message = { content = player.name .. " joined the server" }
-    node.http.post(webhook, message, function(status, body)
-        if status ~= 204 then
-            node.log.warn("webhook answered %d: %s", status, body)
-        end
-    end)
-end)
+    node.http.post(webhook, message, warnOnFailure)
+end
+
+node.on("playerJoined", announceJoin)
 ```
 
 ## Certificates

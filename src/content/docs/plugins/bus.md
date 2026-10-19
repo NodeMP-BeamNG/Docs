@@ -25,11 +25,13 @@ A `scores` resource keeps the totals:
 ```lua
 local scores = {}
 
-node.bus.on("score:add", function(source, data)
+local function addScore(source, data)
     local add = node.json.decode(data)
     scores[add.name] = (scores[add.name] or 0) + add.points
     node.log("%s: %s +%d = %d", source, add.name, add.points, scores[add.name])
-end)
+end
+
+node.bus.on("score:add", addScore)
 
 -- expect: \S+: Alice \+10 = 10
 ```
@@ -38,9 +40,11 @@ Any other resource adds points:
 
 <!-- doctest: server -->
 ```lua
-node.after(500, function()
+local function awardPoints()
     node.bus.emit("score:add", { name = "Alice", points = 10 })
-end)
+end
+
+node.after(500, awardPoints)
 ```
 
 Messages are delivered on the worker after the current handler finishes, never in the middle of it,
@@ -54,18 +58,22 @@ value:
 
 <!-- doctest: server -->
 ```lua
-node.bus.on("shop:price", function(source, data)
+local function answerPrice(source, data)
     return { item = data, cents = 250 }
-end)
+end
+
+node.bus.on("shop:price", answerPrice)
 ```
 
 <!-- doctest: server -->
 ```lua
-node.after(500, function()
+local function askPrice()
     for _, a in ipairs(node.bus.call("shop:price", "wrench")) do
         node.log("%s asks %d cents", a.source, a.value.cents)
     end
-end)
+end
+
+node.after(500, askPrice)
 
 -- expect: \S+ asks 250 cents
 ```
@@ -86,23 +94,28 @@ later with `emit`:
 
 <!-- doctest: server -->
 ```lua
-node.bus.on("bank:ask", function(source, data)
+local function answerBalance(source, data)
     local ask = node.json.decode(data)
     node.bus.emit(ask.replyTo, { cents = 1500 })
-end)
+end
+
+node.bus.on("bank:ask", answerBalance)
 ```
 
 <!-- doctest: server -->
 ```lua
 local me = node.resources.manifest().name
 
-node.bus.on("bank:balance:" .. me, function(_, data)
+local function logBalance(_, data)
     node.log("balance: %d cents", node.json.decode(data).cents)
-end)
+end
 
-node.after(500, function()
+local function askBalance()
     node.bus.emit("bank:ask", { replyTo = "bank:balance:" .. me })
-end)
+end
+
+node.bus.on("bank:balance:" .. me, logBalance)
+node.after(500, askBalance)
 
 -- expect: balance: 1500 cents
 ```
