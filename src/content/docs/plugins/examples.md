@@ -23,13 +23,13 @@ the server doesn't touch it. `examples/README.txt` lists them too.
 
 ## Trying one
 
-```
+```text
 examples/demo-numbers  →  resources/demo-numbers
 ```
 
 Copy the folder, restart the server, and look for its load line:
 
-```
+```text
 demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 ```
 

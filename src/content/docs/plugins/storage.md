@@ -24,13 +24,15 @@ addresses:
 
 <!-- doctest: server+client -->
 ```lua
-node.on("playerJoined", function(player)
+local function countVisit(player)
     if not player.accountId then return end
     local key = "visits:" .. player.accountId
     local visits = node.storage.get(key, 0) + 1
     node.storage.set(key, visits)
     player:tell("Visit number %d", visits)
-end)
+end
+
+node.on("playerJoined", countVisit)
 
 -- expect-client: Alice chat:msg .*Visit number \d+
 ```
@@ -104,13 +106,17 @@ of a change. Handy for a list the host edits by hand while the server runs:
 
 <!-- doctest: server -->
 ```lua
-node.fs.watch("notes.txt", function(path, what)
+local function logChange(path, what)
     node.log("%s %s", path, what)
-end)
+end
 
-node.after(1500, function()
+node.fs.watch("notes.txt", logChange)
+
+local function writeNotes()
     node.fs.write("notes.txt", "hello")
-end)
+end
+
+node.after(1500, writeNotes)
 
 -- expect: notes.txt changed
 ```

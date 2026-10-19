@@ -34,12 +34,14 @@ A rewrite:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "spam here"}]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
+local function maskSpam(player, msg)
     local clean = msg.text:gsub("[Ss]pam", "****")
     if clean ~= msg.text then
         return clean
     end
-end)
+end
+
+node.on("chatMessageRequest", maskSpam)
 
 -- expect-client: Alice chat:msg .*\*\*\*\* here
 ```
@@ -50,11 +52,13 @@ any other reason shows as a plain "blocked". The full reason goes to the server'
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "see https://example.com", "cid": 7}]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
+local function refuseLinks(player, msg)
     if msg.text:find("https?://") then
         return false, "filtered: links are not allowed"
     end
-end)
+end
+
+node.on("chatMessageRequest", refuseLinks)
 
 -- expect-client: Alice chat:refused .*filtered
 ```
@@ -67,13 +71,15 @@ place for a chat log or a bridge to Discord.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "hello"}]]} -->
 ```lua
-node.on("chatMessage", function(player, msg)
+local function logChat(player, msg)
     if msg.sent then
         node.log("[%s] %s: %s", msg.scope, player.name, msg.text)
     else
         node.log("not sent (%s): %s", msg.code, msg.text)
     end
-end)
+end
+
+node.on("chatMessage", logChat)
 
 -- expect: \[global\] Alice: hello
 ```
@@ -103,7 +109,7 @@ function commands.dice(player, args)
     node.chat.say("%s rolls %d", player.name, math.random(sides))
 end
 
-node.on("chatMessageRequest", function(player, msg)
+local function routeCommand(player, msg)
     local name, rest = msg.text:match("^/(%S+)%s*(.*)$")
     local command = name and commands[name:lower()]
     if not command then return end
@@ -113,7 +119,9 @@ node.on("chatMessageRequest", function(player, msg)
     end
     command(player, args)
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", routeCommand)
 
 -- expect-client: Alice chat:msg .*Alice rolls \d+
 ```
@@ -134,7 +142,7 @@ for _, id in ipairs(node.config.moderators or {}) do
     moderators[id] = true
 end
 
-node.on("chatMessageRequest", function(player, msg)
+local function moderate(player, msg)
     local cmd, name, reason = msg.text:match("^/(%a+)%s+(%S+)%s*(.*)$")
     if cmd ~= "kick" and cmd ~= "ban" then return end
     if not moderators[player.accountId] then
@@ -154,7 +162,9 @@ node.on("chatMessageRequest", function(player, msg)
     end
     node.chat.say("%s: %s (%s)", cmd, who.name, reason)
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", moderate)
 
 -- expect-log: Bob kicked — flooding
 ```

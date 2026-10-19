@@ -70,15 +70,19 @@ The same welcome and command, as a NodeMP resource:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/hello"}]]} -->
 ```lua
-node.on("playerJoined", function(player)
+local function announceJoin(player)
     node.chat.say("%s joined the server", player.name)
-end)
+end
 
-node.on("chatMessageRequest", function(player, msg)
+node.on("playerJoined", announceJoin)
+
+local function answerHello(player, msg)
     if msg.text ~= "/hello" then return end
     player:tell("Hello, %s!", player.name)
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", answerHello)
 
 -- expect-client: Alice chat:msg .*Alice joined the server
 -- expect-client: Alice chat:msg .*Hello, Alice!
@@ -110,7 +114,7 @@ plugin expects.
 [native modules](/plugins/examples/#built-from-source-not-in-the-archive). Put
 `beammp-compat.dll` into `modules/` next to the server. Then make the plugin a resource:
 
-```
+```text
 resources/
 └── my-plugin/
     ├── resource.toml

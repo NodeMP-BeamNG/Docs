@@ -42,7 +42,7 @@ export function findStale(files, phrases = DEFAULT_PHRASES, allow = DEFAULT_ALLO
 // deletes the list; the English pages go when they are redone from the Russian.
 export const PENDING = [
   /^(?!ru[\\/])/,
-  /^ru[\\/](introduction|plugins)[\\/]/,
+  /^ru[\\/]introduction[\\/]/,
   /^ru[\\/]reference[\\/]faq\.md$/,
 ];
 

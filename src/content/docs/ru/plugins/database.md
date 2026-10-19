@@ -1,16 +1,13 @@
 ---
 title: Модуль db
-description: PostgreSQL, SQLite или MySQL из ресурса — настройка модуля, db.lua, запросы с подстановками, создание таблиц при запуске, транзакции, NULL и ошибки.
+description: Настройка модуля db, db.lua, запросы с подстановками, создание таблиц при запуске, транзакции, NULL и ошибки в PostgreSQL, SQLite и MySQL.
 ---
 
-База данных живёт в нативном модуле, который идёт вместе с сервером: `db.dll` или `db.so` в
-`modules/`. Он одинаково работает с PostgreSQL, SQLite и MySQL/MariaDB: SQL пишете вы, подстановки —
-`$1`, `$2`… в любом движке, а значения никогда не попадают в текст запроса.
+Модуль базы данных поставляется вместе с сервером: `db.dll` или `db.so` в `modules/`. Он одинаково работает с PostgreSQL, SQLite и MySQL/MariaDB. SQL пишете вы, подстановки `$1`, `$2`… работают в любом движке, а значения передаются отдельно от текста запроса.
 
 ## Настройка
 
-Хост сообщает модулю, где база. Скопируйте `modules/db.example.toml` в `modules/db.toml` и заполните
-подключение `default`:
+Хост сообщает модулю, где база. Скопируйте `db.example.toml` из папки `modules/` рядом с программой в `modules/db.toml` рабочей папки сервера и заполните подключение `default`. Подойдёт и `db.toml` прямо в рабочей папке.
 
 ```toml
 [connections.default]
@@ -19,15 +16,20 @@ url = "postgres://node:secret@127.0.0.1/node"
 connections = 4
 ```
 
-`driver` — `postgres`, `sqlite` или `mysql`; для SQLite `url` — путь к файлу, например
-`"data/server.db"`. Пароль не обязан лежать в файле: переменная окружения `NODE_DB_DEFAULT_URL`
-важнее его, а без файла модуль берёт `NODE_DB_URL`. Пока подключение не настроено, модуль пишет при
-запуске `no database configured` и отвечает ошибкой на каждый запрос.
+| Ключ | По умолчанию | Что значит |
+|---|---|---|
+| `driver` | по адресу | `postgres`, `sqlite` или `mysql`. Если ключа нет, движок берётся из `url`: `postgres://` значит PostgreSQL, `mysql://` значит MySQL, всё остальное SQLite. |
+| `url` | нет | Адрес базы. Для SQLite это путь к файлу от папки сервера, например `"data/server.db"`; `":memory:"` даёт базу в памяти, которая пропадает при остановке сервера. |
+| `connections` | `4` | Сколько соединений держит пул, от 1 до 32. Столько запросов может идти одновременно. |
+| `query_timeout_ms` | `10000` | Сколько может идти один запрос. |
+| `tx_timeout_ms` | `30000` | Сколько может быть открыта транзакция вместе с ожиданием свободного соединения. |
+| `max_rows` | `10000` | Результат больше этого числа строк заканчивается ошибкой `db_result_cap`. |
 
-## db.lua в ресурсе
+Модуль читает файл один раз, при запуске. Пароль не обязан лежать в файле: переменная окружения `NODE_DB_DEFAULT_URL` заменяет адрес из файла (для подключения с другим именем это `NODE_DB_<ИМЯ>_URL`), а без файла модуль берёт `NODE_DB_URL`. Пока подключение не настроено, модуль пишет при запуске `no database configured` и на каждый запрос отвечает ошибкой `db_disabled`.
 
-Ресурс говорит с модулем через маленькую библиотеку `db.lua`, которая лежит в `modules/` рядом с
-модулем. Скопируйте её в папку `server/` ресурса и подключите:
+## db.lua в плагине
+
+Плагин обращается к модулю через маленькую библиотеку `db.lua`, которая лежит в `modules/` рядом с модулем. Скопируйте её в папку `server/` плагина и подключите:
 
 <!-- doctest: skip the doctest runner puts these lines in front of every db block -->
 ```lua
@@ -36,26 +38,24 @@ package.path = here .. "/?.lua;" .. package.path
 local db = require("db").open()
 ```
 
-`open()` берёт подключение `default`, `open("stats")` — другое из `db.toml`. Все вызовы — методы, через
-двоеточие: `db:query(...)`. После обновления сервера скопируйте новый `db.lua` поверх старого.
+`open()` берёт подключение `default`, `open("stats")` берёт другое из `db.toml`. Все вызовы пишутся через двоеточие: `db:query(...)`. Вызов через точку библиотека отклоняет с подсказкой. После обновления сервера скопируйте новый `db.lua` поверх старого.
 
 ## Запросы
 
 | Вызов | Что даёт |
 |---|---|
-| `db:query(sql, params)` | `{ rows, count, columns }` или `nil, err`. Каждая строка — таблица «колонка = значение». |
+| `db:query(sql, params)` | `{ rows, count, columns }` или `nil, err`. Каждая строка в `rows` — таблица «колонка = значение». |
 | `db:exec(sql, params)` | Сколько строк изменилось, или `nil, err`. Для `insert`, `update`, `delete`. |
 | `db:ready()` | `true`, когда подключение установлено. |
+| `db:status()` | Драйвер, состояние и счётчики всех подключений одной таблицей. |
 
-Внутри `node.async` вызовы ждут ответа и возвращают его. Если последним аргументом передать функцию,
-вызов вернётся сразу, а потом вызовет её с `(result, err)`.
+Внутри `node.async` вызовы ждут ответа и возвращают его. Если последним аргументом передать функцию, вызов вернётся сразу, а потом вызовет её с `(result, err)`.
 
-Таблицы ресурс обычно создаёт при запуске. В первые мгновения после запуска сервера подключения может
-ещё не быть, поэтому его стоит подождать:
+Таблицы плагин обычно создаёт при запуске. В первые мгновения после запуска сервера подключения может ещё не быть, поэтому его стоит подождать:
 
 <!-- doctest: db -->
 ```lua
-node.async(function()
+local function createTable()
     while not db:ready() do
         node.sleep(500)
     end
@@ -68,7 +68,9 @@ node.async(function()
         return node.log.error("%s: %s", err.code, err.message)
     end
     node.log("visits table ready")
-end)
+end
+
+node.async(createTable)
 
 -- expect: visits table ready
 ```
@@ -77,35 +79,37 @@ end)
 
 <!-- doctest: db+client -->
 ```lua
-node.on("playerJoined", function(player)
+local function recordVisit(player)
+    local _, err = db:exec([[
+        insert into visits (account, times) values ($1, 1)
+        on conflict (account) do update set times = visits.times + 1
+    ]], { player.accountId })
+    if err then
+        return node.log.error("%s: %s", err.code, err.message)
+    end
+    local res = db:query("select times from visits where account = $1",
+        { player.accountId })
+    player:tell("Visit number %d", res.rows[1].times)
+end
+
+local function onJoined(player)
     if not player.accountId then return end
-    node.async(function()
-        local _, err = db:exec([[
-            insert into visits (account, times) values ($1, 1)
-            on conflict (account) do update set times = visits.times + 1
-        ]], { player.accountId })
-        if err then
-            return node.log.error("%s: %s", err.code, err.message)
-        end
-        local res = db:query("select times from visits where account = $1",
-            { player.accountId })
-        player:tell("Visit number %d", res.rows[1].times)
-    end)
-end)
+    node.async(recordVisit, player)
+end
+
+node.on("playerJoined", onJoined)
 
 -- expect-client: Alice chat:msg .*Visit number \d+
 ```
 
 ## Транзакции
 
-`db:tx(fn)` занимает одно подключение на всё время `fn`. Внутри неё `tx:query` и `tx:exec` всегда ждут
-ответа. Когда `fn` возвращается, изменения сохраняются; если она бросает ошибку или вызывает
-`tx:rollback(reason)`, изменения отменяются. `db:tx` возвращает то, что вернула `fn`, или `nil, err`.
+`db:tx(fn)` занимает одно подключение на всё время `fn`. Внутри неё `tx:query` и `tx:exec` всегда ждут ответа. Когда `fn` возвращается, изменения сохраняются; если она бросает ошибку или вызывает `tx:rollback(reason)`, изменения отменяются. `db:tx` возвращает то, что вернула `fn`, или `nil, err`. У ошибки отката `code` равен `"rollback"`, а то, что бросила `fn`, лежит в `err.cause`.
 
 <!-- doctest: db -->
 ```lua
 local function transfer(from, to, cents)
-    return db:tx(function(tx)
+    local function move(tx)
         local res, err = tx:query(
             "select cents from wallets where account = $1", { from })
         if err then error(err) end
@@ -118,10 +122,11 @@ local function transfer(from, to, cents)
         tx:exec("update wallets set cents = cents + $1 where account = $2",
             { cents, to })
         return true
-    end)
+    end
+    return db:tx(move)
 end
 
-node.async(function()
+local function runTransfers()
     while not db:ready() do
         node.sleep(500)
     end
@@ -133,40 +138,39 @@ node.async(function()
     node.log("first transfer: %s", tostring(ok))
     ok, err = transfer(1, 2, 5000)
     node.log("second transfer: %s", err and err.message or "done")
-end)
+end
+
+node.async(runTransfers)
 
 -- expect: first transfer: true
 -- expect: second transfer: not enough money
 ```
 
-Транзакцию, которая идёт дольше `tx_timeout_ms` из `db.toml`, модуль откатывает, так что забытая
-транзакция не держит подключение вечно. Если ресурс перезагрузили или остановили посреди транзакции,
-подключение освобождается сразу.
+Транзакцию, которая идёт дольше `tx_timeout_ms` из `db.toml`, модуль откатывает, так что забытая транзакция не держит подключение вечно. Если плагин перезагрузили или остановили посреди транзакции, подключение освобождается сразу.
 
 ## NULL и другие значения
 
-Список параметров — это массив Lua, и `nil` оборвал бы его раньше времени. Для SQL NULL пишите
-`db.NULL`:
+Список параметров — массив Lua, и `nil` оборвал бы его раньше времени. Для SQL NULL пишите `db.NULL`. Список с дырой библиотека отклоняет ошибкой; если дыра нужна, задайте длину явно: `{ a, nil, b, n = 3 }` отправит `nil` как NULL.
 
 <!-- doctest: skip shows only the parameter list -->
 ```lua
 db:exec("insert into notes (id, text) values ($1, $2)", { 7, db.NULL })
 ```
 
-Таблица в параметрах отправляется как JSON — для колонок `json` или `jsonb`.
+Таблица в параметрах отправляется как JSON, для колонок `json` или `jsonb`.
 
 ## Ошибки
 
-Ошибка — это значение, её не бросают: `{ code, message, detail, constraint, … }`. Код — это SQLSTATE,
-если он есть у движка, и все движки приведены к одним кодам:
+Ошибка не бросается, а возвращается значением `{ code, message, detail, constraint, … }`. Код — SQLSTATE, у всех движков одинаковый для одной и той же ошибки, или код самого модуля, который начинается с `db_`:
 
 | Код | Что значит |
 |---|---|
-| `23505` | Такой уникальный ключ уже есть; `constraint` его называет. |
+| `23505` | Такой уникальный ключ уже есть; `constraint` его называет, если движок сообщает имя. |
 | `23503`, `23502`, `23514` | Нарушен внешний ключ, NOT NULL или CHECK. |
 | `42601`, `42P01` | Синтаксическая ошибка; нет такой таблицы. |
-| `57014` | У запроса кончилось время. |
+| `57014` | Запрос шёл дольше `query_timeout_ms`. |
 | `08001`, `08006` | Нет подключения; подключение потеряно. |
-| `db_disabled` | Подключения с таким именем нет. |
+| `db_disabled` | Подключения с таким именем нет, или модуль не настроен. |
 | `db_tx_timeout` | Транзакция шла дольше `tx_timeout_ms`. |
+| `db_result_cap` | В результате больше строк, чем `max_rows`. |
 | `db_params` | Список параметров или SQL нельзя использовать. |

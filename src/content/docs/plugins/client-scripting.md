@@ -32,16 +32,18 @@ functions like any extension's, `onUpdate(dt)` every frame included.
 ```lua
 local M = {}
 
-local shown = 0
+local secondsLeft = 0
 
-node.on("race:start", function(data)
-    local race = jsonDecode(data)
-    ui_message("Race: " .. race.laps .. " laps", 5, "race")
-    shown = 0
-end)
+local function startCountdown(data)
+    secondsLeft = jsonDecode(data).countdown
+end
+
+node.on("race:start", startCountdown)
 
 function M.onUpdate(dt)
-    shown = shown + dt
+    if secondsLeft <= 0 then return end
+    secondsLeft = secondsLeft - dt
+    ui_message(string.format("Start in %d", math.ceil(secondsLeft)), 1, "race")
 end
 
 return M
@@ -105,7 +107,7 @@ leaves.
 <!-- doctest: client -->
 ```lua
 -- client/modScript.lua
-load("race_core")      -- the resource's: client/lua/ge/extensions/race/core.lua
+load("race_core")      -- the plugin's: client/lua/ge/extensions/race/core.lua
 load("bigmap_sounds")  -- the game's: an extension of a mod in content/
 ```
 
@@ -124,14 +126,16 @@ The server side of the same conversation:
 
 <!-- doctest: server+client {"emit": [["race:ready", "{\"car\": \"pickup\"}"]]} -->
 ```lua
-node.on("race:ready", function(player, data)
+local function startRace(player, data)
     local ready = node.json.decode(data)
     node.log("%s is ready in a %s", player.name, ready.car)
-    player:send("race:start", { laps = 3 })
-end)
+    player:send("race:start", { countdown = 5 })
+end
+
+node.on("race:ready", startRace)
 
 -- expect: Alice is ready in a pickup
--- expect-client: Alice race:start .*"laps":3
+-- expect-client: Alice race:start .*"countdown":5
 ```
 
 `player:send` and `node.broadcast` turn a table into JSON; on the client, decode it with the game's
@@ -152,17 +156,17 @@ Inside a car there is no `node` table. The client mod's vehicle API is there ins
 
 | Call | What it does |
 |---|---|
-| `NodeMP.isLocal()` | `true` when this player's game simulates the car. |
+| `NodeMP.vehicle.isLocal()` | `true` when this player's game simulates the car. |
 | `NodeMP.vehicle.id()` | The car's id in this game. |
 | `NodeMP.electrics.get(name)` | An electrics value: `"rpm"`, `"lights"`, `"gear"` … |
 | `NodeMP.keys.onPressed(key, fn)` | Calls `fn` when the key is pressed. |
-| `NodeMP.triggerServer(name, data)` | Sends a wire event to the server; a table goes as JSON. |
+| `NodeMP.events.triggerServer(name, data)` | Sends a wire event to the server; a table goes as JSON. |
 
 <!-- doctest: client -->
 ```lua
 -- client/lua/vehicle/ready.lua
-if NodeMP.isLocal() then
-    NodeMP.triggerServer("race:car", { id = NodeMP.vehicle.id() })
+if NodeMP.vehicle.isLocal() then
+    NodeMP.events.triggerServer("race:car", { id = NodeMP.vehicle.id() })
 end
 ```
 
@@ -178,12 +182,14 @@ the session: they show as **Set by the server** and go back to the player's own 
 
 <!-- doctest: server+client {"emit": [["modules:request", ""]]} -->
 ```lua
-node.on("modules:request", function(player)
+local function answerModulesRequest(player)
     player:send("modules:manifest", { modules = {
         nametags = { enabled = true, config = { maxDistance = 40 } },
         settings = { config = { ["nodemp.chat.visibleLines"] = 4 } },
     } })
-end)
+end
+
+node.on("modules:request", answerModulesRequest)
 
 -- expect-client: Alice modules:manifest .*maxDistance
 ```

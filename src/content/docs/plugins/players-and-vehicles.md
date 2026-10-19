@@ -47,12 +47,14 @@ for _, id in ipairs(node.config.admins or {}) do
     admins[id] = true
 end
 
-node.on("playerJoined", function(player)
+local function assignRole(player)
     if admins[player.accountId] then
         player:setRole("admin")
         node.log("%s is an admin", player.name)
     end
-end)
+end
+
+node.on("playerJoined", assignRole)
 
 -- expect: Alice is an admin
 ```
@@ -107,10 +109,12 @@ handler tags every new car, including the one the `/car` command below spawns:
 
 <!-- doctest: server+client -->
 ```lua
-node.on("vehicleSpawned", function(vehicle)
+local function tagTeam(vehicle)
     vehicle:setTag("team", "red")
     node.log("car %d: team %s", vehicle.id, vehicle:tag("team"))
-end)
+end
+
+node.on("vehicleSpawned", tagTeam)
 
 -- expect: car \d+: team red
 ```
@@ -139,7 +143,7 @@ out.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/car"}]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
+local function spawnCar(player, msg)
     if msg.text ~= "/car" then return end
     local where = { pos = { x = 0, y = 0, z = 0.5 } }
     local car, err = player:spawnVehicle({ jbm = "pickup" }, where)
@@ -149,7 +153,9 @@ node.on("chatMessageRequest", function(player, msg)
         player:tell("No car: %s", err)
     end
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", spawnCar)
 
 -- expect-client: Alice chat:msg .*Your car is number \d+
 ```
@@ -177,15 +183,19 @@ the server runs:
 
 Before a race start every car should look the same in every game:
 
-<!-- doctest: skip needs a server newer than the published release -->
+<!-- doctest: server+client {"emit": [["chat:send", {"text": "/start"}]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
+local function startRace(player, msg)
     if msg.text ~= "/start" then return end
     node.vehicles.setQueue("off")
     node.vehicles.applyScheduled()
     node.chat.say("The race starts in 10 seconds")
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", startRace)
+
+-- expect-client: Alice chat:msg .*The race starts in 10 seconds
 ```
 
 The server itself relays the edits of one car at most once per `edit_interval_sec`, as the latest
@@ -198,10 +208,12 @@ one call, and only the fields you ask for:
 
 <!-- doctest: server+client -->
 ```lua
-node.every(1000, function()
+local function countCars()
     local cars = node.vehicles.transforms({ "pos" })
     node.log("%d car(s) reported", #cars)
-end)
+end
+
+node.every(1000, countCars)
 
 -- expect: \d+ car\(s\) reported
 ```

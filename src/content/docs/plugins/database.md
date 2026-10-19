@@ -56,7 +56,7 @@ moments after the server starts, so wait for it:
 
 <!-- doctest: db -->
 ```lua
-node.async(function()
+local function createTable()
     while not db:ready() do
         node.sleep(500)
     end
@@ -69,7 +69,9 @@ node.async(function()
         return node.log.error("%s: %s", err.code, err.message)
     end
     node.log("visits table ready")
-end)
+end
+
+node.async(createTable)
 
 -- expect: visits table ready
 ```
@@ -78,21 +80,25 @@ Counting visits: one statement inserts the first visit or adds one, a second rea
 
 <!-- doctest: db+client -->
 ```lua
-node.on("playerJoined", function(player)
+local function recordVisit(player)
+    local _, err = db:exec([[
+        insert into visits (account, times) values ($1, 1)
+        on conflict (account) do update set times = visits.times + 1
+    ]], { player.accountId })
+    if err then
+        return node.log.error("%s: %s", err.code, err.message)
+    end
+    local res = db:query("select times from visits where account = $1",
+        { player.accountId })
+    player:tell("Visit number %d", res.rows[1].times)
+end
+
+local function onJoined(player)
     if not player.accountId then return end
-    node.async(function()
-        local _, err = db:exec([[
-            insert into visits (account, times) values ($1, 1)
-            on conflict (account) do update set times = visits.times + 1
-        ]], { player.accountId })
-        if err then
-            return node.log.error("%s: %s", err.code, err.message)
-        end
-        local res = db:query("select times from visits where account = $1",
-            { player.accountId })
-        player:tell("Visit number %d", res.rows[1].times)
-    end)
-end)
+    node.async(recordVisit, player)
+end
+
+node.on("playerJoined", onJoined)
 
 -- expect-client: Alice chat:msg .*Visit number \d+
 ```
@@ -106,7 +112,7 @@ or calls `tx:rollback(reason)`, they're undone. `db:tx` returns what `fn` return
 <!-- doctest: db -->
 ```lua
 local function transfer(from, to, cents)
-    return db:tx(function(tx)
+    local function move(tx)
         local res, err = tx:query(
             "select cents from wallets where account = $1", { from })
         if err then error(err) end
@@ -119,10 +125,11 @@ local function transfer(from, to, cents)
         tx:exec("update wallets set cents = cents + $1 where account = $2",
             { cents, to })
         return true
-    end)
+    end
+    return db:tx(move)
 end
 
-node.async(function()
+local function runTransfers()
     while not db:ready() do
         node.sleep(500)
     end
@@ -134,7 +141,9 @@ node.async(function()
     node.log("first transfer: %s", tostring(ok))
     ok, err = transfer(1, 2, 5000)
     node.log("second transfer: %s", err and err.message or "done")
-end)
+end
+
+node.async(runTransfers)
 
 -- expect: first transfer: true
 -- expect: second transfer: not enough money

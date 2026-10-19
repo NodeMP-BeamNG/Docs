@@ -14,7 +14,7 @@ launcher to join it with.
 
 Resources live in `resources/`, next to `server.toml`. Make this tree:
 
-```
+```text
 resources/
 └── greeter/
     ├── resource.toml
@@ -44,14 +44,18 @@ subscribes to events; the server calls the handlers later, as things happen.
 ```lua
 node.log("greeter loaded")
 
-node.on("playerJoined", function(player)
+local function greet(player)
     node.log("%s joined", player.name)
     player:tell("Welcome, %s!", player.name)
-end)
+end
 
-node.on("playerLeft", function(player, reason)
+node.on("playerJoined", greet)
+
+local function sayGoodbye(player, reason)
     node.log("%s left: %s", player.name, reason)
-end)
+end
+
+node.on("playerLeft", sayGoodbye)
 
 -- expect: greeter loaded
 -- expect: Alice joined
@@ -71,7 +75,7 @@ end)
 
 Start the server. The console shows your log line and then the server's line about the resource:
 
-```
+```text
 greeter · greeter loaded
 greeter v1.0 loaded — lua · server 1 file · 0 client files
 ```
@@ -87,7 +91,7 @@ Chat commands are ordinary chat lines that start with `/`. Every line passes thr
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
-node.on("chatMessageRequest", function(player, msg)
+local function answerOnline(player, msg)
     if msg.text ~= "/online" then return end
     local names = {}
     for _, p in ipairs(node.players.all()) do
@@ -95,7 +99,9 @@ node.on("chatMessageRequest", function(player, msg)
     end
     player:tell("Online (%d): %s", #names, table.concat(names, ", "))
     return { handled = true }
-end)
+end
+
+node.on("chatMessageRequest", answerOnline)
 
 -- expect-client: Alice chat:msg .*Online \(1\): Alice
 ```
@@ -118,9 +124,11 @@ The resource reads them as `node.config`:
 ```lua
 local greeting = node.config.greeting or "Welcome"
 
-node.on("playerJoined", function(player)
+local function greetFromConfig(player)
     player:tell("%s, %s!", greeting, player.name)
-end)
+end
+
+node.on("playerJoined", greetFromConfig)
 
 -- expect-client: Alice chat:msg .*Hello from the docs, Alice!
 ```
@@ -135,9 +143,11 @@ the player an event on join:
 
 <!-- doctest: server+client -->
 ```lua
-node.on("playerJoined", function(player)
+local function sendHello(player)
     player:send("greeter:hello", { text = "Welcome, " .. player.name })
-end)
+end
+
+node.on("playerJoined", sendHello)
 
 -- expect-client: Alice greeter:hello .*Welcome, Alice
 ```
@@ -147,11 +157,13 @@ end)
 
 <!-- doctest: client -->
 ```lua
-node.on("greeter:hello", function(data)
+local function showHello(data)
     local hello = jsonDecode(data)
     ui_message(hello.text, 8, "greeter")
     node.emitServer("greeter:seen", hello.text)
-end)
+end
+
+node.on("greeter:hello", showHello)
 ```
 
 On the client, a handler gets the data as the string the server sent, so it's decoded with the
@@ -160,9 +172,11 @@ wire event back, again as a string. The server half picks it up:
 
 <!-- doctest: server+client {"emit": [["greeter:seen", "Welcome, Alice"]]} -->
 ```lua
-node.on("greeter:seen", function(player, text)
+local function logSeen(player, text)
     node.log("%s saw: %s", player.name, text)
-end)
+end
+
+node.on("greeter:seen", logSeen)
 
 -- expect: Alice saw: Welcome, Alice
 ```
@@ -175,7 +189,7 @@ the rest of the client side.
 
 You don't need to restart the server after changing the server half. Type in the server console:
 
-```
+```text
 reload greeter
 ```
 
@@ -187,15 +201,9 @@ files are packed when the server starts, so changes to `client/` reach players a
 An error in a handler doesn't stop the server or the resource: the server logs it with the file, the
 line and a traceback, and goes on.
 
-```
-greeter · error in event 'playerJoined': …/server/main.lua:4: attempt to …
+```text
+greeter · error in builtin 'playerJoined': …/server/main.lua:4: attempt to …
 ```
 
 The other handlers keep working, and the same handler runs again on the next event. A syntax error
 in `main.lua` shows up the same way when the resource loads.
-
-## Next
-
-- [How a resource is built](/plugins/resources/): every file and key, several Lua files, reloading.
-- [Events](/plugins/events/): every kind of event, and the order a player joins in.
-- [The example plugins](/plugins/examples/): bigger resources to learn from.
