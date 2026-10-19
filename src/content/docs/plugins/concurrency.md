@@ -28,13 +28,16 @@ Waiting is done with timers and coroutines, and heavy work goes to background th
 ```lua
 local ticks = 0
 local id
-id = node.every(500, function()
+
+local function countTick()
     ticks = ticks + 1
     if ticks == 3 then
         node.cancel(id)
         node.log("stopped after %d ticks", ticks)
     end
-end)
+end
+
+id = node.every(500, countTick)
 
 -- expect: stopped after 3 ticks
 ```
@@ -47,11 +50,18 @@ schedule starts again from now, and the log says so once.
 <!-- doctest: server -->
 ```lua
 local seconds = 0
-node.every(100, function(missed)
+
+local function countTime(missed)
     seconds = seconds + 0.1
     if missed > 0 then node.log("caught up %d runs", missed) end
-end, { precise = true })
-node.after(1050, function() node.log("counted %.1f s", seconds) end)
+end
+
+local function reportTime()
+    node.log("counted %.1f s", seconds)
+end
+
+node.every(100, countTime, { precise = true })
+node.after(1050, reportTime)
 
 -- expect: counted 1\.0 s
 ```
@@ -67,13 +77,15 @@ counts down reads top to bottom:
 
 <!-- doctest: server -->
 ```lua
-node.async(function()
+local function countdown()
     for i = 3, 1, -1 do
         node.log("%d", i)
         node.sleep(500)
     end
     node.log("go")
-end)
+end
+
+node.async(countdown)
 
 -- expect: ^go$
 ```
@@ -82,12 +94,16 @@ end)
 
 <!-- doctest: server+client -->
 ```lua
-node.async(function()
-    node.wait(function()
-        return node.players.count() > 0
-    end)
+local function somebodyIsHere()
+    return node.players.count() > 0
+end
+
+local function announce()
+    node.wait(somebodyIsHere)
     node.log("someone is here")
-end)
+end
+
+node.async(announce)
 
 -- expect: someone is here
 ```
@@ -103,16 +119,20 @@ on a background thread and pauses the coroutine until it's done:
 
 <!-- doctest: server -->
 ```lua
-node.async(function()
-    local sum, err = node.await(function(n)
-        local total = 0
-        for i = 1, n do
-            total = total + i
-        end
-        return total
-    end, 1000)
+local function sumTo(n)
+    local total = 0
+    for i = 1, n do
+        total = total + i
+    end
+    return total
+end
+
+local function report()
+    local sum, err = node.await(sumTo, 1000)
     node.log("sum = %s", tostring(sum or err))
-end)
+end
+
+node.async(report)
 
 -- expect: sum = 500500
 ```
@@ -136,29 +156,34 @@ end
 
 local current
 
-node.on("serverShutdownScheduled", function(info)
+local function countDown(info)
+    while current == info do
+        local left = math.floor(info.at - node.server.unixTime())
+        if left <= 0 then break end
+        node.chat.say("Restart in %d s: %s", left, info.reason)
+        node.sleep(math.min(left, 60) * 1000)
+    end
+end
+
+local function trackShutdown(info)
     current = info
     if info.cancelled then
         node.chat.say("The restart is called off")
         return
     end
-    node.async(function()
-        while current == info do
-            local left = math.floor(info.at - node.server.unixTime())
-            if left <= 0 then break end
-            node.chat.say("Restart in %d s: %s", left, info.reason)
-            node.sleep(math.min(left, 60) * 1000)
-        end
-    end)
-end)
+    node.async(countDown, info)
+end
 
-node.on("chatMessageRequest", function(player, msg)
+local function handleRestart(player, msg)
     if msg.text ~= "/restart" then return end
     if moderators[player.accountId] then
         node.server.shutdown("Scheduled restart", 5 * 60 * 1000)
     end
     return { handled = true }
-end)
+end
+
+node.on("serverShutdownScheduled", trackShutdown)
+node.on("chatMessageRequest", handleRestart)
 
 -- expect-client: Alice chat:msg .*Restart in \d+ s: Scheduled restart
 ```

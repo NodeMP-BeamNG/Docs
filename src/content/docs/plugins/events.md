@@ -20,6 +20,16 @@ A name the server doesn't know is a wire event: a message from a client script
 ([Client scripts](/plugins/client-scripting/)). Messages between resources go over the
 [bus](/plugins/bus/), not through `node.on`.
 
+| What | Rule | Examples |
+|---|---|---|
+| Server events | `<subject><Verb-ed>` | `playerJoined`, `vehicleSpawned` |
+| Requests you can refuse | `<subject><Action>Request` | `vehicleSpawnRequest`, `chatMessageRequest` |
+| Wire events and bus messages | `<resource>:<what>`, lower case | `race:start`, `score:add` |
+| Storage keys | your choice; a prefix keeps them apart | `visits:42`, `settings` |
+
+Event names starting with `node:` belong to the server. Prefixing your own names with the resource's
+name keeps two resources from answering each other's messages.
+
 Several handlers per event are fine, from one resource or many. They run one after another, on the
 server's single worker thread.
 
@@ -38,20 +48,35 @@ On the way out there is one: `playerLeft`, with the reason the session ended.
 
 <!-- doctest: server+client -->
 ```lua
-local steps = { "playerAuthenticated", "playerJoining", "playerJoined" }
-for _, name in ipairs(steps) do
-    node.on(name, function(player)
-        node.log("%s: %s", name, player.name)
-    end)
+local function logConnectRequest(player, name)
+    node.log("playerConnectRequest: %s", name)
 end
 
-node.on("playerConnectRequest", function(player, name)
-    node.log("playerConnectRequest: %s", name)
-end)
+node.on("playerConnectRequest", logConnectRequest)
 
-node.on("playerLeft", function(player, reason)
+local function logAuthenticated(player)
+    node.log("playerAuthenticated: %s", player.name)
+end
+
+node.on("playerAuthenticated", logAuthenticated)
+
+local function logJoining(player)
+    node.log("playerJoining: %s", player.name)
+end
+
+node.on("playerJoining", logJoining)
+
+local function logJoined(player)
+    node.log("playerJoined: %s", player.name)
+end
+
+node.on("playerJoined", logJoined)
+
+local function logLeft(player, reason)
     node.log("playerLeft: %s (%s)", player.name, reason)
-end)
+end
+
+node.on("playerLeft", logLeft)
 
 -- expect: playerConnectRequest: Alice
 -- expect: playerAuthenticated: Alice
@@ -75,12 +100,14 @@ The first refusal wins; returning nothing lets the request through.
 
 <!-- doctest: server+client -->
 ```lua
-node.on("playerConnectRequest", function(player, name)
+local function admitAccountsOnly(player, name)
     if player.guest then
         return false, "This server is for players with an account"
     end
     node.log("%s may join", name)
-end)
+end
+
+node.on("playerConnectRequest", admitAccountsOnly)
 
 -- expect: Alice may join
 ```
@@ -91,12 +118,14 @@ The same works for cars. Here a resource keeps one model off the server:
 ```lua
 local banned = { pickup = true }
 
-node.on("vehicleSpawnRequest", function(player, requestedId, config)
+local function refuseBannedModels(player, requestedId, config)
     node.log("%s wants a %s", player.name, config.jbm)
     if banned[config.jbm] then
         return false, "This car isn't allowed here"
     end
-end)
+end
+
+node.on("vehicleSpawnRequest", refuseBannedModels)
 
 -- expect: Alice wants a coupe
 ```
@@ -118,13 +147,15 @@ returns an explicit `true` lets the player in past `max_players`; silence leaves
 
 <!-- doctest: server -->
 ```lua
-local reserved = { [42] = true } -- account ids
+local reserved = { [42] = true }
 
-node.on("playerConnectRequest", function(player)
+local function admitReserved(player)
     if player.overCapacity and reserved[player.accountId] then
         return true
     end
-end)
+end
+
+node.on("playerConnectRequest", admitReserved)
 ```
 
 ## Notifications
@@ -134,13 +165,17 @@ details:
 
 <!-- doctest: server+client {"spawn": "coupe"} -->
 ```lua
-node.on("vehicleSpawned", function(vehicle)
+local function logSpawned(vehicle)
     node.log("car %d spawned by %s", vehicle.id, vehicle.name)
-end)
+end
 
-node.on("vehicleDeleted", function(vehicle, cause)
+node.on("vehicleSpawned", logSpawned)
+
+local function logDeleted(vehicle, cause)
     node.log("car %d deleted (%s)", vehicle.id, cause)
-end)
+end
+
+node.on("vehicleDeleted", logDeleted)
 
 -- expect: car \d+ spawned by Alice
 ```
@@ -175,9 +210,3 @@ sends, up to 60 times a second per car. They pass only the car; read the current
 `vehicle:transform()` and friends. If a handler falls behind, it sees fewer events, never a growing
 queue. Still, for a map or a radar, one `node.vehicles.transforms()` on a timer reads every car at
 once and costs far less ([Players and vehicles](/plugins/players-and-vehicles/#many-cars-at-once)).
-
-## Old event names
-
-Events renamed in an earlier release don't answer to their old names. `node.on("playerJoin", f)`,
-with the renamed `playerJoin`, subscribes to nothing and logs one error that names the new spelling,
-`playerJoined`. The [events reference](/plugins/api/events/#renamed-events) has the full list.

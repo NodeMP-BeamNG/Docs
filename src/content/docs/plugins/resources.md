@@ -76,7 +76,7 @@ trusted = ["backup"]
 
 <!-- doctest: server -->
 ```lua
-local ok, err = pcall(os.execute, "echo hi")
+local _, err = pcall(os.execute, "echo hi")
 node.log("%s", err)
 
 -- expect: os\.execute is not available to resources
@@ -130,14 +130,17 @@ variables is gone, so keep what matters in storage. `resourceUnload` is the last
 ```lua
 local joins = node.storage.get("joins", 0)
 
-node.on("playerJoined", function()
+local function countJoin()
     joins = joins + 1
-end)
+end
 
-node.on("resourceUnload", function(reason)
+local function saveJoins(reason)
     node.storage.set("joins", joins)
     node.log("joins so far: %d (%s)", joins, reason)
-end)
+end
+
+node.on("playerJoined", countJoin)
+node.on("resourceUnload", saveJoins)
 
 -- expect: joins so far: 1 \(shutdown\)
 ```

@@ -31,18 +31,6 @@ and a traceback. It ends only that one call: the resource keeps its other handle
 handler runs again on the next event. So a handler that fails on bad data doesn't need a `pcall`
 around everything, but it should check what it relies on, such as `player.accountId` being set.
 
-## Names
-
-| What | Rule | Examples |
-|---|---|---|
-| Server events | `<subject><Verb-ed>` | `playerJoined`, `vehicleSpawned` |
-| Requests you can refuse | `<subject><Action>Request` | `vehicleSpawnRequest`, `chatMessageRequest` |
-| Wire events and bus messages | `<resource>:<what>`, lower case | `race:start`, `score:add` |
-| Storage keys | your choice; a prefix keeps them apart | `visits:42`, `settings` |
-
-Event names starting with `node:` belong to the server. Prefixing your own names with the resource's
-name keeps two resources from answering each other's messages.
-
 ## Ids that last, and ids that don't
 
 | Id | Lasts |
@@ -85,12 +73,14 @@ Two calls show what a resource costs:
 
 <!-- doctest: server -->
 ```lua
-node.after(1000, function()
+local function reportUsage()
     local mem = node.server.memory()
     local stats = node.server.handlerStats()
     node.log("lua %d KB, %d runs, slowest %s ms",
         mem.lua // 1024, stats.count, tostring(stats.max))
-end)
+end
+
+node.after(1000, reportUsage)
 
 -- expect: lua \d+ KB, \d+ runs
 ```
