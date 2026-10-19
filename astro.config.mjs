@@ -126,6 +126,7 @@ export default defineConfig({
           { slug: 'players/install' },
           { slug: 'players/sign-in' },
           { slug: 'players/join' },
+          { slug: 'players/in-game' },
           { slug: 'players/settings' },
           { slug: 'players/connection' },
           { slug: 'players/troubleshooting' },

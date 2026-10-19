@@ -99,23 +99,3 @@ your computer; the server only hears the result.
 **What about my own mods?** Zip mods in your `mods\` folder never fail a check. During a session the
 game turns them off, unless you turned on *Use my local mods in multiplayer* and the server allows
 it.
-
-## In the game
-
-The session panel sits in a corner: the server's name, your ping and how many players are on. Click
-the player count to open the list. From there you can spectate a player or move your camera to them.
-
-- `T` opens the chat: Enter sends, Esc closes.
-- `Tab` shows or hides the player list.
-- Everything else is in the game's options, on the **NodeMP** tab ([Settings](/players/settings/)).
-
-If your connection drops, you see *Connection lost, reconnecting…* with a countdown, and the launcher
-tries to get you back by itself. More on [A bad connection](/players/connection/).
-
-## Leave
-
-Hold **Leave** in the session panel. When you leave, the launcher comes back. If the server ended
-the session, the launcher shows the reason.
-
-You can't hop from server to server inside the game: close BeamNG.drive and pick the next server in
-the launcher.

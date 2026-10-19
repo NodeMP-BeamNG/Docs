@@ -1,6 +1,6 @@
 ---
-title: Settings and controls
-description: The launcher's settings, the NodeMP tab in the game's options, the chat, the keys, and what locked rows mean.
+title: Settings
+description: The launcher's settings, the NodeMP tab in the game's options, and what locked rows mean.
 ---
 
 There are settings in two places. The **launcher** has everything needed before the game starts.
@@ -78,34 +78,6 @@ Some things never wait: deletions, resets, colour changes, people on foot, and t
 also as a passenger. While a new car waits, its name tag already shows where it drives. A server can
 switch this off for everyone (a race or a league) or have everything built within a set time; the
 row then says *Set by the server*.
-
-## Chat
-
-`T` opens the chat, Enter sends, Esc closes. Up and Down bring back what you typed before. While the
-chat is open, your car ignores the keyboard.
-
-A line you send shows dimmed with *sending…* until the server confirms it. If the server didn't let
-it through, the reason replaces it: too many messages, muted on this server, didn't pass the filter
-and so on.
-
-Lines starting with `/` are commands. What they do depends on the server's resources; on many
-servers `/help` lists them.
-
-You can colour text: `^0`–`^9` and `^a`–`^f` pick a colour, `^#RRGGBB` any colour, `^l` bold, `^o`
-italic, `^n` underline, `^m` strike-through, and `^r` resets everything.
-
-## Keys
-
-Change them in the game's controls options, in the *gameplay* category:
-
-| Default | Action | What it does |
-|---|---|---|
-| `T` | NodeMP: Chat | Open the chat. |
-| `Tab` | NodeMP: Player list | Show or hide the player list. |
-| not bound | NodeMP: Settings | Open the NodeMP tab. |
-| not bound | NodeMP: Load scheduled changes | Build every car waiting for you now. |
-| not bound | NodeMP: Diagnostics window | Open the diagnostics window. |
-| not bound | NodeMP: Toggle debug chat | Show or hide the overlay chat window. |
 
 ## For the curious: Launcher.cfg
 
