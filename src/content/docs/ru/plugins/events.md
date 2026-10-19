@@ -129,7 +129,7 @@ node.on("vehicleSpawnRequest", refuseBannedModels)
 
 ## Резервные места
 
-На полном сервере `playerConnectRequest` всё равно срабатывает, и `player.overCapacity` равно `true`. Обработчик, который явно вернул `true`, пускает игрока сверх `max_players`, а один `false` отказывает, что бы ни ответили другие. Если `true` не вернул никто, сервер откажет сам (`Server full!`).
+На полном сервере `playerConnectRequest` всё равно срабатывает, и `player.overCapacity` равно `true`. Обработчик, который явно вернул `true`, пускает игрока сверх `max_players`, а один `false` отказывает, что бы ни ответили другие. Если `true` не вернул никто, сервер откажет сам (`Server full!`) или поставит игрока в [очередь на вход](/ru/hosting/join-queue/), если очередь его принимает; тогда `playerLeft` срабатывает с причиной `Queued`.
 
 <!-- doctest: server -->
 ```lua

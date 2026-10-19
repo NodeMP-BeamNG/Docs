@@ -34,7 +34,7 @@ Each line of the result is a path and a reason:
 | `unlisted` | An extra file in the game folder. | Delete it yourself: Steam's check doesn't remove extra files. |
 | `hash`, `size`, `missing` | A game file was changed or is missing. If there are many and `/Bin64/…` is among them, you and the server have different game versions. | Verify the files in Steam, update the game, or wait for the host to update. |
 | `crc`, `extra`, `duplicate` | Something is wrong inside a game archive. | Verify the files in Steam. |
-| `unreadable` | The launcher couldn't read a file or folder. | Shorten the path or delete the file from the user folder. |
+| `unreadable` | The launcher couldn't read a game archive or a folder in the user folder. | If the path starts with `userfolder:`, shorten it or delete that folder. If it's a game archive, verify the files in Steam. |
 
 During the session the launcher checks again when the server asks (every 10 minutes by default) and when files change. If something changed, the server ends the session: put the files back and join again. How the check works and how a host sets it up: [Strict file check](/hosting/strict-verification/).
 

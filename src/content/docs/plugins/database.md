@@ -168,9 +168,12 @@ Errors are returned, not raised, as `{ code, message, detail, constraint, … }`
 | `23505` | Duplicate unique key; `constraint` names it if the engine reports the name. |
 | `23503`, `23502`, `23514` | A foreign key, NOT NULL or CHECK violation. |
 | `42601`, `42P01` | A syntax error; no such table. |
+| `40001`, `40P01` | A serialization failure; a deadlock. |
 | `57014` | The query ran longer than `query_timeout_ms`. |
 | `08001`, `08006` | No connection; the connection was lost. |
 | `db_disabled` | No connection by that name, or the module isn't configured. |
+| `db_queue_full` | 1000 statements are already queued. |
 | `db_tx_timeout` | The transaction ran longer than `tx_timeout_ms`. |
+| `db_tx_aborted` | The module rolled the transaction back because its plugin unloaded. |
 | `db_result_cap` | More rows than `max_rows`. |
 | `db_params` | The parameter list or the SQL is unusable. |

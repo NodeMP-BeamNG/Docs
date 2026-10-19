@@ -17,7 +17,7 @@ On the [download page](https://nodemp.com/download), in the **Your own server** 
 
 ## How the container works
 
-- By default the image doesn't read `server.toml`: each setting has an environment variable of its own, `NODE_NAME` for `[server] name` and so on. The full list is in the [settings reference](/hosting/configuration/).
+- By default the image doesn't read `server.toml`: each setting has an environment variable of its own, `NODE_NAME` for `[server] name` and so on. The full list is in the [settings reference](/hosting/configuration/). To have the image read the file: [`server.toml` isn't read](/hosting/troubleshooting/#servertoml-isnt-read).
 - The server's data is in `/data`: plugins, mods, storage, bans, logs. The server can't change the program's own folder.
 - The server runs as user 10001, and the data folder must belong to it.
 - The TLS certificate must be in `/data` too. By default the server puts it next to the program, which is read-only in the image. The variables below move it to `/data/tls`.

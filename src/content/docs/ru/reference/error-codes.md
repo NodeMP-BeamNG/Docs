@@ -39,7 +39,7 @@ description: Уведомления лаунчера, отказы и кики �
 |---|---|---|
 | *Не удалось подключиться* · `Could not reach the server` | По этому адресу никто не отвечает: сервер выключен, порт закрыт или мешает брандмауэр. | Обновите список. Если это ваш сервер, проверьте, что порт открыт для TCP и UDP. |
 | *Не удалось подключиться* · `DNS Lookup Failed` | Имя, введённое в прямом подключении, не находится. | Проверьте написание или введите IP-адрес. |
-| *Не удалось подключиться* · `server certificate fingerprint mismatch` | Сертификат сервера не тот, что ждал лаунчер. Для сервера из списка лаунчер сверяет его с тем, что NodeMP знает о сервере, при входе по адресу с тем, что запомнил в прошлый раз. | Спросите хоста: он мог переустановить сервер. Если вы заходили по адресу, удалите строку сервера из `known_servers.json` в папке кэша лаунчера. |
+| *Не удалось подключиться* · `server certificate fingerprint mismatch` | Сертификат сервера не тот, что ждал лаунчер. Для сервера из списка лаунчер сверяет его с тем, что NodeMP знает о сервере, для сервера не из списка с тем, что запомнил при первом подключении. | Спросите хоста: он мог переустановить сервер. Если сервера нет в списке, удалите его строку из `known_servers.json` в папке кэша лаунчера. |
 | *Не удалось подключиться* · `TLS handshake failed: …`, `server presented no certificate` | Ответил не сервер NodeMP, или соединение оборвалось во время рукопожатия. | Проверьте адрес и порт и попробуйте снова. Через VPN: [Плохое соединение](/ru/players/connection/#сообщения-о-сбоях-связи). |
 
 ### Загрузка модов сервера
@@ -99,7 +99,7 @@ description: Уведомления лаунчера, отказы и кики �
 | `This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. Ask the host to keep exactly one manifest in the server's integrity folder.` | В папке манифестов сервера лежат файлы для нескольких версий игры. | Скажите хосту. |
 | `Unknown integrity manifest requested` | Лаунчер попросил манифест, которого у сервера нет: обычно хост только что его заменил. Лаунчер показывает `The server would not send its reference manifest`. | Зайдите чуть позже. Если повторяется, скажите хосту. |
 | `Too many integrity manifest requests` | За одну сессию лаунчер слишком часто просил манифест. Лаунчер показывает `The server stopped sending its reference manifest (asked too often)`. | Зайдите чуть позже. Если повторяется, переустановите лаунчер. |
-| `This server requires a check of your BeamNG install, which could not be completed: …` | Проверка не смогла пройти, после двоеточия причина. Лаунчер показывает `BeamNG's user folder was not found`, `Could not download the server's reference manifest`, `The server's reference manifest is out of date` или `Your game files could not be checked`. | Выполните совет под сообщением и зайдите снова. |
+| `This server requires a check of your BeamNG install, which could not be completed: …` | Проверка не смогла пройти, после двоеточия причина. Лаунчер показывает `BeamNG's user folder was not found`, `Could not download the server's reference manifest`, `The server's reference manifest is out of date`, `The server asked for a strict check without a usable reference manifest`, `The server asked for too many game-file checks at once` или `Your game files could not be checked`. | Выполните совет под сообщением и зайдите снова. |
 | `Kicked`, `Kicked by the server`, `Kicked by module` | Вас убрал плагин, консоль сервера или нативный модуль, причину не назвали. | Спросите хоста. |
 | `Banned` | Плагин забанил вас, причину не назвал. | Спросите хоста. |
 | `Packet rate limit exceeded` | Игра слала пакеты быстрее, чем разрешает сервер. | Зайдите снова. Если повторяется, сообщите об этом. |
@@ -111,7 +111,7 @@ description: Уведомления лаунчера, отказы и кики �
 
 ## Коды выхода помощника
 
-Помощник — фоновая часть лаунчера, которая и выполняет вход. Если он завершится с ошибкой, лаунчер покажет *Сетевой помощник лаунчера остановился* и последнюю строку его лога, а **Подробности** начинаются с `exit code` и номера. Полный лог: `%LOCALAPPDATA%\NodeMP\helper\logs\launcher.log`.
+Если [помощник](/ru/players/troubleshooting/#сетевой-помощник-лаунчера) завершится с ошибкой, лаунчер покажет *Сетевой помощник лаунчера остановился* и последнюю строку его лога, а **Подробности** начинаются с `exit code` и номера. Полный лог: `%LOCALAPPDATA%\NodeMP\helper\logs\launcher.log`.
 
 | Код | Последняя строка лога | Что значит | Что сделать |
 |---|---|---|---|
