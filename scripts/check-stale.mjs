@@ -78,9 +78,9 @@ export function findRuleHits(files, rules = RULES, pending = PENDING) {
 }
 
 // Generated API reference (scripts/import-api.mjs) is never checked, same as in check-locales.mjs.
-const GENERATED = /^(ru\/)?plugins\/api\//;
+export const GENERATED = /^(ru\/)?plugins\/api\//;
 
-function walk(dir, out = []) {
+export function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) walk(p, out);
