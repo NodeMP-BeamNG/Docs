@@ -23,9 +23,9 @@ The keys of `server.toml` in the order the server declares them. Strings are in 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
 | `[vehicles]` | `queue` | string | `"allow"` | `NODE_VEHICLES_QUEUE` | With `"allow"`, each player decides whether to hold back other players' new cars and changes ([Other players' cars](/hosting/server-toml/#other-players-cars)). With `"off"`, every change is built as soon as it arrives. |
-| `[vehicles]` | `queue_max_delay_sec` | int | `0` | `NODE_VEHICLES_QUEUE_MAX_DELAY_SEC` | Not `0`: every player builds what is waiting no later than this many seconds after the first change, whatever the player chose. Up to `3600`. |
+| `[vehicles]` | `queue_max_delay_sec` | int | `0` | `NODE_VEHICLES_QUEUE_MAX_DELAY_SEC` | If not `0`, every player builds what is waiting at most this many seconds after the first change, whatever the player chose. Up to `3600`. |
 | `[vehicles]` | `edit_interval_sec` | int | `5` | `NODE_VEHICLES_EDIT_INTERVAL_SEC` | The edits of one car reach the other players at most once per this many seconds, as the latest configuration. The editor's own car changes at once. `0` turns the limit off. |
-| `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | One player's new cars at most once per this many seconds. A car ordered sooner is refused by the server with `Wait N s`, and the game shows *Wait N s*. Walking and replacing your own car don't count. `0` turns the limit off. |
+| `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | One player's new cars at most once per this many seconds. A car ordered sooner is refused by the server with `Wait N s`, and the game shows *Wait N s*. Going on foot and replacing your own car don't count. `0` turns the limit off. |
 
 ## `[listing]`
 
@@ -74,7 +74,7 @@ The keys of `server.toml` in the order the server declares them. Strings are in 
 | `[network]` | `max_connections` | int | `256` | `NODE_NETWORK_MAX_CONNECTIONS` | The same for all addresses together. |
 | `[network]` | `connection_limit_exempt` | string | `"127.0.0.0/8, ::1/128, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, fd00::/8"` | `NODE_NETWORK_CONNECTION_LIMIT_EXEMPT` | Address ranges without the per-address limit. They still count toward `max_connections`. `""` or `"none"` removes the exceptions. |
 | `[network]` | `handshake_timeout_sec` | int | `20` | `NODE_NETWORK_HANDSHAKE_TIMEOUT_SEC` | Seconds a new connection gets for the TLS handshake and for each of the first frames of joining. |
-| `[network]` | `download_stall_sec` | int | `60` | `NODE_NETWORK_DOWNLOAD_STALL_SEC` | A mod download is cut off if the player receives not a single kilobyte for this many seconds. A slow download isn't cut off. |
+| `[network]` | `download_stall_sec` | int | `60` | `NODE_NETWORK_DOWNLOAD_STALL_SEC` | A mod download is cut off if the player receives less than a kilobyte of it in this many seconds. A slow download isn't cut off. |
 
 ## `[queue]`
 
@@ -92,7 +92,7 @@ The keys of `server.toml` in the order the server declares them. Strings are in 
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
-| `[chat]` | `max_length` | int | `256` | `NODE_CHAT_MAX_LENGTH` | The longest chat line, in bytes. The server brings the value into the range from 16 to 2048. |
+| `[chat]` | `max_length` | int | `256` | `NODE_CHAT_MAX_LENGTH` | The longest chat line, in bytes. The server keeps the value between 16 and 2048. |
 | `[chat]` | `rate_per_sec` | int | `2` | `NODE_CHAT_RATE_PER_SEC` | How many lines per second a player can send on average, at least 1. Extra lines aren't sent, and the player isn't kicked. |
 | `[chat]` | `burst` | int | `5` | `NODE_CHAT_BURST` | How many lines in a row can be sent before the limit applies, at least 1. |
 | `[chat]` | `log` | bool | `true` | `NODE_CHAT_LOG_TO_CONSOLE` | Show the chat in the console and in the log. |

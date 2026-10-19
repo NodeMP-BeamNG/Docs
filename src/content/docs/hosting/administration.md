@@ -12,12 +12,12 @@ A server started in a terminal takes commands right in its window. On Windows th
 | `help` | The list of commands. |
 | `status` | Version, uptime, players, cars, plugins, memory. |
 | `players` | Everyone on the server: id, name, ping, cars and address (the last part is hidden). |
-| `kick <id\|name> [reason]` | Disconnect a player, who sees the reason. Put a name with spaces in quotes. |
+| `kick <id\|name> [reason]` | Disconnect a player and show them the reason. Put a name with spaces in quotes. |
 | `say <text>` | A system message in the chat for all players. |
-| `reload <plugin>` | Restart a plugin. |
+| `reload <resource>` | Restart a plugin. |
 | `stop` | Stop the server. `exit` and `quit` do the same. |
 
-Plugins can add commands of their own, and `help` lists them under `from resources:` with the name of the plugin. A word that no command takes gets the answer `unknown command, try help`.
+Plugins can add commands of their own, and `help` lists them under `from resources:` with the name of the plugin. Input that no command takes gets the answer `unknown command, try help`.
 
 A player kicked without a reason sees `Kicked by the server`. Players have no access to the console: a `/kick 1` typed in chat stays a chat line until some plugin takes it.
 
@@ -65,15 +65,15 @@ Node-Server --bans remove nodemp:108
 Node-Server --bans remove install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff00f1d6c166d39f57fd4
 ```
 
-`list` shows all bans, and `remove` lifts one: by address, by `nodemp:<id>` or the bare account number, or by `install:<id>`. You can edit the file by hand too, also while the server is stopped. A running server keeps the list in memory and rewrites the file at the next ban.
+`list` shows all bans, and `remove` lifts one: by address, by `nodemp:<id>` or the bare account number, or by `install:<id>`. You can also edit the file by hand, but only while the server is stopped. A running server keeps the list in memory and rewrites the file at the next ban.
 
 ## Restarting with a warning
 
-`stop` disconnects everyone at once. To warn players first, a plugin schedules the restart: the call `node.server.shutdown("Nightly restart", 5 * 60 * 1000)` stops the server in five minutes. Players see that reason, plugins save their data and the server exits with code 0. A systemd service with `Restart=always` or a container with `restart: unless-stopped` starts it again, which makes a restart. An example with a countdown in chat is on the page about [timers and coroutines](/plugins/concurrency/).
+`stop` disconnects everyone at once. To warn players first, a plugin schedules the restart: the call `node.server.shutdown("Nightly restart", 5 * 60 * 1000)` stops the server in five minutes. Players see that reason, plugins save their data and the server exits with code 0. A systemd service with `Restart=always` or a container with `restart: unless-stopped` then starts it again. An example with a countdown in chat: [Timers and coroutines](/plugins/concurrency/).
 
 ## The log
 
-Everything the server writes to the console also goes to `logs/server.log`, and the file has more. The console shows what needs a reaction: joins and leaves, spawns, refusals, chat, warnings and errors. Statistics and housekeeping lines, such as `netstats`, go only to the file until `[logs] details = true` shows them in the console too. A new file starts at every start and when the old one grows past 50 MB, and five old ones are kept as `server.1.log`, `server.2.log` and so on (`[logs] max_size_mb` and `keep`).
+Everything the server writes to the console also goes to `logs/server.log`, and the file has more. The console shows what needs a reaction: joins and leaves, spawns, refusals, chat, warnings and errors. Statistics and housekeeping lines, such as `netstats`, go only to the file unless `[logs] details = true`. The server starts a new file at every start and when the current one grows past 50 MB, and keeps five old ones as `server.1.log`, `server.2.log` and so on (`[logs] max_size_mb` and `keep`).
 
 The main lines of the log:
 

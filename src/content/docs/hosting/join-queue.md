@@ -26,7 +26,7 @@ A waiting launcher pings the server every 30 seconds, and a waiting connection t
 
 - At most `max_waiting` players wait in total (50). The next one is refused with `The server is full and so is its join queue`.
 - At most `max_waiting_per_ip` players wait from one address (1). Addresses in `[network] connection_limit_exempt`, such as a local network, aren't limited. A second player from the same address is refused with `Someone from your address is already in this server's join queue`.
-- One place per account. Joining from another launcher takes the place and keeps it, and the old connection is closed.
+- One place per account. Joining from another launcher takes over the place, and the old connection is closed.
 - Whoever leaves loses the place. If a player clicked **Cancel**, closed the launcher or was removed from the queue, the launcher fetches a new join ticket by itself at the next attempt, and the player goes to the end.
 - No-shows. A player who got a place and left without reaching the world `max_no_shows` times (3) within `no_show_window_min` minutes (60) can't join this server's queue for `no_show_bar_min` minutes (30). The player is told until when. A kick, a ban or a server stop isn't a no-show, and joining while a place is free still works.
 
@@ -70,7 +70,7 @@ end
 node.on("queueJoinRequest", put_members_first)
 ```
 
-During a race there are no new players, and the waiting ones read the note under their place:
+During a race the queue lets nobody in, and waiting players read the note under their place:
 
 <!-- doctest: skip needs a full server with players waiting in its queue -->
 ```lua

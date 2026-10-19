@@ -10,14 +10,14 @@ A plugin is a folder in `resources/` with Lua code that runs on the server and, 
 1. Copy the plugin's whole folder into `resources/` next to `server.toml`. If there is no `resources/` folder yet, create it. In Docker that's `data/resources/`.
 2. Restart the server.
 
-The server notes every plugin it loads in the log:
+The server logs every plugin it loads:
 
 ```text
 demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
 1 resource · 1 module loaded
 ```
 
-Chat works without plugins, and commands in chat, such as `/pm`, are added by plugins.
+Chat works without plugins; chat commands such as `/pm` come from plugins.
 
 The server archive has an `examples/` folder next to the program with ready-made plugins. To try an example, copy its folder into `resources/`. The copy is yours: you can change it, and updating the server won't touch it. Which examples there are: [The example plugins](/plugins/examples/).
 
@@ -41,9 +41,9 @@ The `reload <name>` command in the server console starts a plugin's server part 
 
 Before sending the scripts a plugin gives to players, the server scrambles them (`[resources] obfuscate`, on by default) to make them harder to copy. Prometheus, a Lua program in the `tools/` folder, does this, and it needs Lua 5.1. It's already in the Windows archive and in the Docker image; on Linux you install it separately ([Install Lua 5.1](/hosting/linux/#install-lua-51)).
 
-When all is well, the log has `client obfuscation ready · runner … · Prometheus (cache .obfcache)`. If not, the server still works and sends the scripts as they are, and the log explains what is missing. You can check the setup with `Node-Server --obf-selftest`: on success it prints `[obf-selftest] available=1`.
+When all is well, the log has `client obfuscation ready · runner … · Prometheus (cache .obfcache)`. If not, the server still works and sends the scripts as they are, and the log explains what is missing. To check the setup, run `Node-Server --obf-selftest`: on success it prints `[obf-selftest] available=1`.
 
-How hard to scramble is the plugin's choice, made with the `[client] obfuscation` key in `resource.toml`: `none`, `light` (the default), `medium` or `strong`. The results are cached in `.obfcache/`, and you can delete that folder at any time.
+The plugin chooses how hard to scramble with the `[client] obfuscation` key in `resource.toml`: `none`, `light` (the default), `medium` or `strong`. The results are cached in `.obfcache/`, and you can delete that folder at any time.
 
 The server also checks the syntax of client scripts while packing them. It still sends a script with an error, but warns in the log: `… client file 'main.lua' has a syntax error: …`.
 

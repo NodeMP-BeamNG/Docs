@@ -5,9 +5,9 @@ description: Download Node-Server for Windows, check the archive, start it, open
 
 ## Download
 
-On the [download page](https://nodemp.com/download), in the **Your own server** block, click **Windows x64**. The checksum is in the same block, under **Checksums and Docker**. From [GitHub](https://github.com/NodeMP-BeamNG/releases/releases) you can take two files: `Node-Server-<version>-windows-x64.zip` and `Node-Server-<version>-windows-x64.zip.sha256`.
+On the [download page](https://nodemp.com/download), in the **Your own server** block, click **Windows x64**. The checksum is in the same block, under **Checksums and Docker**. On [GitHub](https://github.com/NodeMP-BeamNG/releases/releases) the release has two files for Windows: `Node-Server-<version>-windows-x64.zip` and `Node-Server-<version>-windows-x64.zip.sha256`.
 
-To check that the archive arrived whole, run this in PowerShell in your downloads folder:
+To check that the archive downloaded intact, run this in PowerShell in your Downloads folder:
 
 ```powershell
 $zip = "Node-Server-<version>-windows-x64.zip"
@@ -19,7 +19,7 @@ The two lines must match. If they don't, download the archive again.
 
 ## Unpack and start
 
-Unpack the archive into a folder of its own, such as `C:\NodeMP`, and double-click `Node-Server.exe`. The same from PowerShell:
+Unpack the archive into a folder of its own, such as `C:\NodeMP`, and double-click `Node-Server.exe`. Or start it from PowerShell:
 
 ```powershell
 cd C:\NodeMP
@@ -57,6 +57,6 @@ To have the server start by itself after a reboot, create a task in **Task Sched
 1. In **Task Scheduler**, choose **Action → Create Task**.
 2. On the **General** tab, choose **Run whether user is logged on or not**.
 3. On the **Triggers** tab, add the trigger **At startup**.
-4. On the **Actions** tab, add **Start a program**: the program `C:\NodeMP\Node-Server.exe`, start in `C:\NodeMP`.
+4. On the **Actions** tab, add the action **Start a program** with `C:\NodeMP\Node-Server.exe` as the program and `C:\NodeMP` in **Start in**.
 
-The start folder matters because the server looks for `server.toml`, `resources/` and `content/` there. A server started this way has no window, and so no console.
+**Start in** sets the server's working directory, where it looks for `server.toml`, `resources/` and `content/`. A server started this way has no window, and so no console.

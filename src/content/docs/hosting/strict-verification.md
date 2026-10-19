@@ -3,7 +3,7 @@ title: Strict file check
 description: What verify = "strict" checks, how to make the reference manifest, where to put it and what to do after a game update.
 ---
 
-`[integrity] verify = "strict"` is the strictest check of the game files. The ordinary levels compare the player's install with the list of files that comes with the game, and a player can edit that list together with the files. The strict check compares the install with a reference manifest: a description of a clean install that you make once per game version.
+`[integrity] verify = "strict"` is the strictest check of the game files. The other levels compare the player's install with the list of files that comes with the game, and a player can edit that list together with the files. The strict check compares the install with a reference manifest: a description of a clean install that you make once per game version.
 
 It's for races and tournaments where everyone must have the same game. For freeroam the default check, `size`, is usually enough.
 
@@ -25,11 +25,11 @@ The strict check keeps honest players on a clean game, but it doesn't protect ag
 - Files other than code and programs are compared by size only.
 - The manifest is only as clean as the install it was made from.
 
-So rules on the server side, in your plugins, are still needed.
+So you still need rules on the server side, in your plugins.
 
 ## Make the manifest
 
-The generator is built into the server. Run it on a computer with Windows and a clean BeamNG.drive of the same version your players have: verify the game files in Steam and remove foreign programs and mods from the game folder. You need the Windows build of the server:
+The generator is built into the server. Run it on a computer with Windows and a clean BeamNG.drive of the same version your players have: verify the game files in Steam and remove third-party programs and mods from the game folder. You need the Windows build of the server:
 
 ```powershell
 $game = "C:\Program Files (x86)\Steam\steamapps\common\BeamNG.drive"
@@ -56,7 +56,7 @@ The manifest is also loaded on a server with another check level. A plugin can t
 
 ## After a game update
 
-A manifest describes one game version. When BeamNG updates, players with the new version stop being let in. Make a new manifest from the updated clean install, replace the old file (there is still one file) and restart the server. Launchers notice the new manifest and download it at their next join. Now players who haven't updated the game yet are refused, and updating in Steam fixes that.
+A manifest describes one game version. When BeamNG updates, the server stops letting in players who have the new version. Make a new manifest from the updated clean install, replace the old file (there is still one file) and restart the server. Launchers notice the new manifest and download it at their next join. Now players who haven't updated the game yet are refused, and updating in Steam fixes that.
 
 ## What the player sees
 

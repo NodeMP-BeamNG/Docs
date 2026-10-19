@@ -58,11 +58,11 @@ The image creates `/data/tls` at every start. Why you must not lose these files:
 
 ### `server.toml` isn't read
 
-That's intended: the image sets `NODE_PROVIDER_DISABLE_CONFIG=true`, and every setting comes from the `NODE_*` variables. To make the server read and write `/data/server.toml`, set `NODE_PROVIDER_DISABLE_CONFIG=false`.
+This is by design: the image sets `NODE_PROVIDER_DISABLE_CONFIG=true`, and every setting comes from the `NODE_*` variables. To make the server read and write `/data/server.toml`, set `NODE_PROVIDER_DISABLE_CONFIG=false`.
 
 ### Permission denied at start
 
-The same happens when the server can't see the files you copied. The server runs as user 10001. Run `sudo chown -R 10001:10001 data` and restart the container.
+The server runs as user 10001 and can't write to the data folder or read the files you copied into it. Run `sudo chown -R 10001:10001 data` and restart the container.
 
 ### The console doesn't respond
 

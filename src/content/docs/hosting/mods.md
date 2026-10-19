@@ -29,11 +29,11 @@ If the map has a picture of its own, the server shows it in the server list ([Th
 
 ## How players get mods
 
-Before joining, the launcher downloads from the server the archives the player doesn't have yet and keeps them in a cache ([Join a server](/players/join/#look-at-a-server)). Every new player waits for every megabyte, and the **Download size** filter in the list hides heavy servers, so it's best to remove mods you don't need.
+Before joining, the launcher downloads from the server the archives the player doesn't have yet and keeps them in a cache ([Join a server](/players/join/#look-at-a-server)). Every new player waits for every megabyte to download, and the **Download size** filter in the list hides heavy servers, so remove the mods you don't need.
 
 ## A mod that isn't sent
 
-Sometimes a mod can't be distributed, and players have to download it themselves. Open `content/mods.json` (the server writes it) and set `"protected": true` for that archive:
+Some mods may not be redistributed, and players have to download them themselves. Open `content/mods.json` (the server writes it) and set `"protected": true` for such an archive:
 
 ```json
 "big-map.zip": { "protected": true }
@@ -45,4 +45,4 @@ The entry has other fields too; leave them alone and change only `protected`. Th
 
 Plugins can also send Lua scripts to players, but that is a different mechanism: the scripts arrive on join, and you don't put them in `content/` ([Plugins on the server](/hosting/resources/)).
 
-The two mechanisms work together too: a plugin's scripts can switch on Lua from a mod in `content/`. The mod then needs no start script of its own (`scripts/…/modScript.lua`): the plugin loads its Lua and switches it off when the player leaves. How to do it is on the [Client scripts](/plugins/client-scripting/) page.
+The two mechanisms work together too: a plugin's scripts can switch on Lua from a mod in `content/`. The mod then needs no start script of its own (`scripts/…/modScript.lua`): the plugin loads its Lua and switches it off when the player leaves. How to do it: [Client scripts](/plugins/client-scripting/).

@@ -7,7 +7,7 @@ The Linux build is for x64 and is built on Ubuntu 24.04. On an older system, run
 
 ## Download and unpack
 
-The archive is on the [download page](https://nodemp.com/download) in the **Your own server** block, under the **Linux x64** button. On a machine without a browser, take it from GitHub:
+On the [download page](https://nodemp.com/download), the **Linux x64** button in the **Your own server** block downloads the archive. On a machine without a browser, take it from GitHub:
 
 ```bash
 sudo mkdir -p /opt/nodemp && sudo chown "$USER" /opt/nodemp
@@ -20,7 +20,7 @@ sha256sum -c Node-Server-$version-linux-x64.tar.gz.sha256
 tar -xzf Node-Server-$version-linux-x64.tar.gz
 ```
 
-`sha256sum` must answer `OK`. The folder now holds `Node-Server`, `tools/`, `modules/` and `examples/`.
+`sha256sum` must print `OK`. The folder now holds `Node-Server`, `tools/`, `modules/` and `examples/`.
 
 ## Install Lua 5.1
 
@@ -49,11 +49,11 @@ sudo ufw allow 30814/tcp
 sudo ufw allow 30814/udp
 ```
 
-A VPS provider often has a firewall of its own in the control panel, and the port must be opened there too.
+Many VPS providers also have a firewall in their control panel: open the port there too.
 
 ## A systemd service
 
-This starts the server with the system and brings it back after a crash. Create a user for the server and give it the folder:
+A service starts the server with the system and restarts it after a crash. Create a user for the server and give it the folder:
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin -d /opt/nodemp nodemp

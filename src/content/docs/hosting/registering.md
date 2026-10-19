@@ -12,12 +12,12 @@ With a key the server reports itself to NodeMP, appears in the launcher and on [
 You need a NodeMP account with a linked Discord. Link Discord under **Connections** in your account, or with the **Link Discord** button on the **My servers** page.
 
 1. Sign in at [nodemp.com](https://nodemp.com) and open [**My servers**](https://nodemp.com/account/servers).
-2. Enter a label that tells this server from your others (only you see it) and click **Create key**.
+2. Enter a label that tells this server apart from your others (only you see it) and click **Create key**.
 3. In the *Server key created* window the site shows the **Host ID** and the **Host secret**. The secret is shown once, so copy it right away.
 
 Each server needs a key of its own. **My servers** shows all your keys and when each server was last online. How many keys you can create depends on your account's roles. How many you have used is shown next to the creation form.
 
-If the site doesn't create a key, it says why: Discord isn't linked, the account already has all the keys it may have (delete one you don't need or rotate the secret of an existing key), or the request was refused to protect the service. In the last case the site shows a decision number, which you quote to support.
+If the site doesn't create a key, it says why: Discord isn't linked, the account already has as many keys as it may have (delete one you don't need or rotate the secret of an existing key), or the request was refused to protect the service. In the last case the site shows a decision number: quote it to support.
 
 ## Put the key into the settings
 
@@ -31,7 +31,7 @@ host_secret = "…"
 ```
 
 :::caution[One `[listing]` table]
-The site shows these lines ready to copy. Put them into the `[listing]` table that is already in the file, and don't add a second one: TOML doesn't allow the same table twice, and the server won't start.
+The site shows these three lines ready to copy. Put them into the `[listing]` table that is already in the file, and don't add a second one: TOML doesn't allow the same table twice, and the server won't start.
 :::
 
 You can set the same with environment variables, for Docker or systemd:
@@ -42,13 +42,13 @@ NODE_DIRECTORY_HOST_ID=…
 NODE_DIRECTORY_HOST_SECRET=…
 ```
 
-Restart the server. It needs all of them. If all of them are empty, the server doesn't report itself and says nothing about it, and if only some are empty, it says so in the log. Keep the secret like a password.
+Restart the server. It needs all three values. If all three are empty, the server doesn't report itself and says nothing about it; if only some are empty, it says so in the log. Keep the secret like a password.
 
 ## What happens next
 
 At start the server writes `announcing this server to https://api.nodemp.com` to the log, and once the key is accepted and the list shows the server, `listed in the server browser`. After that it reports regularly, usually every 15 seconds: its name, map, number of players and slots, tags, list of mods and the fingerprint of its certificate. If NodeMP is unreachable, the server keeps running and retries by itself.
 
-NodeMP never connects to the server, so nobody checks the port from outside until players arrive. If players get join tickets for your server and none of them reaches it, NodeMP marks the server *Can't connect* on the **My servers** page, the launcher marks it in the list, and the server's log has `Listed in the server browser, but players cannot connect: …` with the port you need to forward. The mark goes away as soon as a player reaches the server. So open and forward the port for TCP and UDP, and test it from outside your own network.
+NodeMP doesn't connect to the server, so nobody checks the port from outside until players arrive. If players get join tickets for your server and none of them reaches it, NodeMP marks the server *Can't connect* on the **My servers** page, the launcher marks it in the list, and the server's log has `Listed in the server browser, but players cannot connect: …` with the port you need to forward. The mark goes away as soon as a player reaches the server. So open and forward the port for TCP and UDP, and test it from outside your own network.
 
 While the server is listed, every join is checked: the player's launcher brings a one-time ticket, the server checks it with NodeMP and gets the account name. A player in Test Drive gets a guest name. A server without a key checks nothing and takes the name the launcher sent.
 
@@ -96,7 +96,7 @@ The server's card shows a picture of the map. It comes from:
 
 ## The server's fingerprint
 
-Launchers know a server by the fingerprint of its TLS certificate. It's written to the log at every start: `TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. The server passes it to NodeMP in every report, and a launcher joining from the list accepts only that certificate. The fingerprint changes only if you lose or replace `node_cert.pem` and `node_key.pem`, so keep them in a backup. Players who joined by address remember the fingerprint and won't connect to a server with another one.
+Launchers know a server by the fingerprint of its TLS certificate. It's written to the log at every start: `TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. The server passes it to NodeMP in every report, and a launcher joining from the list accepts only that certificate. The fingerprint changes only if you lose or replace `node_cert.pem` and `node_key.pem`, so back them up. Players who joined by address remember the fingerprint and won't connect to a server with another one.
 
 ## Change or delete the key
 

@@ -3,12 +3,12 @@ title: Run a server
 description: What a NodeMP server needs, where to get Node-Server, and how to get from the download to your first join.
 ---
 
-`Node-Server` is the program players connect to. It runs on Windows, on Linux and in Docker. You don't need an account to run one: without it the server isn't in the public list, and players join by address.
+`Node-Server` is the program players connect to. It runs on Windows, on Linux and in Docker. You don't need an account to run one: without one, the server isn't in the public list, and players join by address.
 
 ## What you need
 
 - A computer or a VPS that players can reach on one port, over TCP and UDP. The default is `30814`. If the server is at home, forward the port on your router.
-- Windows x64 or Linux x64. What Linux needs is on [Server on Linux](/hosting/linux/).
+- Windows x64 or Linux x64 ([what Linux needs](/hosting/linux/)).
 - An account at [nodemp.com](https://nodemp.com), if the server should be in the list.
 
 ## Steps
@@ -45,7 +45,7 @@ max_players = 16
 cars_per_player = 2
 ```
 
-The map is the path to its `info.json`: `/levels/<map folder>/info.json`. To use a map of your own, see [Mods and maps](/hosting/mods/). `max_players` limits the players on the server and `cars_per_player` the cars of one player.
+The map is the path to its `info.json`: `/levels/<map folder>/info.json`. To use a map of your own, see [Mods and maps](/hosting/mods/). `max_players` is how many players the server takes, and `cars_per_player` how many cars each of them can have.
 
 Save the file and restart the server. The other settings are in [Configuring the server](/hosting/server-toml/) and the [settings reference](/hosting/configuration/). In Docker there is no file; the same settings are environment variables ([Server in Docker](/hosting/docker/)).
 

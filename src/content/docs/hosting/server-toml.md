@@ -3,7 +3,7 @@ title: Configuring the server
 description: How server.toml works, the settings hosts change most, environment variables and command-line options.
 ---
 
-The server's settings are stored in one file, `server.toml`, in the server's working directory. Every key, with its type and default, is in the [settings reference](/hosting/configuration/).
+The server keeps its settings in one file, `server.toml`, in its working directory. Every key, with its type and default, is in the [settings reference](/hosting/configuration/).
 
 ## How the file works
 
@@ -41,7 +41,7 @@ guests = true  # players without a NodeMP account
 
 - A setting that isn't in the file keeps its default. To change it, write it into its table, and add the table if the file doesn't have it yet.
 - The server reads the file at start, so restart it after an edit.
-- A value of the wrong type or out of range isn't accepted: the default stays and the log has a warning. The server also warns about an unknown key and names it, which is how a typo shows up.
+- The server rejects a value of the wrong type or out of range: the default stays, and the log has a warning. The server also warns about an unknown key and names it, which is how a typo shows up.
 - A table or a key written twice stops the server from starting. The message names the file and the line ([The server won't start](/hosting/troubleshooting/#the-server-wont-start)).
 - Lists (`connection_limit_exempt`, `masked_commands`, `trusted`) can be a comma-separated string or a TOML list.
 
@@ -71,11 +71,11 @@ The `[listing]` table sets it, including the links to your server's Discord, rul
 
 ### Chat
 
-Chat is part of the server. `[chat] max_length`, `rate_per_sec` and `burst` limit the length of a line and how often a player can write, so that nobody floods the chat.
+Chat is built into the server. `[chat] max_length`, `rate_per_sec` and `burst` limit the length of a line and how often a player can write, so that nobody floods the chat.
 
 ### Other players' cars
 
-The client mod holds back other players' new cars and changes so that the game doesn't freeze rebuilding in the middle of a corner, and each player decides when to apply them ([what players see](/players/settings/#other-players-new-cars-and-changes)). For a race or a league, where everyone must see the same cars at once, you can turn the waiting off, or require that everything is built within a set time:
+The client mod holds back other players' new cars and changes so that the game doesn't freeze to rebuild them mid-corner, and each player decides when to apply them ([what players see](/players/settings/#other-players-new-cars-and-changes)). For a race or a league, where everyone must see the same cars at once, you can turn the waiting off, or require that everything is built within a set time:
 
 ```toml
 [vehicles]
@@ -86,7 +86,7 @@ A plugin can also switch this during a session and build everything before a sta
 
 ### Bad connections
 
-A player who is silent for `lag_grace_sec` seconds counts as lagging, and after `disconnect_sec` the player is disconnected ([settings reference](/hosting/configuration/#network)). For players on mobile internet or a VPN you can allow more time:
+A player who is silent for `lag_grace_sec` seconds counts as lagging, and after `disconnect_sec` the player is disconnected ([settings reference](/hosting/configuration/#network)). For players on mobile data or a VPN, allow more time:
 
 ```toml
 [network]
