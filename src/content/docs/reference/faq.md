@@ -76,8 +76,7 @@ More on [Get listed](/hosting/registering/#put-the-key-into-the-settings).
 ### After the update there's a `server.toml.old` next to `server.toml`.
 
 That's the one-time move to the layout introduced in server 1.9.0. The server wrote your settings into a new
-`server.toml` and kept the old file in case you need it. More on
-[Updating](/hosting/updating/#settings-since-190).
+`server.toml` and kept the old file in case you need it.
 
 ### My Docker server ignores `server.toml`.
 
