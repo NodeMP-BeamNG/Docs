@@ -53,5 +53,5 @@ test('ресурс is checked on Russian pages only, and the glossary may name i
 });
 
 test('pages the rewrite has not reached are skipped', () => {
-  assert.deepEqual(hitsFor('ru/hosting/updating.md', 'Начиная с сервера 1.9.0 ресурс'), []);
+  assert.deepEqual(hitsFor('ru/plugins/events.md', 'Начиная с сервера 1.9.0 ресурс'), []);
 });
