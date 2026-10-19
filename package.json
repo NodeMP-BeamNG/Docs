@@ -14,8 +14,9 @@
     "test": "node --test \"scripts/*.test.mjs\" && node scripts/doctest.mjs --self-test",
     "check:locales": "node scripts/check-locales.mjs",
     "check:stale": "node scripts/check-stale.mjs",
+    "check:style": "node scripts/check-style.mjs",
     "check:claims": "node scripts/check-claims.mjs",
-    "check": "npm run check:locales && npm run check:stale && npm run check:claims",
+    "check": "npm run check:locales && npm run check:stale && npm run check:style && npm run check:claims",
     "doctest": "node scripts/doctest.mjs"
   },
   "dependencies": {

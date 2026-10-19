@@ -88,7 +88,7 @@ export function checkProtocolPage(page, wire) {
   }
 
   // Limits: the numbers in the "Limits" bullet.
-  const limits = lines.findIndex((l) => /^\s*-\s*\*\*(Limits|Лимиты|Ограничения)/.test(l));
+  const limits = lines.findIndex((l) => /^\s*-\s*(?:\*\*)?(Limits|Лимиты|Ограничения)/.test(l));
   if (limits >= 0) {
     let para = lines[limits];
     for (let j = limits + 1; j < lines.length && /^\s{2,}\S/.test(lines[j]); j++) para += ' ' + lines[j];
