@@ -148,7 +148,7 @@
 The English pages are redone from the Russian ones, after the Russian section is approved. Not a translation of the old English text.
 
 - Write from the facts and from the Russian page. Same structure, same headings, same set of facts, same links. If the Russian page links instead of repeating, the English one does too.
-- Plain, direct English. Address the reader as "you", use the imperative for steps ("click", "choose"). No filler: "Note that", "It is important to", "It is worth", "allows you to", "in order to", "simply", "just", "easily", "please". No signposting: "In this section", "Below we", "As mentioned above", and no closing summary.
+- Plain, direct English. Address the reader as "you", use the imperative for steps ("click", "choose"). No filler: "Note that", "It is important to", "It is worth", "allows you to", "in order to", "simply", "just", "easily", "please". No signposting: "In this section", "This page shows", "Below we", "As mentioned above", "you will learn", and no closing summary ("In summary", "To sum up", a "Next steps" heading). No authorial "we" ("we will", "let's").
 - One fact has one home. Do not restate it: link.
 - UI names exactly as in the English interface (`UI-launcher/src/lib/i18n/en.ts`, `settingsSchema.lua`, `strings.js`), bold; messages in italics; server texts in backticks.
 - Terms as in `reference/glossary.md`. "Plugin" is the general word, as in Russian; "resource" stays where the code says resource (`resources/`, `resource.toml`, `node.resources`, `[resources]`, `resourceUnload`). NodeMP is its own project: never "fork", "based on" or "compatible with" another multiplayer.

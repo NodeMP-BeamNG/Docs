@@ -43,8 +43,8 @@ the generated pages.** The Russian copy of the reference is the English text by 
 | `npm run check` | Runs `check:locales`, `check:stale`, `check:style` and `check:claims`; exit code 1 on the first problem. |
 | `npm run doctest` | Runs every Lua example of the plugin guides against a real `Node-Server` ([Doctests](#doctests)). `-- --only <page>`, `-- --keep`, `-- --list`. |
 | `npm run check:locales` | EN/RU parity: every page under `src/content/docs/` needs a twin at `ru/<same path>`, and every RU page needs an EN original. The generated `plugins/api/` is exempt. |
-| `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line, and on product versions and «ресурс» for «плагин» on the pages the rewrite has reached (below). The generated `plugins/api/` is exempt. |
-| `npm run check:style` | On the pages the rewrite has reached, fails on the machine patterns `STYLE.md` names: a paragraph wrapped over lines, banned phrases and signposting, a bold lead-in followed by a dash, more than two dashes in a paragraph, and too many dashes, colons, bold spans or admonitions on a page (the limits are in `LIMITS`, each with the approved page it was set from). |
+| `npm run check:stale` | Fails on old-stack wording (list below), case-insensitive, with file and line, and on product versions, «ресурс» for «плагин» and "resource" for "plugin" (below). The generated `plugins/api/` is exempt. |
+| `npm run check:style` | On every page, fails on the machine patterns `STYLE.md` names: a paragraph wrapped over lines, banned phrases and signposting (a Russian and an English list), a bold lead-in followed by a dash, more than two dashes in a paragraph, and too many dashes, colons, bold spans or admonitions on a page (the limits are in `LIMITS`, the same for both languages, each with the approved page it was set from). |
 | `npm run check:claims` | Compares what the pages state with the code that defines it (section below). Needs the `server`, `sdk`, `launcher`, `NodeMP` and `UI-launcher` checkouts beside this repository; without one of them the checks that need it are skipped with a warning (CI fails instead). |
 | `npm run gen:api` | Runs the API import on its own (useful before `npm start`, which has no hook). |
 
@@ -59,7 +59,7 @@ A change fails CI when:
 
 - a page has no twin in the other locale (`check-locales`);
 - a page contains one of the stale phrases (`check-stale`);
-- a rewritten page reads like a template (`check-style`);
+- a page reads like a template (`check-style`);
 - a page states something the code does not (`check-claims`, below);
 - an internal link or `#anchor` does not resolve (the build);
 - a guide page the API reference links to does not exist (`IMPORT_API_STRICT=1`; without the
@@ -79,11 +79,11 @@ files and words on purpose, and `reference/glossary.md` names the retired varian
 retire them (both in both locales). Add a phrase to `DEFAULT_PHRASES` rather than weakening a
 page; add a page to `DEFAULT_ALLOW` only when it has to name the old words.
 
-Rewritten pages (`STYLE.md`) also fail on a three-part number such as `1.13.0` (a product version;
-addresses and four-part game numbers pass), on "protocol v23" outside backticks and, in Russian,
-on «ресурс». `reference/protocol.md` may state the protocol version. `PENDING` in
-`scripts/check-stale.mjs` lists the pages the rewrite has not reached: the English ones.
-`scripts/check-style.mjs` reads the same list.
+Every page (`STYLE.md`) also fails on a three-part number such as `1.13.0` (a product version;
+addresses and four-part game numbers pass) and on "protocol v23" outside code; only
+`reference/protocol.md` may state the protocol version. A Russian page fails on «ресурс», an English
+page on "resource" in its text, where the code's own names (`resource.toml`, `resources/`,
+`[resources]`, `node.resources`, `resourceUnload`) pass; each glossary may name the word.
 
 `reference/glossary.md` is the arbiter for terminology: one word per thing, in both locales, with
 the Russian term beside each English one. When a page needs a word for something the glossary

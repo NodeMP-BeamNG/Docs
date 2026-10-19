@@ -26,15 +26,6 @@ test('a clean page has no hits', () => {
   assert.deepEqual(hitsFor(page([filler, `- ${filler}\n- ${filler}`])), []);
 });
 
-test('pages the rewrite has not reached, and English pages, are skipped', () => {
-  const text = `Это важно отметить.\nИ перенос.`;
-  const hitsWith = (path, pending) => findStyleHits([{ path, text }], LIMITS, pending);
-  const pending = [/^ru[\\/]introduction[\\/]/];
-  assert.deepEqual(hitsWith('ru/introduction/what-is-nodemp.md', pending), []);
-  assert.notDeepEqual(hitsWith('ru/introduction/what-is-nodemp.md', []), []);
-  assert.deepEqual(hitsWith('players/join.md', []), []);
-});
-
 test('a paragraph wrapped over several lines is reported once, at its first line', () => {
   assert.deepEqual(hitsFor(page([`${filler}\n${filler}\n${filler}`])).map(([rule, line]) => [rule, line]),
     [['wrapped paragraph', 5]]);
@@ -148,6 +139,46 @@ test('the limits are parameters', () => {
   const text = page(Array(4).fill(`${filler} — ${filler}`));
   const lenient = { ...LIMITS, dashes: 100, dashesAndColons: 100 };
   assert.deepEqual(findStyleHits([{ path: 'ru/players/join.md', text }], lenient), []);
+});
+
+// The English twins of the page helpers above.
+const en = 'one two three four five six seven eight nine ten';
+const enPage = (paragraphs) => `---\ntitle: Page\n---\n\n${paragraphs.join('\n\n')}\n`;
+const enDiluted = (...paragraphs) => enPage([...paragraphs, ...Array(40).fill(en)]);
+const enHitsFor = (text, path = 'players/join.md') => hitsFor(text, path);
+const enRulesFor = (text, path = 'players/join.md') => rulesFor(text, path);
+
+test('a clean English page has no hits', () => {
+  assert.deepEqual(enHitsFor(enPage([en, `- ${en}\n- ${en}`])), []);
+});
+
+test('English filler is reported with its line, whatever the case', () => {
+  assert.deepEqual(enHitsFor(enDiluted('Note that the server restarts.', 'In order to join, simply click it.')).slice(0, 3),
+    [['filler', 5, 'Note that'], ['filler', 7, 'In order to'], ['filler', 7, 'simply']]);
+  assert.deepEqual(enRulesFor(enDiluted("It's worth saying.", 'It is important to know.', 'Please wait.')),
+    ['filler', 'filler', 'filler']);
+});
+
+test('English signposting phrases and closing headings are reported', () => {
+  assert.deepEqual(enRulesFor(enPage(['In this section you will learn everything.'])), ['signposting', 'signposting']);
+  assert.deepEqual(enHitsFor(enPage([en, '## Next steps', en])), [['signposting', 7, '## Next steps']]);
+  assert.deepEqual(enRulesFor(enPage(['The steps that come next are in the list.'])), []);
+});
+
+test('each language is checked with its own phrases', () => {
+  assert.deepEqual(enRulesFor(enDiluted('Лаунчер является программой. Click Connect.')), []);
+  assert.deepEqual(rulesFor(diluted('Note that, in order to, simply.')), []);
+});
+
+test('English phrases inside code and links are not prose', () => {
+  assert.deepEqual(enRulesFor(enPage(['Run `just build`.', '```text\nPlease wait\n```', '[x](/note-that/)'])), []);
+});
+
+test('the structural checks and the density limits apply to English pages', () => {
+  assert.deepEqual(enRulesFor(enPage([`${en}\n${en}`])), ['wrapped paragraph']);
+  assert.deepEqual(enRulesFor(enDiluted('A — b, c — d, e — f.')), ['dashes in a paragraph']);
+  assert.deepEqual(enRulesFor(enDiluted(`- **Button** — ${en}`)), ['bold lead-in']);
+  assert.deepEqual(enRulesFor(enPage(Array(4).fill(`${en} — ${en}`))), ['dashes', 'dashes and colons']);
 });
 
 test('the JSX of an .mdx page is not prose', () => {
