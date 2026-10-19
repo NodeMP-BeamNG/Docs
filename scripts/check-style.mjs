@@ -1,15 +1,14 @@
 #!/usr/bin/env node
-// Flags the machine patterns STYLE.md names on the pages the rewrite has reached (the ones
-// off check-stale's PENDING): wrapped paragraphs, banned phrases and signposting, too many
-// dashes in a paragraph, and too many dashes, colons, bold spans and admonitions on a page.
-// Russian pages only.
+// Flags the machine patterns STYLE.md names on every page, in both languages: wrapped
+// paragraphs, banned phrases and signposting (a list per language), too many dashes in a
+// paragraph, and too many dashes, colons, bold spans and admonitions on a page.
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GENERATED, PENDING, walk } from './check-stale.mjs';
+import { GENERATED, pageLanguage, walk } from './check-stale.mjs';
 
-// Per 1000 words outside code unless said otherwise. Each limit sits at or just above the
-// densest approved players page.
+// Per 1000 words outside code unless said otherwise, in both languages. Each limit sits at or
+// just above the densest approved Russian players page.
 export const LIMITS = {
   dashesPerParagraph: 2, // a line of prose, a list item or a table cell; players: 2 at most, both grammatical
   dashes: 10, // spaced dashes; the players pages have 5 at most
@@ -21,7 +20,7 @@ export const LIMITS = {
 const word = (alternatives) => new RegExp(`(?<![\\p{L}])(?:${alternatives.join('|')})(?![\\p{L}])`, 'giu');
 
 // Every pattern is a phrase STYLE.md lists; a hit means rewrite the sentence, not swap the word.
-export const PHRASES = [
+const RU_PHRASES = [
   { rule: 'filler', re: word(['важно отметить', 'стоит помнить', 'стоит отметить', 'обратите внимание', 'как правило', 'по сути', 'вовсе']) },
   {
     rule: 'officialese',
@@ -49,7 +48,29 @@ export const PHRASES = [
   { rule: 'English interface word', re: /(?<![\p{L}])(?:Leave|Direct Connect|Connect|Hold to play)(?![\p{L}])/gu, except: /reference[\\/]glossary\.md$/ },
 ];
 
-const CLOSING_HEADING = /^#{2,6}\s*(?:Что дальше|Куда дальше|Вам сюда|Итог\p{L}*|Заключение|Резюме|Выводы?)\s*$/gimu;
+const EN_PHRASES = [
+  {
+    rule: 'filler',
+    re: word([
+      'note that', "it(?: is|['’]s) important to", "it(?: is|['’]s) worth", 'allows? you to', 'in order to',
+      'simply', 'just', 'easily', 'please',
+    ]),
+  },
+  {
+    rule: 'signposting',
+    re: word([
+      'in this section', 'this (?:page|section) (?:shows|explains|describes|covers)', 'below (?:we|you will)',
+      'as mentioned (?:above|earlier|before)', "let['’]s", 'we will', 'you will learn', 'in summary', 'to sum up',
+    ]),
+  },
+];
+
+export const PHRASES = { ru: RU_PHRASES, en: EN_PHRASES };
+
+const CLOSING_HEADINGS = {
+  ru: /^#{2,6}\s*(?:Что дальше|Куда дальше|Вам сюда|Итог\p{L}*|Заключение|Резюме|Выводы?)\s*$/gimu,
+  en: /^#{2,6}\s*(?:What['’]s next|What next|Next steps|Where to go next|Summary|Conclusion|Wrapping up)\s*$/gimu,
+};
 const BOLD = /\*\*[^*\n]+\*\*/g;
 const BOLD_LEAD_IN = /^[ \t]*(?:[-*+]|\d+\.|\|)[ \t]*\*\*[^*\n]+\*\*[ \t]*[—–]/gm;
 
@@ -105,21 +126,21 @@ function crowdedDashes(prose, limit) {
   return hits;
 }
 
-export function findStyleHits(files, limits = LIMITS, pending = PENDING) {
+export function findStyleHits(files, limits = LIMITS) {
   const hits = [];
   for (const { path, text } of files) {
-    if (!/^ru[\\/]/.test(path) || pending.some((re) => re.test(path))) continue;
+    const lang = pageLanguage(path);
     const blocks = blockProse(text);
     const prose = inlineProse(blocks);
     const first = hits.length;
     const add = (line, rule, phrase) => hits.push({ path, line, rule, phrase });
 
     for (const h of wrappedParagraphs(blocks)) add(h.line, 'wrapped paragraph', h.phrase);
-    for (const { rule, re, except } of PHRASES) {
+    for (const { rule, re, except } of PHRASES[lang]) {
       if (except?.test(path)) continue;
       for (const m of prose.matchAll(re)) add(lineOf(prose, m.index), rule, m[0]);
     }
-    for (const m of prose.matchAll(CLOSING_HEADING)) add(lineOf(prose, m.index), 'signposting', m[0].trim());
+    for (const m of prose.matchAll(CLOSING_HEADINGS[lang])) add(lineOf(prose, m.index), 'signposting', m[0].trim());
     for (const m of prose.matchAll(BOLD_LEAD_IN)) add(lineOf(prose, m.index), 'bold lead-in', m[0].trim());
     for (const h of crowdedDashes(prose, limits.dashesPerParagraph)) add(h.line, 'dashes in a paragraph', `${h.count}, limit ${limits.dashesPerParagraph}`);
 

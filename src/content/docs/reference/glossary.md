@@ -42,7 +42,7 @@ The documentation calls each thing by one word. Here are those words, the Russia
 | C ABI | The binary interface between the server and native modules, described in `node.h`. The version is written as "major.minor". | [Native modules](/plugins/native-modules/) |
 | Language host (языковой хост) | A native module that runs plugins of its own `type`, for example `js-host` for JavaScript. | [JavaScript plugins](/plugins/js-host/) |
 | Event (событие) | What you subscribe to with `node.on`: the server's events, requests that can be refused, and wire events from clients. | [Events](/plugins/events/) |
-| Wire event (сетевое событие) | A named message between a client script and the server, named `domain:verb`. | [Client scripts](/plugins/client-scripting/) |
+| Wire event (сетевое событие) | A named message between a client script and the server. A plugin names its own `<plugin>:<what>`; NodeMP's own events have a part of the system in that place: `chat:send`. | [Client scripts](/plugins/client-scripting/) |
 | Bus (шина) | The channel between plugins on one server: `node.bus.emit` and `node.bus.on`. | [The bus between plugins](/plugins/bus/) |
 | Relay (ретрансляция) | Forwarding one player's traffic to the others. It can be filtered for individual receivers. | [Native modules](/plugins/native-modules/) |
 | Driver, authority, spawner (водитель, авторитет, спавнер) | The spawner created the car. The driver sits behind the wheel. The authority is the player whose game simulates the car and sends out its state; usually the driver. | [Players and vehicles](/plugins/players-and-vehicles/) |

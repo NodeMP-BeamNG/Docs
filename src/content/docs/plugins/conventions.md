@@ -30,6 +30,7 @@ The server logs an error in a handler, timer or coroutine with the plugin's name
 | An event with data: a notification, `playerLeft` | `error in event 'vehicleEdited'` |
 | A wire event | `error in event 'greeter:hello'` |
 | A bus message | `error in resource event 'score:add'` |
+| A bus request (`node.bus.call`) | `error in resource call 'shop:price'` |
 | A timer | `error in timer callback` |
 | A coroutine | `error in async task` |
 | The top level of `main.lua` while loading | `error in '<path to main.lua>'` |

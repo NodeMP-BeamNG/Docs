@@ -83,7 +83,7 @@ The keys of `server.toml` in the order the server declares them. Strings are in 
 | `[queue]` | `enabled` | bool | `true` | `NODE_QUEUE_ENABLED` | When the server is full, players with an account wait in the [join queue](/hosting/join-queue/) instead of being turned away. Works only on a listed server (`[listing] url`), where accounts are checked. |
 | `[queue]` | `max_waiting` | int | `50` | `NODE_QUEUE_MAX_WAITING` | How many players can wait at once, from 0 to 1000. `0` means nobody waits. |
 | `[queue]` | `max_waiting_per_ip` | int | `1` | `NODE_QUEUE_MAX_WAITING_PER_IP` | How many can wait from one address, from 1 to 1000. Addresses in `[network] connection_limit_exempt` aren't limited. |
-| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | How many waiting players download mods at once, from 1 to 64, in queue order. The downloads of players joining a free place count too and go first. |
+| `[queue]` | `downloads_while_waiting` | int | `3` | `NODE_QUEUE_DOWNLOADS_WHILE_WAITING` | How many waiting players download mods at once, from 1 to 64, in queue order. |
 | `[queue]` | `max_no_shows` | int | `3` | `NODE_QUEUE_MAX_NO_SHOWS` | After this many no-shows within `no_show_window_min`, an account can't join the queue for `no_show_bar_min` minutes. A no-show is a player who got a place and left before reaching the world. `0` turns the ban off. |
 | `[queue]` | `no_show_window_min` | int | `60` | `NODE_QUEUE_NO_SHOW_WINDOW_MIN` | The minutes over which no-shows are counted, from 1 to 10080. |
 | `[queue]` | `no_show_bar_min` | int | `30` | `NODE_QUEUE_NO_SHOW_BAR_MIN` | How many minutes the queue stays closed to such an account, up to 10080. `0` means it isn't closed. |

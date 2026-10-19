@@ -54,7 +54,7 @@ While the server is listed, every join is checked: the player's launcher brings 
 
 ## How the server looks in the list
 
-The other `[listing]` keys set the server's card and whom it lets in ([settings reference](/hosting/configuration/#listing)):
+The other `[listing]` keys set the server's card and whom it lets in ([Settings reference](/hosting/configuration/#listing)):
 
 ```toml
 [listing]
@@ -96,7 +96,7 @@ The server's card shows a picture of the map. It comes from:
 
 ## The server's fingerprint
 
-Launchers know a server by the fingerprint of its TLS certificate. It's written to the log at every start: `TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. The server passes it to NodeMP in every report, and a launcher joining from the list accepts only that certificate. The fingerprint changes only if you lose or replace `node_cert.pem` and `node_key.pem`, so back them up. Players who joined by address remember the fingerprint and won't connect to a server with another one.
+Launchers know a server by the fingerprint of its TLS certificate. It's written to the log at every start: `TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. The server passes it to NodeMP in every report, and a launcher accepts only that certificate, by address too. The fingerprint changes only if you lose or replace `node_cert.pem` and `node_key.pem`, so back them up. If the fingerprint changes, launchers that remembered the old one won't connect to a server that isn't listed ([Join by address](/players/join/#join-by-address)).
 
 ## Change or delete the key
 
@@ -114,7 +114,7 @@ On the **My servers** page, the **Rotate secret** button gives a new secret (als
 | `The directory answered 429 …` or `The directory answered 503 …` | Too many attempts in a short time (for example, the server restarts in a loop) or NodeMP is busy. NodeMP writes the reason after the colon. | Nothing: the server waits as long as NodeMP asks and tries again. |
 | `not shown in the server browser: [listing] public is false; …` | `public = false` is set. | Remove it or set `public = true`, and restart the server. |
 | `Not shown in the server browser: the directory's staff have hidden it` | NodeMP's moderators hid the server from the list. | Ask the moderators on Discord. |
-| `Not shown in the server browser: it is banned from the directory` | The server is blocked in the directory. | Ask the moderators on Discord. |
+| `Not shown in the server browser: it is banned from the directory` | NodeMP's moderators blocked this server. | Ask the moderators on Discord. |
 | `Not shown in the server browser: another server key already announces this address and port, …` | Two keys announce the same address and port, and the list shows only one. | Delete the extra key on the **My servers** page. |
 | `Listed in the server browser, but players cannot connect: …` | Players got join tickets, but none of them reached the server. | Forward the port from this line for TCP and UDP and open it in the firewall. |
 | Players are refused with `The server could not verify your account with the directory (…)` | NodeMP was unreachable or overloaded when they joined. | Wait. On a server with Test Drive you can turn on `admit_when_down`. |

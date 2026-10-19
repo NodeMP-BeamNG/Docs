@@ -152,7 +152,7 @@ node.on("chatMessageRequest", spawnCar)
 
 ### Scheduled changes
 
-To show another player's new car, or a change to its parts, tuning or model, the game builds the car and freezes meanwhile. So the client mod holds such changes back until the player is ready for them; what waits and when it is built is on [Settings](/players/settings/#other-players-new-cars-and-changes). `[vehicles]` in `server.toml` sets how a session starts ([settings reference](/hosting/configuration/#vehicles)), and a plugin can change it while the server runs:
+To show another player's new car, or a change to its parts, tuning or model, the game builds the car and freezes meanwhile. So the client mod holds such changes back until the player is ready for them; what waits and when it is built is on [Settings](/players/settings/#other-players-new-cars-and-changes). `[vehicles]` in `server.toml` sets how a session starts ([Settings reference](/hosting/configuration/#vehicles)), and a plugin can change it while the server runs:
 
 | Call | What it does |
 |---|---|

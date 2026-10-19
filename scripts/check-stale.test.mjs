@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findStale, findRuleHits, DEFAULT_PHRASES, DEFAULT_ALLOW, RULES } from './check-stale.mjs';
+import { findStale, findRuleHits, DEFAULT_PHRASES, DEFAULT_ALLOW } from './check-stale.mjs';
 
 test('reports phrase, path and 1-based line', () => {
   const hits = findStale([{ path: 'a/b.md', text: 'ok\nNodeMP is BeamMP-compatible\n' }], ['BeamMP-compatible'], []);
@@ -26,35 +26,47 @@ test('defaults cover the phase-4 list', () => {
 
 const hitsFor = (path, text) => findRuleHits([{ path, text }]).map((h) => [h.rule, h.phrase, h.line]);
 
-test('a product version on a rewritten page is reported with its line', () => {
+test('a product version is reported with its line, in either language', () => {
   assert.deepEqual(hitsFor('ru/players/install.md', 'Скачайте файл.\nПроверьте NodeMP-Setup-1.2.0.exe.'), [['product version', '1.2.0', 2]]);
+  assert.deepEqual(hitsFor('players/install.md', 'Download the file.\nCheck NodeMP-Setup-1.2.0.exe.'), [['product version', '1.2.0', 2]]);
 });
 
 test('addresses, game versions and plugin versions are not product versions', () => {
   const text = '`203.0.113.10:30814`, BeamNG 0.39, `integrity\\0.39.4.0.manifest`, demo v1.0 loaded';
   assert.deepEqual(hitsFor('ru/players/join.md', text), []);
+  assert.deepEqual(hitsFor('players/join.md', text), []);
 });
 
 test('the protocol version is allowed on the protocol page and in code spans', () => {
   assert.deepEqual(hitsFor('ru/reference/protocol.md', 'wire protocol v23'), []);
+  assert.deepEqual(hitsFor('reference/protocol.md', 'wire protocol v23'), []);
   assert.deepEqual(hitsFor('ru/players/install.md', 'в сообщении `launcher speaks v22`'), []);
 });
 
 test('the protocol version in prose on another page is reported, across a line break too', () => {
   assert.deepEqual(hitsFor('ru/players/install.md', 'по сетевому протоколу\nv23'), [['protocol version', 'протоколу\nv23', 1]]);
+  assert.deepEqual(hitsFor('players/install.md', 'the launcher speaks v23'), [['protocol version', 'speaks v23', 1]]);
 });
 
-test('ресурс is checked on Russian pages only, and the glossary may name it', () => {
+test('ресурс is checked on Russian pages, and the Russian glossary may name it', () => {
   assert.deepEqual(hitsFor('ru/players/settings.md', 'ресурс сервера включил'), [['ресурс for плагин', 'ресурс', 1]]);
-  const glossary = [{ path: 'ru/reference/glossary.md', text: 'Ресурс' }];
-  assert.deepEqual(findRuleHits(glossary, RULES, []), []);
-  assert.deepEqual(findRuleHits([{ path: 'players/settings.md', text: 'a resource and 1.2.0' }], RULES, [])
-    .map((h) => h.rule), ['product version']);
+  assert.deepEqual(hitsFor('ru/reference/glossary.md', 'Ресурс'), []);
+  assert.deepEqual(hitsFor('players/settings.md', 'ресурс'), []);
 });
 
-test('pages the rewrite has not reached are skipped', () => {
-  const files = [{ path: 'ru/introduction/what-is-nodemp.md', text: 'Начиная с сервера 1.9.0 ресурс' }];
-  const pending = [/^ru[\\/]introduction[\\/]/];
-  assert.deepEqual(findRuleHits(files, RULES, pending), []);
-  assert.deepEqual(findRuleHits(files, RULES, []).map((h) => h.rule), ['product version', 'ресурс for плагин']);
+test('resource in English prose is reported, and the English glossary may name it', () => {
+  assert.deepEqual(hitsFor('plugins/overview.md', 'Write a resource.\nTwo resources.'),
+    [['resource for plugin', 'resource', 1], ['resource for plugin', 'resources', 2]]);
+  assert.deepEqual(hitsFor('reference/glossary.md', 'Resource (ресурс)'), []);
+  assert.deepEqual(hitsFor('ru/plugins/overview.md', 'resource'), []);
+});
+
+test('the code\'s own resource names pass in English, in code spans or not', () => {
+  const text = '## resource.toml\nCopy it to resources/ and list it in [resources]; node.resources and resourceUnload too.\n`resource` and `the resources folder`.';
+  assert.deepEqual(hitsFor('plugins/resources.md', text), []);
+});
+
+test('code blocks and doctest tags are not prose, and lines are still counted through them', () => {
+  const text = '<!-- doctest: skip a resource -->\r\n```text\r\n1 resource · speaks v23\r\n```\r\nA resource.';
+  assert.deepEqual(hitsFor('hosting/resources.md', text), [['resource for plugin', 'resource', 5]]);
 });

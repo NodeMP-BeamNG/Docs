@@ -36,7 +36,7 @@ description: Что умеют плагины NodeMP, какие бывают в
 
 1. [Первый плагин](/ru/plugins/getting-started/): от пустой папки до работающей команды в чате и клиентской части.
 2. [Устройство плагина](/ru/plugins/resources/): файлы, `resource.toml`, перезагрузка, ошибки при загрузке.
-3. Темы по порядку: [события](/ru/plugins/events/), [игроки и машины](/ru/plugins/players-and-vehicles/), [чат](/ru/plugins/chat/), [таймеры](/ru/plugins/concurrency/), [хранилище](/ru/plugins/storage/), [база данных](/ru/plugins/database/), [HTTP](/ru/plugins/http/), [шина](/ru/plugins/bus/), [клиентские скрипты](/ru/plugins/client-scripting/), [общие правила API](/ru/plugins/conventions/).
+3. Темы по порядку: [События](/ru/plugins/events/), [Игроки и машины](/ru/plugins/players-and-vehicles/), [Чат и команды](/ru/plugins/chat/), [Таймеры и корутины](/ru/plugins/concurrency/), [Хранилище и файлы](/ru/plugins/storage/), [Модуль db](/ru/plugins/database/), [HTTP-запросы](/ru/plugins/http/), [Шина между плагинами](/ru/plugins/bus/), [Клиентские скрипты](/ru/plugins/client-scripting/), [Общие правила API](/ru/plugins/conventions/).
 4. [Примеры плагинов](/ru/plugins/examples/): готовые плагины из архива сервера.
 5. [Переход с других платформ](/ru/plugins/migrating/): если вы уже писали плагины для другого мультиплеера.
 

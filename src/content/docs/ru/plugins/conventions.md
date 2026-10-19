@@ -30,6 +30,7 @@ node.log("verify: %s (%s)", tostring(ok), tostring(why))
 | Событие с данными: уведомление, `playerLeft` | `error in event 'vehicleEdited'` |
 | Сетевое событие | `error in event 'greeter:hello'` |
 | Сообщение шины | `error in resource event 'score:add'` |
+| Запрос по шине (`node.bus.call`) | `error in resource call 'shop:price'` |
 | Таймер | `error in timer callback` |
 | Корутина | `error in async task` |
 | Верхний уровень `main.lua` при загрузке | `error in '<путь к main.lua>'` |

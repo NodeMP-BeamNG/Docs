@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Fails when the docs still carry old-stack wording (literal, case-insensitive phrases; pages
 // that legitimately discuss BeamMP are allow-listed by path) or break the rules STYLE.md sets
-// for rewritten pages: no product versions, «плагин» instead of «ресурс».
+// for every page: no product versions, and «плагин» / "plugin" where no code name is meant.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,14 +38,16 @@ export function findStale(files, phrases = DEFAULT_PHRASES, allow = DEFAULT_ALLO
   return hits;
 }
 
-// Pages the rewrite has not reached: the English ones, until they are redone from the Russian.
-export const PENDING = [
-  /^(?!ru[\\/])/,
-];
-
 const IDENTIFIER_PAGES = [/reference[\\/]protocol\.md$/];
 const RU_GLOSSARY = /^ru[\\/]reference[\\/]glossary\.md$/;
-const blankCodeSpans = (text) => text.replace(/`[^`\n]*`/g, (span) => ' '.repeat(span.length));
+const EN_GLOSSARY = /^reference[\\/]glossary\.md$/;
+const blank = (s) => s.replace(/[^\r\n]/g, ' ');
+// What a reader reads as text: no code blocks, code spans or HTML comments (doctest tags).
+const blankCode = (text) => text
+  .replace(/^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[^\n]*$/gm, blank)
+  .replace(/<!--[\s\S]*?-->/g, blank)
+  .replace(/`[^`\n]*`/g, blank);
+export const pageLanguage = (path) => (/^ru[\\/]/.test(path) ? 'ru' : 'en');
 
 // A three-part number is a product version; four parts are a game version or an address.
 export const RULES = [
@@ -56,17 +58,25 @@ export const RULES = [
     allow: IDENTIFIER_PAGES,
     prose: true,
   },
-  { name: 'ресурс for плагин', re: /ресурс/gi, ru: true, allow: [RU_GLOSSARY] },
+  { name: 'ресурс for плагин', re: /ресурс/gi, lang: 'ru', allow: [RU_GLOSSARY] },
+  // The code's own names say resource too: only prose counts, and those names pass
+  // (resource.toml, resources/, [resources], node.resources, resourceUnload).
+  {
+    name: 'resource for plugin',
+    re: /(?<![\p{L}.\[])resources?(?![\p{L}\]\/]|\.toml)/giu,
+    lang: 'en',
+    allow: [EN_GLOSSARY],
+    prose: true,
+  },
 ];
 
-export function findRuleHits(files, rules = RULES, pending = PENDING) {
+export function findRuleHits(files, rules = RULES) {
   const hits = [];
   for (const { path, text } of files) {
-    if (pending.some((re) => re.test(path))) continue;
     for (const rule of rules) {
-      if (rule.ru && !/^ru[\\/]/.test(path)) continue;
+      if (rule.lang && rule.lang !== pageLanguage(path)) continue;
       if (rule.allow?.some((re) => re.test(path))) continue;
-      const body = rule.prose ? blankCodeSpans(text) : text;
+      const body = rule.prose ? blankCode(text) : text;
       for (const m of body.matchAll(rule.re)) {
         hits.push({ path, line: text.slice(0, m.index).split('\n').length, rule: rule.name, phrase: m[0] });
       }

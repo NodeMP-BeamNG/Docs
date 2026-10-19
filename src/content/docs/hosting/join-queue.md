@@ -3,7 +3,7 @@ title: The join queue
 description: How a full server lets players with an account wait for a place, the limits of the queue, what the console shows and how plugins steer the queue.
 ---
 
-When the server is full, a player with an account doesn't have to try again and again: the player waits in the server's queue, and the launcher gets everything ready meanwhile. The queue is on by default on every listed server. `[queue]` sets it up ([settings reference](/hosting/configuration/#queue)), and `enabled = false` turns it off.
+When the server is full, a player with an account doesn't have to try again and again: the player waits in the server's queue, and the launcher gets everything ready meanwhile. The queue is on by default on every listed server. `[queue]` sets it up ([Settings reference](/hosting/configuration/#queue)), and `enabled = false` turns it off.
 
 ## Who waits
 

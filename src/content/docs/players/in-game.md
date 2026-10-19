@@ -37,6 +37,7 @@ Change the keys in the game's controls settings, where NodeMP's actions start wi
 | not bound | NodeMP: Load scheduled changes | Builds all waiting cars of other players at once. |
 | not bound | NodeMP: Diagnostics window | Opens the diagnostics window. |
 | not bound | NodeMP: Toggle debug chat | Shows or hides the overlay window with the chat. |
+| not bound | NodeMP: Join grabbed node (alias) | Repeats the game's own node grabber action (middle mouse by default): while you hold a node, links it to the node under the cursor or pins it to the world. |
 
 ## Leave
 

@@ -80,7 +80,7 @@ The main lines of the log:
 | Line | What it means |
 |---|---|
 | `server is ready` | The server has fully started. |
-| `started, but … failed — what they do may not work` | Some part didn't start. The lines above say why. |
+| `started, but … failed — what they do may not work` | Some part didn't start ([The server won't start](/hosting/troubleshooting/#the-server-wont-start)). |
 | `listed in the server browser` | The server is in the list ([Get listed](/hosting/registering/)). |
 | `<name> kicked — <reason>` | The server refused a player or ended their session, in the same words the player saw. |
 | `netstats id=… rtt=… loss=…` | In the file, every 15 seconds for each player: ping, traffic, loss ([A player says it lags](/hosting/troubleshooting/#a-player-says-it-lags)). |

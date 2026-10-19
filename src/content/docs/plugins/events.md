@@ -3,7 +3,7 @@ title: Events
 description: The kinds of events, join and leave order, refusing a request with a reason, reserved slots, unsubscribing, and events that fire many times a second.
 ---
 
-A plugin works in event handlers: `node.on(name, handler)` subscribes a function, and the server calls it when the event happens. The [events reference](/plugins/api/events/) lists every event and its arguments; this page shows how they connect.
+A plugin works in event handlers: `node.on(name, handler)` subscribes a function, and the server calls it when the event happens. Every event and its arguments are in the [events reference](/plugins/api/events/).
 
 ## Kinds of events
 

@@ -3,7 +3,7 @@ title: The example plugins
 description: The plugins in the examples folder of the server archive, what each one shows, how to try one and which plugins are built from source.
 ---
 
-The server archive has an `examples/` folder next to the program, and each folder in it is a ready-made plugin. Change a copy in `resources/` as you like; a server update won't touch it. `examples/README.txt` lists them too.
+The server archive has an `examples/` folder next to the program, and each folder in it is a ready-made plugin. `examples/README.txt` lists them too.
 
 ## What's in the folder
 
@@ -21,19 +21,7 @@ The server archive has an `examples/` folder next to the program, and each folde
 
 ## Installing an example
 
-1. Copy the plugin's folder from the archive into `resources/`:
-
-   ```text
-   examples/demo-numbers  →  resources/demo-numbers
-   ```
-
-2. Restart the server. The log reports the load:
-
-   ```text
-   demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
-   ```
-
-Comments at the top of each example's `resource.toml` and `server/main.lua` say what it does. Only `vehicle-cleanup` takes settings from `[config]`.
+Copy the example's folder from the archive into `resources/` and restart the server ([Install a plugin](/hosting/resources/#install-a-plugin)). Comments at the top of each example's `resource.toml` and `server/main.lua` say what it does. Only `vehicle-cleanup` takes settings from `[config]`.
 
 ## vehicle-cleanup
 

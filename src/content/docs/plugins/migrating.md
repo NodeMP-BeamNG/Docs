@@ -47,7 +47,7 @@ If you have written plugins for BeamMP or KissMP, most of what you know still ap
 | `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
 | `MP.IsPlayerGuest`, `MP.GetPlayerIdentifiers` | `player.guest`, `player.accountId`, `player.identifiers` |
 | `MP.TriggerClientEvent` | `player:send(name, data)` or `node.broadcast` |
-| `MP.TriggerGlobalEvent` | `node.bus.call`, which returns the handlers' answers, or `node.bus.emit` if no answer is needed ([The bus](/plugins/bus/#asking-and-answering)) |
+| `MP.TriggerGlobalEvent` | `node.bus.call`, which returns the handlers' answers, or `node.bus.emit` if no answer is needed ([The bus between plugins](/plugins/bus/#asking-and-answering)) |
 | `MP.CreateEventTimer`, `MP.CancelEventTimer` | `node.every(ms, fn)`, `node.cancel(id)`; `CallStrategy.Precise` is `node.every(ms, fn, { precise = true })` |
 | `onConsoleInput` | `node.console.command(name, fn)` or the `consoleInput` event for whole lines |
 | `MP.Sleep` | `node.sleep(ms)` inside `node.async`, without blocking |
@@ -135,7 +135,7 @@ The file from `[server] main` runs first, then every other `.lua` file directly 
 - `MP.SendChatMessage` shows the line as a system line.
 - `MP.Sleep` blocks the worker thread, and with it every plugin; the module warns about this once.
 - The identifier that BeamMP calls `beammp` is the player's NodeMP account number.
-- Like any plugin, it reaches only its own folder ([the Lua environment](/plugins/resources/#the-lua-environment)); paths it builds as `Resources/Server/<plugin>/…` in `FS.*`, `io.open` and the like lead there. A plugin that reads other folders, starts programs or reads environment variables needs the host to list it in `[resources] trusted`.
+- Like any plugin, it reaches only its own folder ([The Lua environment](/plugins/resources/#the-lua-environment)); paths it builds as `Resources/Server/<plugin>/…` in `FS.*`, `io.open` and the like lead there. A plugin that reads other folders, starts programs or reads environment variables needs the host to list it in `[resources] trusted`.
 
 ### What has no equivalent
 

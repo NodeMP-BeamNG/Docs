@@ -114,5 +114,5 @@ A reply name with the asking plugin's name in it keeps replies apart. To wait fo
 ## What else travels on the bus
 
 - `player:tell` and `node.chat.say` publish `chat:say`, and the server shows it in chat.
-- The [database module](/plugins/database/) answers plugins over the bus.
+- [The db module](/plugins/database/) answers plugins over the bus.
 - Native modules also send and receive bus messages ([Native modules](/plugins/native-modules/)).
