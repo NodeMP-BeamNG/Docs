@@ -13,7 +13,7 @@ description: Все настройки сервера по таблицам, с 
 | `[server]` | `port` | int | `30814` | `NODE_PORT` | Порт TCP и UDP, к которому подключаются игроки. |
 | `[server]` | `max_players` | int | `8` | `NODE_MAX_PLAYERS` | Сколько игроков может быть на сервере одновременно. |
 | `[server]` | `cars_per_player` | int | `1` | `NODE_MAX_CARS` | Сколько машин может быть у одного игрока. |
-| `[server]` | `map` | string | `"/levels/gridmap_v2/info.json"` | `NODE_MAP` | Карта, то есть путь к её `info.json`. |
+| `[server]` | `map` | string | `"/levels/gridmap_v2/info.json"` | `NODE_MAP` | Карта: путь к её `info.json`. |
 | `[server]` | `mods` | string | `"content"` | `NODE_CONTENT_FOLDER` | Папка с zip-архивами модов, которые скачивают игроки. |
 | `[server]` | `address` | string | `"::"` | `NODE_IP` | Адрес, на котором сервер слушает. `"::"` значит все адреса, IPv4 и IPv6. Это не публичный адрес сервера. |
 | `[server]` | `console` | bool | `false` | `NODE_CONSOLE` | Читать команды консоли со стандартного ввода, даже если это не терминал, а канал или файл. С терминалом консоль включается сама. |
@@ -22,10 +22,10 @@ description: Все настройки сервера по таблицам, с 
 
 | Секция | Ключ | Тип | По умолчанию | Переменная | Что делает |
 |---|---|---|---|---|---|
-| `[vehicles]` | `queue` | string | `"allow"` | `NODE_VEHICLES_QUEUE` | При `"allow"` мод каждого игрока может придерживать новые машины и смену деталей, тюнинга или модели у других игроков, пока игрок их не примет, как выбрал сам. При `"off"` каждое изменение строится сразу, как пришло. |
+| `[vehicles]` | `queue` | string | `"allow"` | `NODE_VEHICLES_QUEUE` | При `"allow"` каждый игрок сам решает, придерживать ли чужие новые машины и правки ([Машины других игроков](/ru/hosting/server-toml/#машины-других-игроков)). При `"off"` каждое изменение строится сразу, как пришло. |
 | `[vehicles]` | `queue_max_delay_sec` | int | `0` | `NODE_VEHICLES_QUEUE_MAX_DELAY_SEC` | Не `0`: каждый игрок строит ожидающее не позже чем через столько секунд после первого изменения, что бы он ни выбрал. До `3600`. |
 | `[vehicles]` | `edit_interval_sec` | int | `5` | `NODE_VEHICLES_EDIT_INTERVAL_SEC` | Правки одной машины доходят до других игроков не чаще раза в столько секунд, последней конфигурацией. У автора правки машина меняется сразу. `0` отключает ограничение. |
-| `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | Новые машины одного игрока не чаще раза в столько секунд. Раньше сервер отказывает с `Wait N s`, игра пишет *Подождите N с*. Пешеход и замена своей машины не считаются. `0` отключает ограничение. |
+| `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | Новые машины одного игрока не чаще раза в столько секунд. Машину, заказанную раньше, сервер отклоняет с `Wait N s`, и игра пишет *Подождите N с*. Пешеход и замена своей машины не считаются. `0` отключает ограничение. |
 
 ## `[listing]`
 
@@ -36,19 +36,19 @@ description: Все настройки сервера по таблицам, с 
 | `[listing]` | `host_secret` | string | `""` | `NODE_DIRECTORY_HOST_SECRET` | Секретная часть. Храните её как пароль. |
 | `[listing]` | `description` | string | `""` | `NODE_DIRECTORY_DESCRIPTION` | Одно-два предложения под именем в списке. |
 | `[listing]` | `mode` | string | `"freeroam"` | `NODE_DIRECTORY_MODE` | Тип сервера, отдельная колонка в списке: `freeroam`, `racing`, `roleplay` и так далее. |
-| `[listing]` | `tags` | string | `""` | `NODE_DIRECTORY_TAGS` | До восьми тегов через запятую, по ним игроки фильтруют список. Тег до 24 символов. |
-| `[listing]` | `preview` | string | `""` | `NODE_DIRECTORY_PREVIEW` | Картинка для списка, JPEG или PNG, не больше 2 МБ. Пусто значит картинку самой карты. |
+| `[listing]` | `tags` | string | `""` | `NODE_DIRECTORY_TAGS` | Теги через запятую, по ним игроки фильтруют список ([сколько и какой длины](/ru/hosting/registering/#как-сервер-выглядит-в-списке)). |
+| `[listing]` | `preview` | string | `""` | `NODE_DIRECTORY_PREVIEW` | Своя картинка для списка ([Картинка](/ru/hosting/registering/#картинка)). Пусто значит картинку самой карты. |
 | `[listing]` | `public` | bool | `true` | `NODE_DIRECTORY_PUBLIC` | `false` убирает сервер из общего списка. |
 | `[listing]` | `guests` | bool | `true` | `NODE_DIRECTORY_TEST_DRIVE` | Пускать игроков без аккаунта. |
 | `[listing]` | `fingerprint` | string | `""` | `NODE_DIRECTORY_FINGERPRINT` | Только для собственного каталога серверов. Оставьте пустым. |
 | `[listing]` | `ca_file` | string | `""` | `NODE_DIRECTORY_CA_FILE` | Только для собственного каталога серверов. Оставьте пустым. |
-| `[listing]` | `admit_when_down` | bool | `false` | `NODE_DIRECTORY_REDEEM_FAIL_OPEN` | Пока NodeMP недоступен, `false` не пускает игроков, а `true` пускает их как непроверенных гостей. |
+| `[listing]` | `admit_when_down` | bool | `false` | `NODE_DIRECTORY_REDEEM_FAIL_OPEN` | Пока NodeMP недоступен, `false` не пускает игроков, а `true` пускает их как непроверенных гостей, если `guests = true`. |
 | `[listing]` | `allow_http` | bool | `false` | `NODE_DIRECTORY_ALLOW_INSECURE` | Разрешить адрес с `http://` в `url`. Не включайте. |
-| `[listing]` | `discord` | string | `""` | `NODE_DIRECTORY_LINK_DISCORD` | Приглашение в ваш Discord: `https://discord.gg/…` или `https://discord.com/invite/…`. |
+| `[listing]` | `discord` | string | `""` | `NODE_DIRECTORY_LINK_DISCORD` | Приглашение в ваш Discord. Какие ссылки принимает список: [Ссылки](/ru/hosting/registering/#ссылки). |
 | `[listing]` | `rules` | string | `""` | `NODE_DIRECTORY_LINK_RULES` | Страница с правилами сервера. |
 | `[listing]` | `site` | string | `""` | `NODE_DIRECTORY_LINK_SITE` | Сайт сервера. |
 | `[listing]` | `donate` | string | `""` | `NODE_DIRECTORY_LINK_DONATE` | Страница, где игроки могут поддержать сервер. |
-| `[listing]` | `voice` | string | `""` | `NODE_DIRECTORY_LINK_VOICE` | Голосовой чат: `https://…`, `mumble://…` или `ts3server://…`. |
+| `[listing]` | `voice` | string | `""` | `NODE_DIRECTORY_LINK_VOICE` | Голосовой чат. |
 
 ## `[integrity]`
 
