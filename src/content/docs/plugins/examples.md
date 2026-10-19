@@ -3,17 +3,17 @@ title: The example plugins
 description: The plugins in the examples folder of the server archive, what each one shows, how to try one and which plugins are built from source.
 ---
 
-The server archive has an `examples/` folder next to the program. Each folder in it is a ready-made plugin. You can change a copy in `resources/` as you like, and a server update won't touch it. `examples/README.txt` lists them too.
+The server archive has an `examples/` folder next to the program, and each folder in it is a ready-made plugin. Change a copy in `resources/` as you like; a server update won't touch it. `examples/README.txt` lists them too.
 
 ## What's in the folder
 
 | Example | What it shows | What to learn from it |
 |---|---|---|
-| `demo-numbers` | The smallest plugin with both halves: the client sends a number once a second and the server writes it to the log. | Checking that client scripts reach players and answer. |
+| `demo-numbers` | The smallest plugin with both halves: the client sends a number once a second and the server logs it. | Checking that client scripts reach players and answer. |
 | `chat-commands` | `/help`, `/me` and `/pm`: a command router on `chatMessageRequest`. | Starting your own commands. |
 | `freeroam-example` | Greetings, a client event with a server answer, timers. | A small plugin of the usual kind. |
 | `vehicle-cleanup` | Deleting cars nobody uses: idle ones, ones whose owner has left, and any beyond a total limit. | Rules from `[config]`. |
-| `gatekeeper-example` | Refusing a join, a spawn and coupler use with a reason, and watching edits, resets, paint changes and deletions of cars. | How to refuse a request and how to watch notifications. |
+| `gatekeeper-example` | Refusing a join, a spawn and coupler use with a reason; watching car edits, resets, paint changes and deletions. | Refusing requests and watching notifications. |
 | `seat-demo` | Seating players on request from the game console: `SeatDemo.seat(gid)`, `SeatDemo.eject()`, `SeatDemo.swap()`. | `player:seat`, `player:unseat`, `player:swapWith`. |
 | `nodegrab-allow` | Allowing the experimental node grabber, which is forbidden without a plugin. | A request that is closed by default. |
 | `devapi-example` | A tour of the API, one feature per client event. | Seeing a call at work before reading the reference. |
@@ -27,17 +27,17 @@ The server archive has an `examples/` folder next to the program. Each folder in
    examples/demo-numbers  →  resources/demo-numbers
    ```
 
-2. Restart the server. The log shows a line about the load:
+2. Restart the server. The log reports the load:
 
    ```text
    demo-numbers v1.0 loaded — lua · server 1 file · 1 client file
    ```
 
-What an example does is written in the comments at the top of its `resource.toml` and `server/main.lua`. Only `vehicle-cleanup` takes settings from `[config]`.
+Comments at the top of each example's `resource.toml` and `server/main.lua` say what it does. Only `vehicle-cleanup` takes settings from `[config]`.
 
 ## vehicle-cleanup
 
-`vehicle-cleanup` deletes the cars that the server leaves in the world ([Players and vehicles](/plugins/players-and-vehicles/#whos-who-in-a-car)). The rules are set in `[config]`, and in the shipped `resource.toml` they are all commented out, which means off. Uncomment the ones you want:
+`vehicle-cleanup` deletes the cars the server leaves in the world ([Players and vehicles](/plugins/players-and-vehicles/#whos-who-in-a-car)). Its rules are in `[config]`, and the shipped `resource.toml` has them all commented out, so off. Uncomment the ones you want:
 
 ```toml
 [config]
@@ -50,11 +50,11 @@ maxWorldVehicles = 20
 
 ## nodegrab-allow
 
-The experimental node grabber needs two things: `[experimental] node_grab = true` in `server.toml` and a plugin that answers yes to `vehicleNodeGrabRequest`. Without a handler every grab is refused. `nodegrab-allow` is that handler. Change its rules to allow grabbing only for some players or cars.
+The experimental node grabber needs `[experimental] node_grab = true` in `server.toml` and a plugin that answers yes to `vehicleNodeGrabRequest`; without a handler every grab is refused. `nodegrab-allow` is that handler: change its rules to allow grabbing only for some players or cars.
 
 ## Built from source, not in the archive
 
-Some plugins are native modules. They exist only as source and are built with CMake:
+Some plugins are native modules, available only as source and built with CMake:
 
 | Plugin | What it is |
 |---|---|

@@ -3,30 +3,30 @@ title: Chat and commands
 description: How the server's chat works, refusing and rewriting lines, logging chat, speaking as the server, a command router and kick and ban commands.
 ---
 
-Chat is built into the server and works without plugins. You need a plugin to refuse a line, rewrite it or take it as a command.
+Chat is built into the server and works without plugins. Plugins are for refusing a line, rewriting it or taking it as a command.
 
 ## A line's way through the server
 
 1. The mod sends a line with the scope `global` (everyone) or `local` (players in the sender's group, or everyone if groups aren't used).
 2. The server strips control characters and cuts the line to `[chat] max_length`. If a player writes faster than `[chat] rate_per_sec` and `[chat] burst` allow, the server refuses the line and tells the player.
-3. `chatMessageRequest` handlers decide: let the line through, refuse it, rewrite it or take it as a command.
+3. `chatMessageRequest` handlers pass the line, refuse it, rewrite it or take it as a command.
 4. The server sends the line to everyone in its scope, the author included, and `chatMessage` tells plugins what became of it.
 
 ## The handler's answer
 
-A `chatMessageRequest` handler gets the player and `msg = { text, scope }`. What it returns decides what happens to the line:
+A `chatMessageRequest` handler gets the player and `msg = { text, scope }`, and what it returns decides what happens:
 
 | Return | What happens |
 |---|---|
-| nothing | The line goes out as it is. |
-| `false, "reason"` | The line is refused and nobody receives it. |
-| a string | The line goes out with this text instead of the original. |
-| `{ text = ..., scope = ... }` | Replaces the text, the scope or both. The scope can only be `"global"` or `"local"`; any other value refuses the line. |
-| `{ handled = true }` | The plugin took the line as its own command, and nobody sees it. |
+| nothing | The line goes out unchanged. |
+| `false, "reason"` | The line is refused; nobody receives it. |
+| a string | This text goes out instead. |
+| `{ text = ..., scope = ... }` | Replaces the text, the scope or both. A scope other than `"global"` or `"local"` refuses the line. |
+| `{ handled = true }` | The plugin took the line as its command; nobody sees it. |
 
-Handlers run one after another, and each sees the text as the previous one left it. The first refusal ends the chain.
+Handlers run in turn, each seeing the text as the previous one left it. The first refusal ends the chain.
 
-To rewrite a line, return the new text. The server cleans it and cuts it again:
+To rewrite a line, return the new text; the server cleans and cuts it again:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "spam here"}]]} -->
 ```lua
@@ -42,7 +42,7 @@ node.on("chatMessageRequest", maskSpam)
 -- expect-client: Alice chat:msg .*\*\*\*\* here
 ```
 
-To refuse a line, return `false` and a reason. The player never sees the reason itself: the mod shows a ready-made line, and the first word of the reason picks which one. The case doesn't matter, and the word is followed by a colon, a space or the end of the reason.
+To refuse, return `false` and a reason. The player doesn't see the reason: the mod shows a fixed line picked by its first word, in any letter case and followed by a colon, a space or the end of the reason.
 
 | First word of the reason | What the mod shows |
 |---|---|
@@ -67,7 +67,7 @@ node.on("chatMessageRequest", refuseLinks)
 
 ## Logging the chat
 
-`chatMessage` arrives after the decision, with the outcome: `sent` is `true` for a line that went out, and otherwise `code` says why not (`"muted"`, `"filtered"`, `"blocked"`, `"handled"`, …). Lines refused before plugins see them (too frequent or unreadable) don't trigger `chatMessage`. This is the place to keep a chat log or forward chat to Discord.
+`chatMessage` arrives after the decision, with the outcome: `sent` is `true` if the line went out, otherwise `code` says why not (`"muted"`, `"filtered"`, `"blocked"`, `"handled"`, …). Lines refused before plugins (too frequent or unreadable) don't trigger it. Keep a chat log or forward chat to Discord here.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "hello"}]]} -->
 ```lua
@@ -91,18 +91,18 @@ node.on("chatMessage", logChat)
 | `player:tell(text, ...)` and `node.chat.tell(player, text, ...)` | One player, as a system line. |
 | `node.chat.say(text, ...)` | Every player, as a system line. |
 
-Both take arguments as `string.format` does. You can colour the text with `^` codes:
+Both take `string.format` arguments. Color the text with `^` codes:
 
 | Code | What it does |
 |---|---|
-| `^0`–`^9`, `^a`–`^f` | A colour. |
-| `^#RRGGBB` | Any colour. |
-| `^l`, `^o`, `^n`, `^m` | Bold, italic, underline, strike-through. |
-| `^r` | Resets colour and style. |
+| `^0`–`^9`, `^a`–`^f` | A color. |
+| `^#RRGGBB` | Any color. |
+| `^l`, `^o`, `^n`, `^m` | Bold, italic, underline, strikethrough. |
+| `^r` | Resets color and style. |
 
 ## Commands
 
-The server doesn't know any commands. A line that starts with `/` stays an ordinary line until a plugin returns `{ handled = true }` for it. A command is a `chatMessageRequest` handler that knows its own line. A small router keeps several commands tidy:
+The server knows no commands. A line starting with `/` stays an ordinary line until a plugin returns `{ handled = true }` for it: a command is a `chatMessageRequest` handler that recognizes its line. Several commands fit in a small router:
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/dice 20"}]]} -->
 ```lua
@@ -130,11 +130,11 @@ node.on("chatMessageRequest", routeCommand)
 -- expect-client: Alice chat:msg .*Alice rolls \d+
 ```
 
-The log shows the arguments of commands that carry a password (`/login`, `/register` and the others in `[chat] masked_commands`) as `***`. The `chat-commands` example from the server archive adds `/help`, `/me` and `/pm` the same way ([The example plugins](/plugins/examples/)).
+The log masks the arguments of password commands (`/login`, `/register` and the rest of `[chat] masked_commands`) as `***`. The `chat-commands` example in the server archive adds `/help`, `/me` and `/pm` the same way ([The example plugins](/plugins/examples/)).
 
 ## Commands for moderators
 
-The plugin decides who may use a command. Access is usually given by account number from `[config]`. The commands `/kick` and `/ban` take a player's name and a reason, and a ban lasts a day:
+The plugin decides who may use a command, usually by account numbers from `[config]`. Here `/kick` and `/ban` take a player's name and a reason, and a ban lasts a day:
 
 <!-- doctest: server+client {"config": {"moderators": [42]}, "players": ["Alice", "Bob"], "emit": [["chat:send", {"text": "/kick Bob flooding"}]]} -->
 ```lua
@@ -170,4 +170,4 @@ node.on("chatMessageRequest", moderate)
 -- expect-log: Bob kicked — flooding
 ```
 
-Give rights by `accountId`: NodeMP vouches for an account, while a guest can call themselves anything. On a server that is not in the list, NodeMP doesn't verify players and nobody has an `accountId` ([Players and vehicles](/plugins/players-and-vehicles/#who-a-player-is)).
+Grant rights by `accountId`: NodeMP vouches for an account, while a guest can take any name. On a server not in the list, NodeMP verifies nobody and no one has an `accountId` ([Players and vehicles](/plugins/players-and-vehicles/#who-a-player-is)).

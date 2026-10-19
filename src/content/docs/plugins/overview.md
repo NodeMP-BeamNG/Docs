@@ -3,7 +3,7 @@ title: Overview
 description: What NodeMP plugins can do, the kinds of plugin, how the server and client halves work, and what to read first.
 ---
 
-A plugin changes how the server behaves: chat commands, rules, game modes, admin tools, a link to a website or Discord. The server passes data between players and keeps order; everything that makes one server differ from another is done by plugins.
+A plugin changes how the server behaves: chat commands, rules, game modes, admin tools, a link to a website or Discord. The server itself passes data between players and keeps order; plugins make one server differ from another.
 
 ## What you can do
 
@@ -11,7 +11,7 @@ A plugin changes how the server behaves: chat commands, rules, game modes, admin
 - Refuse actions: keep a player out, forbid cars, edits and paint jobs, filter chat.
 - Manage players and cars: kick and ban, seat a player in a car, teleport, freeze, put tags and locks on cars.
 - Keep data across restarts, work with a database and call web services over HTTP.
-- Send players Lua code of your own that runs in the game, and exchange messages with it.
+- Send players your own Lua code to run in the game, and exchange messages with it.
 
 ## Kinds of plugin
 

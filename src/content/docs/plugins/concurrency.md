@@ -3,9 +3,9 @@ title: Timers and coroutines
 description: Timers, coroutines that wait without blocking the server, heavy work on background threads, the 250 ms rule and a restart with a countdown in chat.
 ---
 
-The handlers, timers and coroutines of every plugin run on a single worker thread, one at a time. There are no races between them and no need for locks, but a handler that runs for a long time holds up all the other plugins.
+The handlers, timers and coroutines of every plugin run on one worker thread, one at a time. There are no races and no locks to take, but a long handler holds up every other plugin.
 
-If one run holds the thread for more than 250 ms, the server writes this to the log:
+If one run holds the thread longer than 250 ms, the server logs:
 
 ```text
 plugin worker job stalled the thread …
@@ -18,9 +18,9 @@ Wait with timers and coroutines, and hand heavy work to background threads.
 | Call | What it does |
 |---|---|
 | `node.after(ms, fn)` | Runs `fn` once, after `ms` milliseconds. |
-| `node.every(ms, fn)` | Runs `fn` every `ms` milliseconds. A slow run pushes the next one back, and runs don't pile up. |
-| `node.every(ms, fn, { precise = true })` | Keeps the schedule: runs the thread missed follow one after another, and `fn(missed)` tells how many were missed. |
-| `node.cancel(id)` | Stops a timer. You can call it for a timer that has already fired. |
+| `node.every(ms, fn)` | Runs `fn` every `ms` milliseconds. A slow run delays the next; runs don't pile up. |
+| `node.every(ms, fn, { precise = true })` | Keeps the schedule: missed runs follow back to back, and `fn(missed)` says how many were missed. |
+| `node.cancel(id)` | Stops a timer; safe to call for one that has already fired. |
 | `node.defer(fn)` | Runs `fn` as soon as the current event has been handled. |
 
 <!-- doctest: server -->
@@ -41,7 +41,7 @@ id = node.every(500, countTick)
 -- expect: stopped after 3 ticks
 ```
 
-Use `precise` when the number of runs matters: a point per second, a countdown. Ten seconds of `every(100, fn, { precise = true })` give a hundred runs, even if another handler occupied the thread. After a long delay the timer catches up at most `maxBacklog` runs (a key of the same table, 10 by default, at most 1000). The rest are skipped, the schedule restarts from the current moment, and the log says so once.
+Use `precise` when the count of runs matters: a point per second, a countdown. Ten seconds of `every(100, fn, { precise = true })` give a hundred runs even if another handler held the thread. After a long delay the timer catches up at most `maxBacklog` runs (a key of the same table, 10 by default, at most 1000); the rest are skipped, the schedule restarts from now, and the log says so once.
 
 <!-- doctest: server -->
 ```lua
@@ -67,7 +67,7 @@ node.after(1050, reportTime)
 
 ## Coroutines
 
-A coroutine is code that can pause without occupying the thread. `node.async(fn, ...)` starts one, and inside it `node.sleep(ms)` waits for the given time while everything else keeps working. A countdown reads top to bottom:
+A coroutine is code that can pause without holding the thread. `node.async(fn, ...)` starts one, and inside it `node.sleep(ms)` waits while everything else keeps running. A countdown reads top to bottom:
 
 <!-- doctest: server -->
 ```lua
@@ -102,9 +102,9 @@ node.async(announce)
 -- expect: someone is here
 ```
 
-`node.sleep`, `node.wait`, `node.await`, `node.yield`, `node.suspend` and `node.http.fetch` work only inside `node.async`. A long loop that needs the worker thread gives it to others for one turn by calling `node.yield()`.
+`node.sleep`, `node.wait`, `node.await`, `node.yield`, `node.suspend` and `node.http.fetch` work only inside `node.async`. A long loop on the worker thread gives others one turn with `node.yield()`.
 
-`node.suspend(arm)` calls `arm(resume)` and pauses the coroutine until someone calls `resume(...)`. Whatever you pass to `resume` is what `node.suspend` returns. It is the general form of `node.sleep` and `node.await`: this is how a callback becomes linear code, as in `db.lua` ([The db module](/plugins/database/)).
+`node.suspend(arm)` calls `arm(resume)` and pauses the coroutine until someone calls `resume(...)`, then returns what was passed to `resume`. It is the general form of `node.sleep` and `node.await` and turns a callback into linear code, as in `db.lua` ([The db module](/plugins/database/)).
 
 ## Heavy work
 
@@ -134,7 +134,7 @@ The background function is copied into another Lua state, so it must stand alone
 
 ## A restart with a countdown
 
-`node.server.shutdown(reason, delayMs)` schedules a stop; the default reason is `Server shutdown`. The `serverShutdownScheduled` event tells every plugin when it will happen, and one of them can count down in chat. With `Restart=always` in systemd or a restart policy in Docker, the stop becomes a restart.
+`node.server.shutdown(reason, delayMs)` schedules a stop, by default with the reason `Server shutdown`. `serverShutdownScheduled` tells every plugin when, so one of them can count down in chat. With `Restart=always` in systemd or a Docker restart policy, the stop becomes a restart.
 
 <!-- doctest: server+client {"config": {"moderators": [42]}, "emit": [["chat:send", {"text": "/restart"}]]} -->
 ```lua
@@ -178,4 +178,4 @@ node.on("chatMessageRequest", handleRestart)
 -- expect-client: Alice chat:msg .*Restart in \d+ s: Scheduled restart
 ```
 
-Calling `shutdown` again replaces the schedule, and a negative delay cancels it. A stop without a delay doesn't trigger `serverShutdownScheduled`. When the time comes, the players are disconnected with that reason, `serverShutdown` and `resourceUnload` run, and the server exits with code 0.
+Calling `shutdown` again replaces the schedule; a negative delay cancels it. A stop without a delay doesn't fire `serverShutdownScheduled`. When the time comes, players are disconnected with the reason, `serverShutdown` and `resourceUnload` run, and the server exits with code 0.

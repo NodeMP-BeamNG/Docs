@@ -3,7 +3,7 @@ title: HTTP requests
 description: Callbacks and coroutines, errors, a Discord webhook, certificates and why requests to local addresses are refused.
 ---
 
-`node.http` sends HTTP and HTTPS requests from a plugin. Requests run on background threads and the answer comes back on the worker thread, so a slow service doesn't hold the server up.
+`node.http` sends HTTP and HTTPS requests from a plugin. They run on background threads and answer on the worker thread, so a slow service doesn't hold up the server.
 
 | Call | What it does |
 |---|---|
@@ -13,11 +13,11 @@ description: Callbacks and coroutines, errors, a Discord webhook, certificates a
 | `node.http.put`, `patch`, `delete`, `head` | The same with a fixed method. |
 | `node.http.fetch(url, opts)` | Inside `node.async`, waits for the answer and returns it. |
 
-You can leave out `headers`. The callback gets `(status, body, headers)`. A request lasts at most about 15 seconds, and the answer can be up to 8 MB. The server follows redirects itself, at most five, but doesn't follow a redirect from `https` to `http` while certificate checking is on. The call returns `false` if the request couldn't be queued, and then the callback is not called.
+`headers` is optional. The callback gets `(status, body, headers)`. A request takes at most about 15 seconds, and an answer can be up to 8 MB. The server follows up to five redirects, but not from `https` to `http` while certificates are checked. The call returns `false` if the request couldn't be queued, and the callback is then never called.
 
 ## Errors
 
-If a request fails before any answer arrives (no connection, a bad certificate, a timeout), `status` is `-1` and `body` says why. A refused request shows what that looks like:
+If a request fails before an answer (no connection, a bad certificate, a timeout), `status` is `-1` and `body` says why, as a refused request shows:
 
 <!-- doctest: server -->
 ```lua
@@ -34,7 +34,7 @@ node.http.get("http://127.0.0.1:9/", logAnswer)
 -- expect: failed: .*blocked
 ```
 
-Requests to the server's own machine and to private networks are refused by default ([below](#local-and-private-addresses)), which is why this request fails.
+Requests to the server's own machine and private networks are refused by default ([below](#local-and-private-addresses)), which is why this one fails.
 
 ## Waiting in a coroutine
 
@@ -56,7 +56,7 @@ node.async(fetchStatus)
 
 ## A Discord webhook
 
-This plugin writes to a Discord channel when a player joins the server. The webhook address is a secret, so it lives in `[config]`, not in the code:
+This plugin posts to a Discord channel when a player joins. The webhook address is a secret, so it goes in `[config]`, not in the code:
 
 <!-- doctest: skip needs a real Discord webhook address -->
 ```lua
@@ -78,8 +78,8 @@ node.on("playerJoined", announceJoin)
 
 ## Certificates
 
-The server checks HTTPS certificates against the system's trusted root certificates and the `cacert.pem` that ships with the server. A host can point `[http] ca_file` at a bundle of their own. `[http] insecure` turns the check off. Leave it off: otherwise anyone between the server and the service can read and change what you send.
+The server checks HTTPS certificates against the system's trusted roots and the `cacert.pem` shipped with the server; a host can point `[http] ca_file` at their own bundle. `[http] insecure` turns the check off. Don't turn it on: anyone between the server and the service could then read and change what you send.
 
 ## Local and private addresses
 
-A plugin can't reach the server's own machine, the local network or other private addresses unless the host sets `[http] allow_private_networks = true`. That keeps a plugin from reaching services that must not be exposed. If a service such as statistics runs next to the game server, the host can turn the key on, but then the private addresses are open to every plugin on the server.
+A plugin can't reach the server's own machine, the local network or other private addresses unless the host sets `[http] allow_private_networks = true`. That keeps plugins away from services that must not be exposed. If, say, a statistics service runs next to the game server, the host can turn the key on, but private addresses then open to every plugin on the server.

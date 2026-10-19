@@ -3,14 +3,14 @@ title: API conventions
 description: How API calls report failure, what happens to errors in handlers, which ids last, how to check versions and measure a plugin's memory and time.
 ---
 
-A few rules hold across the whole API. Know them and you don't have to read the reference for every call.
+A few rules hold across the whole API; with them you won't need the reference for every call.
 
 ## How calls report failure
 
-- A call that does something returns `true` or `false`: `player:kick` returns `false` if there is no such player.
-- A call that can fail for several reasons returns `nil` and the reason as a short word: `player:spawnVehicle` returns `nil, "max_cars"` and `node.fs.stat` returns `nil, "not found"`.
-- A call that reads something returns `nil` when there is nothing to read: `node.players.find` for an unknown name, `vehicle:transform()` before the first position.
-- A call raises an error only when you use it wrongly, for example by passing a handler that is not a function. The error points at your line.
+- An action returns `true` or `false`: `player:kick` returns `false` if there is no such player.
+- A call that can fail in several ways returns `nil` and a short reason: `player:spawnVehicle` gives `nil, "max_cars"`, `node.fs.stat` gives `nil, "not found"`.
+- A read returns `nil` when there is nothing to read: `node.players.find` for an unknown name, `vehicle:transform()` before the first position.
+- A call raises an error only when misused, for example with a handler that is not a function. The error points at your line.
 
 <!-- doctest: server -->
 ```lua
@@ -22,7 +22,7 @@ node.log("verify: %s (%s)", tostring(ok), tostring(why))
 
 ## Errors in handlers
 
-The server logs an error in a handler, a timer or a coroutine with the plugin's name, the file, the line and a traceback. The first line says where the error happened:
+The server logs an error in a handler, timer or coroutine with the plugin's name, file, line and traceback. The first line says where it happened:
 
 | Where | The line starts with |
 |---|---|
@@ -34,17 +34,17 @@ The server logs an error in a handler, a timer or a coroutine with the plugin's 
 | A coroutine | `error in async task` |
 | The top level of `main.lua` while loading | `error in '<path to main.lua>'` |
 
-An error ends only that call: the plugin's other handlers keep working, and the same handler runs again on the next event. So you don't need a `pcall` around a whole handler, but do check what it relies on, for example that the player has an `accountId`.
+An error ends only that call: the plugin's other handlers keep working, and this one runs again on the next event. So skip the `pcall` around a whole handler, but check what it relies on, such as the player having an `accountId`.
 
 ## Which ids last
 
 | Id | How long it lives |
 |---|---|
-| `player.id` | The session. It is freed when the player leaves and goes to the next player. |
-| `vehicle.id` | As long as the server runs. It is not reused until a restart. |
-| `player.accountId` | For good. The same account has it on every server and every visit. |
+| `player.id` | The session. Freed when the player leaves, then given to the next one. |
+| `vehicle.id` | Until the server restarts; never reused before that. |
+| `player.accountId` | For good: the same on every server and every visit. |
 
-Store anything about a player under `accountId`. A guest has none, and the next time someone else may take the guest's name.
+Store player data under `accountId`. A guest has none, and next time someone else may take the guest's name.
 
 ## Versions
 
@@ -61,14 +61,14 @@ node.log("server %s, protocol %d", version, node.server.protoVersion())
 -- expect: server \S+, protocol \d+
 ```
 
-To call a function only where it exists, check that it is there: `if node.server.shutdown then … end`. Compare the protocol version with `protoVersion()`, not with a number written into the code. The server itself kicks a player whose client mod names a different protocol version in `session:hello`.
+To call a function only where it exists, test for it: `if node.server.shutdown then … end`. Compare the protocol version with `protoVersion()`, not a number in your code. The server itself disconnects a client mod that names another protocol version in `session:hello`.
 
 ## Memory and time
 
 Two calls show what a plugin costs:
 
-- `node.server.memory()` returns `{ lua, luaAll, process }` in bytes: this plugin's Lua state, the states of all plugins together, and the whole server.
-- `node.server.handlerStats()` shows how long this plugin's handlers run: `count` runs, `min`, `max`, `mean` and `stddev` of the time in milliseconds, and `over`, the number of runs that crossed the 250 ms threshold.
+- `node.server.memory()` returns `{ lua, luaAll, process }` in bytes: this plugin's Lua state, all plugins' states together, and the whole server.
+- `node.server.handlerStats()` shows how long this plugin's handlers run: `count` runs, `min`, `max`, `mean` and `stddev` in milliseconds, and `over`, the runs that took longer than 250 ms.
 
 <!-- doctest: server -->
 ```lua
@@ -84,4 +84,4 @@ node.after(1000, reportUsage)
 -- expect: lua \d+ KB, \d+ runs
 ```
 
-A `lua` figure that keeps growing all evening points at a table nobody empties. A `max` creeping towards 250 ms is a reason to split the handler or move it into a coroutine ([Timers and coroutines](/plugins/concurrency/)).
+A `lua` figure that grows all evening points at a table nobody empties. A `max` creeping toward 250 ms is a reason to split the handler or move it into a coroutine ([Timers and coroutines](/plugins/concurrency/)).

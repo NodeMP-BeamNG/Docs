@@ -3,11 +3,11 @@ title: The db module
 description: Setting up the db module, db.lua, queries with placeholders, creating tables, transactions, NULL and errors in PostgreSQL, SQLite and MySQL.
 ---
 
-The database module ships with the server: `db.dll` or `db.so` in `modules/`. It works the same way with PostgreSQL, SQLite and MySQL/MariaDB. You write the SQL, the placeholders `$1`, `$2`… work on every engine, and values are sent separately from the query text.
+The database module ships with the server as `db.dll` or `db.so` in `modules/` and works the same with PostgreSQL, SQLite and MySQL/MariaDB. You write the SQL; the placeholders `$1`, `$2`… work on every engine, and values travel separately from the query text.
 
 ## Setting it up
 
-The host tells the module where the database is. Copy `db.example.toml` from the `modules/` folder next to the program to `modules/db.toml` in the server's working folder, and fill in the `default` connection. A `db.toml` directly in the working folder works too.
+The host tells the module where the database is: copy `db.example.toml` from `modules/` next to the program to `modules/db.toml` in the server's working folder and fill in the `default` connection. A `db.toml` directly in the working folder also works.
 
 ```toml
 [connections.default]
@@ -18,18 +18,18 @@ connections = 4
 
 | Key | Default | What it means |
 |---|---|---|
-| `driver` | guessed from `url` | `postgres`, `sqlite` or `mysql`. Without the key the engine comes from `url`: `postgres://`, `postgresql://` or a `host=… dbname=…` string means PostgreSQL, `mysql://` or `mariadb://` means MySQL, anything else SQLite. |
-| `url` | none | The database address. For SQLite it is a file path from the server's folder, for example `"data/server.db"`; `":memory:"` gives an in-memory database that disappears when the server stops. |
-| `connections` | `4` | How many connections the pool keeps, from 1 to 32. That many queries can run at once. |
+| `driver` | from `url` | `postgres`, `sqlite` or `mysql`. Without it, `url` decides: `postgres://`, `postgresql://` or a `host=… dbname=…` string is PostgreSQL, `mysql://` or `mariadb://` is MySQL, anything else SQLite. |
+| `url` | none | The database address. For SQLite, a file path from the server's folder, such as `"data/server.db"`; `":memory:"` is an in-memory database that is gone when the server stops. |
+| `connections` | `4` | The pool size, from 1 to 32: how many queries can run at once. |
 | `query_timeout_ms` | `10000` | How long one query may run. |
 | `tx_timeout_ms` | `30000` | How long a transaction may stay open, including the wait for a free connection. |
-| `max_rows` | `10000` | A result with more rows than this ends with the error `db_result_cap`. |
+| `max_rows` | `10000` | A result with more rows fails with `db_result_cap`. |
 
-The module reads the file once, at startup. The password doesn't have to be in the file: the environment variable `NODE_DB_DEFAULT_URL` replaces the address from the file (for a connection with another name it is `NODE_DB_<NAME>_URL`), and without a file the module takes `NODE_DB_URL`. Until a connection is configured, the module writes `no database configured` at startup and answers every request with the error `db_disabled`.
+The module reads the file once, at startup. To keep the password out of the file, set `NODE_DB_DEFAULT_URL`: it replaces the file's address (`NODE_DB_<NAME>_URL` for a connection with another name). Without a file the module takes `NODE_DB_URL`. With no connection configured, the module logs `no database configured` at startup and answers every request with `db_disabled`.
 
 ## db.lua in a plugin
 
-A plugin talks to the module through a small library, `db.lua`, which lies in `modules/` next to the module. Copy it into the plugin's `server/` folder and load it:
+Plugins reach the module through `db.lua`, a small library in `modules/` next to the module. Copy it into the plugin's `server/` folder and load it:
 
 <!-- doctest: skip the doctest runner puts these lines in front of every db block -->
 ```lua
@@ -38,20 +38,20 @@ package.path = here .. "/?.lua;" .. package.path
 local db = require("db").open()
 ```
 
-`open()` takes the `default` connection, and `open("stats")` takes another one from `db.toml`. Write every call with a colon: `db:query(...)`. The library rejects a call with a dot and says why. After you update the server, copy the new `db.lua` over the old one.
+`open()` takes the `default` connection, `open("stats")` another one from `db.toml`. Call with a colon, `db:query(...)`: the library rejects a call with a dot and says why. After a server update, copy the new `db.lua` over the old one.
 
 ## Queries
 
 | Call | What it returns |
 |---|---|
-| `db:query(sql, params)` | `{ rows, count, columns }`, or `nil, err`. Each row in `rows` is a table of column = value. |
-| `db:exec(sql, params)` | The number of rows changed, or `nil, err`. For `insert`, `update` and `delete`. |
+| `db:query(sql, params)` | `{ rows, count, columns }`, or `nil, err`. Each row in `rows` is a column = value table. |
+| `db:exec(sql, params)` | How many rows changed, or `nil, err`. For `insert`, `update` and `delete`. |
 | `db:ready()` | `true` once the connection is up. |
-| `db:status()` | The driver, state and counters of all connections, in one table. |
+| `db:status()` | One table with the driver, state and counters of every connection. |
 
-Inside `node.async` the calls wait for the answer and return it. If you pass a function as the last argument, the call returns at once and calls that function later with `(result, err)`.
+Inside `node.async` the calls wait and return the answer. With a function as the last argument, the call returns at once and later calls it with `(result, err)`.
 
-A plugin usually creates its tables at startup. In the first moments after the server starts the connection may not be up yet, so wait for it:
+A plugin usually creates its tables at startup, when the connection may not be up yet, so wait for it:
 
 <!-- doctest: db -->
 ```lua
@@ -75,7 +75,7 @@ node.async(createTable)
 -- expect: visits table ready
 ```
 
-A visit counter: one statement inserts the first visit or adds one, and a second reads the number.
+A visit counter: one statement inserts the first visit or adds one, another reads the count.
 
 <!-- doctest: db+client -->
 ```lua
@@ -104,7 +104,7 @@ node.on("playerJoined", onJoined)
 
 ## Transactions
 
-`db:tx(fn)` reserves one connection for the whole of `fn`. Inside it, `tx:query` and `tx:exec` always wait for their answers. When `fn` returns, the changes are saved; if it raises an error or calls `tx:rollback(reason)`, they are undone. `db:tx` returns what `fn` returned, or `nil, err`. For a rollback the error's `code` is `"rollback"`, and what `fn` raised is in `err.cause`.
+`db:tx(fn)` holds one connection for all of `fn`, and inside it `tx:query` and `tx:exec` always wait for the answer. When `fn` returns, the changes are committed; if it raises an error or calls `tx:rollback(reason)`, they are undone. `db:tx` returns what `fn` returned, or `nil, err`. After a rollback `err.code` is `"rollback"` and what `fn` raised is in `err.cause`.
 
 <!-- doctest: db -->
 ```lua
@@ -146,11 +146,11 @@ node.async(runTransfers)
 -- expect: second transfer: not enough money
 ```
 
-The module rolls back a transaction that runs longer than `tx_timeout_ms` from `db.toml`, so a forgotten transaction doesn't hold a connection forever. If the plugin is reloaded or stopped in the middle of a transaction, the connection is released at once.
+The module rolls back a transaction open longer than `tx_timeout_ms`, so a forgotten one can't hold a connection forever. If the plugin reloads or stops mid-transaction, the connection is freed at once.
 
 ## NULL and other values
 
-A parameter list is a Lua array, and a `nil` would end it early. Write `db.NULL` for SQL NULL. The library rejects a list with a gap with an error; if you need a gap, give the length explicitly: `{ a, nil, b, n = 3 }` sends `nil` as NULL.
+A parameter list is a Lua array, where a `nil` would end it early, so write `db.NULL` for SQL NULL. The library rejects a list with a gap; to keep a gap, give the length: `{ a, nil, b, n = 3 }` sends the `nil` as NULL.
 
 <!-- doctest: skip shows only the parameter list -->
 ```lua
@@ -161,16 +161,16 @@ A table in the parameters is sent as JSON, for `json` or `jsonb` columns.
 
 ## Errors
 
-An error isn't raised: it is returned as a value `{ code, message, detail, constraint, … }`. The code is a SQLSTATE, the same on every engine for the same error, or a code of the module itself that starts with `db_`:
+Errors are returned, not raised, as `{ code, message, detail, constraint, … }`. The code is a SQLSTATE, the same on every engine for the same error, or the module's own code starting with `db_`:
 
 | Code | What it means |
 |---|---|
-| `23505` | That unique key already exists; `constraint` names it if the engine reports the name. |
-| `23503`, `23502`, `23514` | A foreign key, NOT NULL or CHECK constraint was violated. |
+| `23505` | Duplicate unique key; `constraint` names it if the engine reports the name. |
+| `23503`, `23502`, `23514` | A foreign key, NOT NULL or CHECK violation. |
 | `42601`, `42P01` | A syntax error; no such table. |
 | `57014` | The query ran longer than `query_timeout_ms`. |
-| `08001`, `08006` | There is no connection; the connection was lost. |
-| `db_disabled` | There is no connection with that name, or the module isn't configured. |
+| `08001`, `08006` | No connection; the connection was lost. |
+| `db_disabled` | No connection by that name, or the module isn't configured. |
 | `db_tx_timeout` | The transaction ran longer than `tx_timeout_ms`. |
-| `db_result_cap` | The result has more rows than `max_rows`. |
-| `db_params` | The parameter list or the SQL can't be used. |
+| `db_result_cap` | More rows than `max_rows`. |
+| `db_params` | The parameter list or the SQL is unusable. |

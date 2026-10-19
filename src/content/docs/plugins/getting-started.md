@@ -3,7 +3,7 @@ title: Your first plugin
 description: Build a plugin from an empty folder, step by step. It greets players, answers a chat command, reads its settings, runs a client half and reloads.
 ---
 
-These steps build a plugin called `greeter`. It greets players, answers the `/online` command, takes its greeting from the settings and shows a message in the player's game. There is nothing to install: Lua is built into the server.
+These steps build `greeter`, a plugin that greets players, answers `/online`, takes its greeting from the settings and shows a message in the player's game. There is nothing to install: Lua is built into the server.
 
 You need a server ([Run a server](/hosting/quick-start/)) and the launcher to join it.
 
@@ -59,7 +59,7 @@ node.on("playerLeft", sayGoodbye)
 
 - `node.log` writes to the server console under the plugin's name. Extra arguments work as in `string.format`.
 - `node.on(name, handler)` subscribes a function to an event. `playerJoined` passes a `Player` object: `name` and `id` are fields, `tell` and `kick` are methods.
-- `player:tell` writes a system line into that player's chat. Chat is built into the server, so this works without any other plugin.
+- `player:tell` writes a system line into that player's chat. Chat is built into the server, so no other plugin is needed.
 - `playerLeft` also gets the reason the session ended.
 
 ## 4. Start the server
@@ -75,7 +75,7 @@ Join the server. The console shows `greeter · <your name> joined` and the chat 
 
 ## 5. A chat command
 
-Commands are ordinary chat lines that start with `/`. Every line passes through `chatMessageRequest` before the server sends it on. A handler that knows its command returns `{ handled = true }`: nobody sees the line, and the plugin sends its own reply.
+Commands are ordinary chat lines starting with `/`. Every line passes through `chatMessageRequest` before the server sends it on. A handler that recognizes its command returns `{ handled = true }`: nobody sees the line, and the plugin sends its own reply.
 
 <!-- doctest: server+client {"emit": [["chat:send", {"text": "/online"}]]} -->
 ```lua
@@ -120,7 +120,7 @@ node.on("playerJoined", greetFromConfig)
 -- expect-client: Alice chat:msg .*Hello from the docs, Alice!
 ```
 
-`node.config` is read once, when the plugin loads. After you edit the file, reload the plugin ([below](#8-reload-the-plugin)).
+`node.config` is read once, when the plugin loads. After editing the file, reload the plugin ([below](#8-reload-the-plugin)).
 
 ## 7. The client half
 
@@ -150,7 +150,7 @@ end
 node.on("greeter:hello", showHello)
 ```
 
-On the client a handler gets the data as a string, exactly as the server sent it, so the game function `jsonDecode` parses it. `ui_message` is a game function that shows a message on screen. `node.emitServer` sends a wire event back, also as a string. The server half receives it:
+On the client a handler gets the data as the string the server sent, so the game's `jsonDecode` parses it. `ui_message` is the game's function for an on-screen message. `node.emitServer` sends a wire event back, again as a string. The server half receives it:
 
 <!-- doctest: server+client {"emit": [["greeter:seen", "Welcome, Alice"]]} -->
 ```lua
@@ -163,11 +163,11 @@ node.on("greeter:seen", logSeen)
 -- expect: Alice saw: Welcome, Alice
 ```
 
-Name wire events `<plugin>:<what>`, in lower case ([Events](/plugins/events/#kinds-of-events)).
+Name wire events `<plugin>:<what>`, in lowercase ([Events](/plugins/events/#kinds-of-events)).
 
 ## 8. Reload the plugin
 
-After changing the server half you don't need to restart the server. Type in the server console:
+A changed server half needs no server restart. Type in the server console:
 
 ```text
 reload greeter

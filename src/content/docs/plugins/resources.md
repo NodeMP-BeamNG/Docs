@@ -9,7 +9,7 @@ A plugin is a folder inside `resources/`. The server loads every such folder whe
 
 | Path | What it is |
 |---|---|
-| `resource.toml` | The plugin's description. Optional: without it the folder name is the plugin's name and everything else takes the defaults in the table below. |
+| `resource.toml` | The plugin's description. Optional: without it the folder name is the plugin's name and the rest takes the defaults below. |
 | `server/main.lua` | Entry point of the server half. |
 | `server/*.lua` | The rest of the server code, loaded with `require` ([below](#several-files)). |
 | `client/**/*.lua` | The client half ([Client scripts](/plugins/client-scripting/)). |
@@ -49,13 +49,13 @@ The server refuses a path in `[server] main` or `[client] files` that leads outs
 
 ## The Lua environment
 
-The server half runs on Lua 5.4 with the standard libraries. On top of them there is the global `node` with the whole API ([reference](/plugins/api/lua/)). Each plugin has a Lua state of its own and can't see another plugin's globals.
+The server half runs on Lua 5.4 with the standard libraries plus the global `node`, which holds the whole API ([reference](/plugins/api/lua/)). Each plugin has its own Lua state and can't see another plugin's globals.
 
-On disk a plugin reaches only its own folder. A plugin you downloaded from someone else then can't read `server.toml`, delete files or start programs on the host's machine:
+On disk a plugin reaches only its own folder, so a plugin downloaded from someone else can't read `server.toml`, delete files or start programs on the host's machine:
 
 | What | In a plugin |
 |---|---|
-| `io.open`, `io.lines`, `os.remove`, `os.rename`, `dofile`, `loadfile`, `require`, `package.searchpath` | Files inside the plugin's folder. A path counts from that folder; a path from the server's folder (`resources/race/data.json`) or an absolute path also works if it leads inside. Outside the folder, `io.open`, `os.remove`, `os.rename` and `loadfile` return `nil, "…: outside the resource folder"`, while `io.lines` and `dofile` raise an error with the same text. |
+| `io.open`, `io.lines`, `os.remove`, `os.rename`, `dofile`, `loadfile`, `require`, `package.searchpath` | Files inside the plugin's folder. A path counts from that folder; one from the server's folder (`resources/race/data.json`) or an absolute one also works if it leads inside. Outside the folder, `io.open`, `os.remove`, `os.rename` and `loadfile` return `nil, "…: outside the resource folder"`, and `io.lines` and `dofile` raise an error with that text. |
 | `os.time`, `os.clock`, `os.date`, `os.difftime`, `io.write` | As usual. |
 | `os.getenv` | `nil` for every variable: the environment holds the server's secrets. |
 | `os.execute`, `io.popen`, `os.exit`, `os.setlocale`, `os.tmpname`, `io.tmpfile`, `io.read`, `io.input`, `io.output` | Raise an error that points to `[resources] trusted`. |
@@ -70,7 +70,7 @@ node.log("%s", err)
 -- expect: os\.execute is not available to resources
 ```
 
-The same holds inside `node.job` and `node.await`. If a plugin needs more, the host lists it in `server.toml`. The plugin then gets the whole standard library, and paths count from the server's folder:
+The same holds inside `node.job` and `node.await`. A plugin that needs more is listed by the host in `server.toml`; it then gets the whole standard library, with paths counting from the server's folder:
 
 ```toml
 [resources]
@@ -81,7 +81,7 @@ No plugin, not even a trusted one, can load a Lua module written in C. For what 
 
 ## Several files
 
-Relative paths in `package.path` count from the plugin's folder (for a trusted plugin, from the server's folder), and `package.path` has no entry for the `server/` folder. So `require("util")` finds `util.lua` in the plugin's root but not `server/util.lua`. Put the `server/` folder in front of `package.path` once, at the top of `main.lua`:
+Relative paths in `package.path` count from the plugin's folder (the server's folder for a trusted plugin), and none of them points into `server/`. So `require("util")` finds `util.lua` in the plugin's root but not `server/util.lua`. Put `server/` at the front of `package.path` once, at the top of `main.lua`:
 
 <!-- doctest: server {"files": {"server/util.lua": "local M = {}\nfunction M.add(a, b)\n    return a + b\nend\nreturn M\n"}} -->
 ```lua
@@ -117,7 +117,7 @@ return M
 
 `node.resources.reload` queues the reload and returns `true` if it was accepted. A plugin can reload itself.
 
-`node.storage`, the files in the folder and all other plugins stay. Everything held in Lua variables is lost, so keep what matters in storage. A `resourceUnload` handler is the place to save it:
+`node.storage`, the files in the folder and all other plugins stay; whatever was in Lua variables is lost, so keep what matters in storage. Save it in a `resourceUnload` handler:
 
 <!-- doctest: server+client -->
 ```lua
@@ -147,4 +147,4 @@ A reload doesn't send players new files from `client/`: the server packs them on
 
 An error at the top level of `main.lua` aborts the rest of that file, and the plugin stays loaded with whatever it subscribed to before the error. How these errors and errors in handlers look in the log: [API conventions](/plugins/conventions/#errors-in-handlers).
 
-Write to the log with `node.log`, and mark problems with `node.log.warn` and `node.log.error`. All three take arguments as `string.format` does.
+Log with `node.log`, and mark problems with `node.log.warn` and `node.log.error`; all three take `string.format` arguments.

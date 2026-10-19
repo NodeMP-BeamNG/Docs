@@ -3,7 +3,7 @@ title: Native modules
 description: The three exported functions, ABI versions, threads, what only a native module can do, language hosts and installing a module.
 ---
 
-A native module is a library, a `.dll` on Windows or a `.so` on Linux, in the `modules/` folder next to the server program. It talks to the server through a table of C functions, `NodeApi`, declared in one header, `node.h`. Modules load before plugins.
+A native module is a library (`.dll` on Windows, `.so` on Linux) in the `modules/` folder next to the server program. It talks to the server through `NodeApi`, a table of C functions declared in one header, `node.h`. Modules load before plugins.
 
 Write a module when Lua can't keep up: code that runs for every packet, or a library that exists only in C. For game rules and commands a Lua plugin is simpler and safer: an error in Lua is a log line, while an error in a module can take the server down.
 
@@ -49,13 +49,13 @@ NODE_EXPORT void node_plugin_shutdown(void) {
 
 ## ABI versions
 
-The ABI version is written as `major.minor` and set by `NODE_ABI_VERSION_MAJOR` and `NODE_ABI_VERSION_MINOR` in `node.h`. `NodeApi` is a structure read by offsets, so its layout is a contract: new functions are only added at the end, and that raises the minor version.
+The ABI version is `major.minor`, set by `NODE_ABI_VERSION_MAJOR` and `NODE_ABI_VERSION_MINOR` in `node.h`. `NodeApi` is a structure read by offsets, so its layout is a contract: new functions are only appended, which raises the minor version.
 
 | The module was built | What the server does |
 |---|---|
-| With a different major version | Refuses to load it, before the module touches anything: `module '…' was built against SDK ABI 1.12, this server speaks 2.8 -- refusing to load it. Rebuild the module.` |
+| With a different major version | Refuses to load it before the module touches anything: `module '…' was built against SDK ABI 1.12, this server speaks 2.8 -- refusing to load it. Rebuild the module.` |
 | With an older minor version | Loads it: everything the module knows is where it expects. |
-| With a newer minor version | Loads it with a warning: the module may call functions this server doesn't have. If the module has to work on such a server too, check `api->struct_size` before calling a new function. |
+| With a newer minor version | Loads it with a warning: the module may call functions this server doesn't have. If it must also work on such a server, check `api->struct_size` before calling a new function. |
 
 Lua and JavaScript plugins don't need rebuilding when the server is updated.
 
@@ -66,7 +66,7 @@ Lua and JavaScript plugins don't need rebuilding when the server is updated.
 
 ## Threads
 
-- You can call any `NodeApi` function from any thread, including threads the module starts itself.
+- Any `NodeApi` function can be called from any thread, including the module's own.
 - Callbacks (events, timers, jobs, HTTP, the bus) run on the server's single worker thread, one at a time, like Lua handlers. Blocking in one holds up all plugins ([Timers and coroutines](/plugins/concurrency/)).
 - The log sink (`set_log_sink`) runs on the thread that wrote the line, and must not block.
 - The relay filter runs on network threads, for every packet, and must be a fast function of the module's own data. It must not change the server's state.
@@ -75,13 +75,13 @@ Lua and JavaScript plugins don't need rebuilding when the server is updated.
 ## What only a module can do
 
 - Filter the relay on the hot path. The server asks the filter from `register_relay_filter` whether one player may see another's packet, and remembers the answer. Lua can do this too, but a module answers without leaving the network thread.
-- Run another language. `register_language_host` claims a plugin `type`: the server hands such plugins to the module, which loads and runs them. This is how `js-host` runs `type = "js"` ([JavaScript plugins](/plugins/js-host/)). A language host that runs Lua 5.4 can give a plugin the same sandbox the server does: the sdk has `lua_sandbox.hpp` for this, and `is_resource_trusted` says whether the plugin is listed in `[resources] trusted`.
+- Run another language. `register_language_host` claims a plugin `type`: the server hands such plugins to the module, which loads and runs them; that is how `js-host` runs `type = "js"` ([JavaScript plugins](/plugins/js-host/)). A Lua 5.4 host can give plugins the server's own sandbox with the sdk's `lua_sandbox.hpp`, and `is_resource_trusted` says whether a plugin is listed in `[resources] trusted`.
 - Suppress log lines. The log sink set with `set_log_sink` sees every line and may drop it. The server has one sink: the next `set_log_sink` replaces the previous one.
 
-Modules talk to plugins over the [bus](/plugins/bus/) (`emit_resource_event`, `register_resource_event`, where they appear as `"native"`), and to their own client halves over numbered binary channels (`register_module_channel`, `send_module`). A module can also ask plugins a question: `call_resource_event` runs their handlers at once and passes each answer to a callback before it returns. Call it from a callback, on the worker thread. A module subscribed to the name sees such a question but can't answer it ([The bus](/plugins/bus/#asking-and-answering)). A module can't add functions to Lua: everything it offers plugins goes over the bus, like the [db module](/plugins/database/).
+Modules talk to plugins over the [bus](/plugins/bus/) (`emit_resource_event`, `register_resource_event`, where they appear as `"native"`), and to their own client halves over numbered binary channels (`register_module_channel`, `send_module`). A module can also ask plugins: `call_resource_event` runs their handlers at once and passes each answer to a callback before returning; call it from a callback, on the worker thread. A module subscribed to the name sees such a question but can't answer it ([The bus](/plugins/bus/#asking-and-answering)). A module can't add functions to Lua: whatever it offers plugins goes over the bus, as with the [db module](/plugins/database/).
 
 ## Installing a module
 
-How to install a module on a server is on [Plugins on the server](/hosting/resources/#native-modules). At startup the server writes `<file> initialized` to the log for every module it loads, and the reason for refusing each of the others.
+Installing a module on a server: [Plugins on the server](/hosting/resources/#native-modules). At startup the server logs `<file> initialized` for each module it loads and the reason for each one it refuses.
 
-The full list of functions with descriptions is in the [C API reference](/plugins/api/c/).
+Every function is described in the [C API reference](/plugins/api/c/).

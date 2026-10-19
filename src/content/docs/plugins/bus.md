@@ -3,16 +3,16 @@ title: The bus between plugins
 description: How plugins on one server send each other messages, how to name them, parse the data, ask and answer, and what else travels on the bus.
 ---
 
-Plugins can't see each other's variables ([How a plugin is built](/plugins/resources/#the-lua-environment)), so they talk over the bus, a publish-subscribe channel inside the server. One plugin publishes a message under a name, and every plugin subscribed to that name receives it.
+Plugins can't see each other's variables ([How a plugin is built](/plugins/resources/#the-lua-environment)), so they talk over the bus, a publish-subscribe channel inside the server: one plugin publishes a message under a name, and every plugin subscribed to that name gets it.
 
 | Call | What it does |
 |---|---|
 | `node.bus.emit(name, data)` | Publishes `data` under `name`. A table becomes JSON. |
 | `node.bus.call(name, data)` | Asks every plugin subscribed to `name` and returns their answers at once. |
 | `node.bus.on(name, fn)` | Calls `fn(source, data)` for every message under `name`. |
-| `node.bus.off(name, fn)` | Unsubscribes; without `fn` it removes all of this plugin's handlers for `name`. |
+| `node.bus.off(name, fn)` | Unsubscribes; without `fn`, all of this plugin's handlers for `name`. |
 
-`source` is the name of the plugin that sent the message; a native module shows up as `"native"`. `data` arrives as a string: parse it with `node.json.decode`.
+`source` is the sending plugin's name, `"native"` for a native module. `data` arrives as a string; parse it with `node.json.decode`.
 
 ## Sending and receiving
 
@@ -44,11 +44,11 @@ end
 node.after(500, awardPoints)
 ```
 
-The server delivers a message on the worker thread once the current handler has finished, not in the middle of it. The sender receives it too if it is subscribed to that name. Name messages `<plugin>:<what>`, like wire events, so two plugins don't collide ([Events](/plugins/events/#kinds-of-events)).
+The server delivers a message on the worker thread after the current handler finishes, not in the middle of it, and the sender gets it too if subscribed. Name messages `<plugin>:<what>`, like wire events, so two plugins don't collide ([Events](/plugins/events/#kinds-of-events)).
 
 ## Asking and answering
 
-`node.bus.call` asks a question and gets the answers at once. A handler answers with what it returns:
+`node.bus.call` asks a question and gets the answers at once; a handler answers with its return value:
 
 <!-- doctest: server -->
 ```lua
@@ -73,12 +73,12 @@ node.after(500, askPrice)
 ```
 
 - All handlers run immediately, before `call` returns, so the answer is what the other plugin knows at that moment.
-- The answers arrive as a list of `{ source, value }`, in the order the handlers subscribed. A table arrives as a table. A handler that returns `nil` is left out of the list, so an empty list means nobody answered.
+- Answers come as a list of `{ source, value }` in subscription order, a table as a table. A handler that returns `nil` is left out, so an empty list means nobody answered.
 - The asking plugin's own handlers get the question too.
-- A handler can call `call` itself, but no more than eight levels deep: beyond that `call` raises an error.
+- A handler can itself `call`, at most eight levels deep; beyond that `call` raises an error.
 - A native module subscribed to the name sees the question but can't answer it.
 
-A handler that has to wait for something, such as a database or an HTTP request, can't answer with `return`. Put the name to reply on into the question itself, and answer later with `emit`:
+A handler that must wait for something, such as a database or an HTTP request, can't answer with `return`. Put a reply name in the question and answer later with `emit`:
 
 <!-- doctest: server -->
 ```lua
@@ -109,7 +109,7 @@ node.after(500, askBalance)
 -- expect: balance: 1500 cents
 ```
 
-A reply name that includes the asking plugin's name keeps replies from getting mixed up. To wait for the reply in a coroutine, use `node.suspend`, which turns a callback into a pause ([Timers and coroutines](/plugins/concurrency/#coroutines)). The database module's `db.lua` is built this way.
+A reply name with the asking plugin's name in it keeps replies apart. To wait for the reply in a coroutine, use `node.suspend`, which turns a callback into a pause ([Timers and coroutines](/plugins/concurrency/#coroutines)), as the database module's `db.lua` does.
 
 ## What else travels on the bus
 
