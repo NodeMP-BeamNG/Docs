@@ -1,17 +1,13 @@
 ---
 title: Configuring the server
-description: How server.toml works, the settings people change most, environment variables and command-line options.
+description: How server.toml works, the settings hosts change most, environment variables and command-line options.
 ---
 
-Every server setting lives in one file, `server.toml`, in the server's working directory. This page
-starts with how the file behaves, then the settings people change most, and ends with the
-environment variables and the command line. [Every setting](/hosting/configuration/), table by
-table, is on its own page.
+The server's settings are stored in one file, `server.toml`, in the server's working directory. Every key, with its type and default, is in the [settings reference](/hosting/configuration/).
 
 ## How the file works
 
-On the first start the server writes a short file with the tables a host fills in: `[server]`,
-`[listing]` and `[vehicles]`.
+On its first start the server writes a short file with the tables a host fills in: `[server]`, `[vehicles]` and `[listing]`.
 
 ```toml
 # NodeMP server settings: https://docs.nodemp.com/hosting/configuration/
@@ -43,111 +39,91 @@ public = true
 guests = true  # players without a NodeMP account
 ```
 
-- **Everything else you add yourself.** A setting that isn't in the file keeps its default. To
-  change one, write it into its table, and add the table if the file doesn't have it yet. The
-  names are in the [settings reference](/hosting/configuration/).
-- **The server only reads your file.** It doesn't add or change anything in it, and it reads it at
-  start, so restart the server after a change.
-- **Mistakes are explained.** A value of the wrong type or out of range is replaced by the default,
-  with a warning in the log. A key the server doesn't know gets a warning with its name, which is
-  how a typo shows up. A table written twice stops the server from starting. Usually that's a
-  second `[listing]` pasted under the one already in the file: move its keys into the first one and
-  delete the second.
-- **Lists** (`connection_limit_exempt`, `masked_commands`, `trusted`) can be a comma-separated string or a TOML
-  list.
-- **A file from before 1.9.0** (`[General]`, `[Directory]` and the rest) is converted once, on the
-  first start of 1.9.0. The server writes it in the new layout with the same settings and keeps the
-  old one as `server.toml.old`. [Updating](/hosting/updating/#settings-since-190) lists the
-  names that changed.
+- A setting that isn't in the file keeps its default. To change it, write it into its table, and add the table if the file doesn't have it yet.
+- The server reads the file at start, so restart it after an edit.
+- A value of the wrong type or out of range isn't accepted: the default stays and the log has a warning. The server also warns about an unknown key and names it, which is how a typo shows up.
+- A table or a key written twice stops the server from starting. The message names the file and the line ([The server won't start](/hosting/troubleshooting/#the-server-wont-start)).
+- Lists (`connection_limit_exempt`, `masked_commands`, `trusted`) can be a comma-separated string or a TOML list.
 
 ## What people change most
 
-**Name, map and slots**: `name`, `map`, `max_players` and `cars_per_player` in `[server]`.
-[Run a server](/hosting/quick-start/#name-map-and-slots) has an example.
+### Name, map and slots
 
-**The port**: `[server] port`, `30814` by default, the same for TCP and UDP. Leave `address` at
-`"::"`: the server then listens on every address, IPv4 and IPv6.
+These are `name`, `map`, `max_players` and `cars_per_player` in `[server]`. An example: [Run a server](/hosting/quick-start/#name-map-and-slots).
 
-**The game file check**: `[integrity] verify`.
+### The port
 
-| Value | What is checked | How long the player waits |
-|---|---|---|
-| `"size"` | The size of every game file, and extra files in the game's `content/`. The default. | About 2 seconds. |
-| `"scripts"` | The same, plus checksums of the game's `lua/` and `ui/`. Catches edited scripts. | About 10 seconds. |
-| `"full"` | Checksums of the whole game, about 50 GB. An audit, not a check before every join. | Minutes. |
-| `"strict"` | The whole game folder, the contents of its archives and the user folder, against a clean install. | A few seconds. See [Strict file check](/hosting/strict-verification/). |
-| `"off"` | The server asks for nothing, but the launcher still checks `size`. | |
+`[server] port` (`30814` by default) sets one port for both TCP and UDP. To make the server listen on every address, IPv4 and IPv6, leave `address` at `"::"`.
 
-**A place in the server list**: the `[listing]` table, and in it the links to your Discord, rules,
-site and voice chat. [Get listed](/hosting/registering/) explains how to fill it in.
+### The game file check
 
-**Chat** is part of the server. `[chat] max_length`, `rate_per_sec` and `burst` keep it from being
-flooded: extra lines just aren't sent, and nobody is kicked for chatting.
+`[integrity] verify` sets how closely the launcher checks the player's game files:
 
-**Other players' cars.** A new car, or a change of a car's parts, tuning or model, has to be built
-on every player's machine, and building stops the game for a moment. So each player's mod holds
-other players' new cars and changes and builds them when the player stops, every 30 seconds at the
-latest, or on a click ([what players see](/players/settings/#other-players-new-cars-and-changes)).
-For a race or a league, where everyone must see the same cars at once, turn it off; or keep it and
-have everything built within a time you set:
+- `"off"`: the server asks for nothing, but the launcher still checks `size`.
+- `"size"`: the size of every game file and extra files in the game's `content/`. The default.
+- `"scripts"`: the same, plus checksums of the game's `lua/` and `ui/`. Catches edited scripts.
+- `"full"`: checksums of the whole game, about 50 GB, archives included. This is an audit, too slow for a check before joining.
+- `"strict"`: the same as `scripts`, plus a comparison of the archives' tables of contents, the whole game folder and the user folder with a reference of a clean install ([Strict file check](/hosting/strict-verification/)).
+
+### A place in the server list
+
+The `[listing]` table sets it, including the links to your server's Discord, rules, site and voice chat. How to fill it in: [Get listed](/hosting/registering/).
+
+### Chat
+
+Chat is part of the server. `[chat] max_length`, `rate_per_sec` and `burst` limit the length of a line and how often a player can write, so that nobody floods the chat.
+
+### Other players' cars
+
+The client mod holds back other players' new cars and changes so that the game doesn't freeze rebuilding in the middle of a corner, and each player decides when to apply them ([what players see](/players/settings/#other-players-new-cars-and-changes)). For a race or a league, where everyone must see the same cars at once, you can turn the waiting off, or require that everything is built within a set time:
 
 ```toml
 [vehicles]
 queue = "off"            # or: queue = "allow" and queue_max_delay_sec = 10
 ```
 
-A resource can switch it during the session too, and have everything built right before a start
-([plugin API](/plugins/players-and-vehicles/#scheduled-changes)). Two more settings keep the
-rebuilds few to begin with: the edits of one car reach the others at most once per
-`edit_interval_sec` (5), the latest one, and one player's new cars come at most once per
-`spawn_interval_sec` (2); a car spawned sooner is refused with *Wait 2 s*.
+A plugin can also switch this during a session and build everything before a start ([plugin API](/plugins/players-and-vehicles/)). `edit_interval_sec` and `spawn_interval_sec` cut the number of rebuilds further ([settings reference](/hosting/configuration/#vehicles)).
 
-**Bad connections.** A player silent for `lag_grace_sec` seconds (8) shows as lagging. After
-`disconnect_sec` (30) they are dropped, and that's also how long the server waits for a broken
-connection to come back. For players on mobile internet or a VPN you can give them longer:
+### Bad connections
+
+A player who is silent for `lag_grace_sec` seconds counts as lagging, and after `disconnect_sec` the player is disconnected ([settings reference](/hosting/configuration/#network)). For players on mobile internet or a VPN you can allow more time:
 
 ```toml
 [network]
 disconnect_sec = 60
 ```
 
-More than 600 seconds doesn't help: a launcher stops trying to come back after 600. The four
-timers must stay in order, or the server won't start:
-`lag_grace_sec < seat_takeover_sec <= seat_release_sec <= disconnect_sec`.
+More than 600 seconds doesn't help: after 600 seconds the launcher stops trying to come back. The timers must stay in order or the server won't start: `lag_grace_sec < seat_takeover_sec <= seat_release_sec <= disconnect_sec`, and `lag_grace_sec` is at least 1.
 
 ## Environment variables
 
-Every setting has an environment variable of its own, named in the
-[settings reference](/hosting/configuration/). The variable wins
-over the file, and `--port` on the command line wins over both. Secrets such as `host_secret` belong
-in the environment: then they don't end up in a file that gets copied and sent around.
+Every setting has an environment variable of its own, named in the [settings reference](/hosting/configuration/). The variable wins over the file, and `--port` on the command line wins over both. Keep secrets such as `host_secret` in the environment: then they don't end up in a file that gets copied and sent around.
 
 A few variables aren't settings:
 
 | Variable | What it does |
 |---|---|
-| `NODE_LUA` | The Lua 5.1 the obfuscator runs on. Needed on Linux. |
+| `NODE_LUA` | The path to Lua 5.1 for the obfuscator. Needed on Linux. |
 | `NODE_TOOLS_DIR` | Another place for the `tools/` folder. |
-| `NODE_PROVIDER_DISABLE_CONFIG` | `true` ignores `server.toml` and takes everything from the environment. The Docker image works this way. |
-| `NODE_PROVIDER_IP_ENV`, `NODE_PROVIDER_PORT_ENV` | For hosting panels: the name of the variable that carries the address and port the panel assigns. |
-| `NODE_HEARTBEAT_FILE` | A file the server keeps touching while it runs. Docker's health check reads it. |
-| `NODE_FORCE_ANSI` | `1` keeps colours when the output isn't a terminal. |
+| `NODE_PROVIDER_DISABLE_CONFIG` | `true` or `1` stops the server from reading `server.toml` and takes everything from the environment. The Docker image works this way. |
+| `NODE_PROVIDER_IP_ENV`, `NODE_PROVIDER_PORT_ENV` | For hosting panels: the name of the variable in which the panel passes the address and the port. |
+| `NODE_HEARTBEAT_FILE` | A file the server keeps updating while it runs. Docker's health check reads it. |
+| `NODE_FORCE_ANSI` | `1` or `true` keeps the colors even when the output isn't a terminal. |
 
 ## Command line
 
 | Option | What it does |
 |---|---|
-| `--config=FILE` | Which settings file to read. By default, `server.toml` in the working directory. |
+| `--config=FILE` | Which settings file to read. By default `server.toml` in the working directory. Put a path with spaces in quotes. |
 | `--port=N` | The TCP and UDP port. Wins over the file and the environment. |
-| `--working-directory=DIR` | The working directory: every relative path starts there. |
+| `--working-directory=DIR` | The working directory: every relative path starts there, including the path in `--config`. |
 | `--version` | Print the version and exit. |
 | `--help` | Print the help and exit. |
 | `--gen-integrity GAMEDIR` | Make the reference manifest for the strict check ([more](/hosting/strict-verification/#make-the-manifest)). |
 | `--bans list`, `--bans remove …` | Show or lift bans while the server is stopped ([more](/hosting/administration/#bans)). |
 | `--obf-selftest` | Check that the obfuscator works. |
 
-A value may also follow its option after a space: `--port 30815`. To run two servers on one
-machine, give each its own working directory and port:
+A value may also follow its option after a space: `--port 30815`. To run two servers on one machine, give each its own working directory and port:
 
 ```bash
 ./Node-Server --working-directory=/srv/nodemp-2 --port=30815
