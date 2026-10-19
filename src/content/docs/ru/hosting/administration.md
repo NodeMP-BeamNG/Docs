@@ -80,7 +80,7 @@ Node-Server --bans remove install:6b46e2582a74234a47a4fa2c7046023be8ea6043e62ff0
 | Строка | Что значит |
 |---|---|
 | `server is ready` | Сервер полностью запустился. |
-| `started, but … failed — what they do may not work` | Какая-то часть не запустилась. Почему, написано в строках выше. |
+| `started, but … failed — what they do may not work` | Какая-то часть не запустилась ([Сервер не запускается](/ru/hosting/troubleshooting/#сервер-не-запускается)). |
 | `listed in the server browser` | Сервер в списке ([Попасть в список серверов](/ru/hosting/registering/)). |
 | `<имя> kicked — <причина>` | Сервер отказал игроку или завершил его сессию теми же словами, что увидел игрок. |
 | `netstats id=… rtt=… loss=…` | В файле, раз в 15 секунд по каждому игроку: пинг, трафик, потери ([Игрок жалуется на лаги](/ru/hosting/troubleshooting/#игрок-жалуется-на-лаги)). |

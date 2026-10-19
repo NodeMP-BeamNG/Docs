@@ -96,7 +96,7 @@ voice = "mumble://voice.example.com:64738"
 
 ## Отпечаток сервера
 
-Лаунчеры узнают сервер по отпечатку его TLS-сертификата. Он пишется в лог при каждом запуске: `TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. Сервер передаёт его NodeMP в каждом сообщении о себе, и лаунчер, который заходит из списка, примет только этот сертификат. Отпечаток меняется, только если потерять или заменить `node_cert.pem` и `node_key.pem`, поэтому храните их в резервной копии. Игроки, которые заходили по адресу, запоминают отпечаток и не подключатся к серверу с другим.
+Лаунчеры узнают сервер по отпечатку его TLS-сертификата. Он пишется в лог при каждом запуске: `TLS 1.3 enabled — certificate fingerprint (SHA-256): …`. Сервер передаёт его NodeMP в каждом сообщении о себе, и лаунчер примет только этот сертификат, в том числе при входе по адресу. Отпечаток меняется, только если потерять или заменить `node_cert.pem` и `node_key.pem`, поэтому храните их в резервной копии. Если отпечаток сменится, к серверу не из списка не подключатся лаунчеры, которые запомнили прежний ([Подключиться по адресу](/ru/players/join/#подключиться-по-адресу)).
 
 ## Сменить или удалить ключ
 
@@ -114,7 +114,7 @@ voice = "mumble://voice.example.com:64738"
 | `The directory answered 429 …` или `The directory answered 503 …` | Слишком много попыток за короткое время (например, сервер перезапускается по кругу) или NodeMP занят. Причину после двоеточия пишет сам NodeMP. | Ничего: сервер подождёт, сколько просит NodeMP, и попробует снова. |
 | `not shown in the server browser: [listing] public is false; …` | Стоит `public = false`. | Уберите его или поставьте `public = true` и перезапустите сервер. |
 | `Not shown in the server browser: the directory's staff have hidden it` | Модераторы NodeMP скрыли сервер из списка. | Напишите в Discord. |
-| `Not shown in the server browser: it is banned from the directory` | Сервер заблокирован в каталоге. | Напишите в Discord. |
+| `Not shown in the server browser: it is banned from the directory` | Модераторы NodeMP заблокировали этот сервер. | Напишите в Discord. |
 | `Not shown in the server browser: another server key already announces this address and port, …` | Один адрес и порт анонсируют два ключа, а в списке только один. | Удалите лишний ключ на странице **Мои серверы**. |
 | `Listed in the server browser, but players cannot connect: …` | Игроки получали билеты на вход, но ни один не дошёл до сервера. | Пробросьте порт из этой строки для TCP и UDP и откройте его в брандмауэре. |
 | Игрокам отказывают с `The server could not verify your account with the directory (…)` | NodeMP был недоступен или перегружен, когда они заходили. | Подождите. На сервере с Test Drive можно включить `admit_when_down`. |

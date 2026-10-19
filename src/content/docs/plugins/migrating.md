@@ -135,7 +135,7 @@ The file from `[server] main` runs first, then every other `.lua` file directly 
 - `MP.SendChatMessage` shows the line as a system line.
 - `MP.Sleep` blocks the worker thread, and with it every plugin; the module warns about this once.
 - The identifier that BeamMP calls `beammp` is the player's NodeMP account number.
-- Like any plugin, it reaches only its own folder ([the Lua environment](/plugins/resources/#the-lua-environment)); paths it builds as `Resources/Server/<plugin>/…` in `FS.*`, `io.open` and the like lead there. A plugin that reads other folders, starts programs or reads environment variables needs the host to list it in `[resources] trusted`.
+- Like any plugin, it reaches only its own folder ([The Lua environment](/plugins/resources/#the-lua-environment)); paths it builds as `Resources/Server/<plugin>/…` in `FS.*`, `io.open` and the like lead there. A plugin that reads other folders, starts programs or reads environment variables needs the host to list it in `[resources] trusted`.
 
 ### What has no equivalent
 

@@ -3,7 +3,7 @@ title: Client scripts
 description: How client files reach the game, engine files and extensions, talking to the server, files inside the car, session settings and strict sessions.
 ---
 
-Everything in a plugin's `client/` folder goes to every player on joining and runs in their BeamNG.drive. The player installs nothing, and the mod unloads these scripts when the player leaves the server.
+Everything in a plugin's `client/` folder goes to every player on joining and runs in their BeamNG.drive. The player installs nothing, and the client mod unloads these scripts when the player leaves the server.
 
 ## How files reach the game
 
@@ -81,7 +81,7 @@ loadManualUnloadExtensions()
 
 ### Mods from the content folder
 
-A name the plugin doesn't have belongs to the game, such as an extension of a mod in the server's `content/` folder; that mod needs no `scripts/` folder of its own. The NodeMP mod loads the extension when the plugin arrives and, if it wasn't loaded before the plugin, unloads it when the player leaves.
+A name the plugin doesn't have belongs to the game, such as an extension of a mod in the server's `content/` folder; that mod needs no `scripts/` folder of its own. The client mod loads the extension when the plugin arrives and, if it wasn't loaded before the plugin, unloads it when the player leaves.
 
 <!-- doctest: client -->
 ```lua

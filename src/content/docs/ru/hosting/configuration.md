@@ -40,8 +40,8 @@ description: Все настройки сервера по таблицам, с 
 | `[listing]` | `preview` | string | `""` | `NODE_DIRECTORY_PREVIEW` | Своя картинка для списка ([Картинка](/ru/hosting/registering/#картинка)). Пусто значит картинку самой карты. |
 | `[listing]` | `public` | bool | `true` | `NODE_DIRECTORY_PUBLIC` | `false` убирает сервер из общего списка. |
 | `[listing]` | `guests` | bool | `true` | `NODE_DIRECTORY_TEST_DRIVE` | Пускать игроков без аккаунта. |
-| `[listing]` | `fingerprint` | string | `""` | `NODE_DIRECTORY_FINGERPRINT` | Только для собственного каталога серверов. Оставьте пустым. |
-| `[listing]` | `ca_file` | string | `""` | `NODE_DIRECTORY_CA_FILE` | Только для собственного каталога серверов. Оставьте пустым. |
+| `[listing]` | `fingerprint` | string | `""` | `NODE_DIRECTORY_FINGERPRINT` | Только для списка серверов, который вы держите сами. Оставьте пустым. |
+| `[listing]` | `ca_file` | string | `""` | `NODE_DIRECTORY_CA_FILE` | Только для списка серверов, который вы держите сами. Оставьте пустым. |
 | `[listing]` | `admit_when_down` | bool | `false` | `NODE_DIRECTORY_REDEEM_FAIL_OPEN` | Пока NodeMP недоступен, `false` не пускает игроков, а `true` пускает их как непроверенных гостей, если `guests = true`. |
 | `[listing]` | `allow_http` | bool | `false` | `NODE_DIRECTORY_ALLOW_INSECURE` | Разрешить адрес с `http://` в `url`. Не включайте. |
 | `[listing]` | `discord` | string | `""` | `NODE_DIRECTORY_LINK_DISCORD` | Приглашение в ваш Discord. Какие ссылки принимает список: [Ссылки](/ru/hosting/registering/#ссылки). |
