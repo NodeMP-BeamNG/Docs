@@ -86,6 +86,8 @@ description: Все сообщения, которыми может законч
 | `The server could not verify your account with the directory (…). Try again in a moment` | Сервер не смог связаться с NodeMP, чтобы проверить аккаунт. | Попробуйте чуть позже. |
 | `Resume rejected` | Соединение оборвалось, и лаунчер пытался вернуть сессию, а сервер её не принял: сессия уже закончилась или не сошёлся ключ. | Зайдите снова. |
 | `Resume rejected: too many failed attempts, try again later` | С вашего адреса слишком много неудачных попыток вернуть сессию за короткое время. | Подождите минуту и зайдите снова. |
+| `This account is banned from NodeMP` | NodeMP заблокировал аккаунт сразу на всех серверах, пока вы играли. | Смотрите окно блокировки в лаунчере ([Блокировка](/ru/players/sign-in/#блокировка)). |
+| `Disconnected by the NodeMP directory (…)` | NodeMP отключил ваш аккаунт от сервера, в скобках код причины. | Зайдите снова. Если повторяется, сообщите об этом в Discord. |
 | `Connection refused` | Плагин не пустил вас и не назвал причину. Если назвал, вы увидите её. | Спросите хоста. |
 | `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | Часть файлов игры отличается от её собственного списка. Число настоящее. | Проверьте файлы игры в Steam. |
 | `Your BeamNG install changed while you were playing, and this server requires it to match the game's own file list (1 file differs). …` | Та же проверка во время сессии нашла изменение. | Отмените то, что ставили, и проверьте файлы игры. |
