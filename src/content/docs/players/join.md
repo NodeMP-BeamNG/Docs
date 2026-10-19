@@ -1,101 +1,71 @@
 ---
 title: Join a server
-description: Find a server in the launcher, see what it will ask you to download, join by address, and what happens while the game loads.
+description: Finding a server in the launcher, what it will send you, joining by address, and what happens between the click and the game.
 ---
 
-You pick servers in the launcher, not in the game's own menu. First [install the launcher](/players/install/)
-and [sign in or choose Test Drive](/players/sign-in/).
+You pick a server in the launcher, not in the game: the **NodeMP Multiplayer** button in the main menu only says so. First [install the launcher](/players/install/) and [sign in or choose Test Drive](/players/sign-in/).
 
 ## Find a server
 
-The launcher opens on **Home**. If you've played before, it offers to take you back to your last
-server, and **All servers** opens the full list. The list itself is under **Servers**. It shows only
-servers that are running right now.
+The launcher opens on **Home**. If you've played before, you can rejoin your last server there or open **All servers**; if not, click **Browse servers**. The full list is on the **Servers** tab of the left rail and shows only servers running right now.
 
-The tabs above the list are **Public**, **Favorites** (the servers you starred) and **Recent** (where
-you played lately).
+The list has the tabs **Public**, **Favorites** (servers you starred) and **Recent** (where you joined or tried to join).
 
-Each row shows the server's name and map, its country, how many players are on out of how many
-slots, and its mode. Click a column heading to sort by it, click again to reverse.
+A row shows the server's name (with a badge if it's official), the map, a **Test Drive** mark if it lets guests in, the country, players and slots (and **queue N** if there's a queue) and the mode. Click a column heading to sort by it; click again to reverse the order. A **can't connect** mark means the server isn't answering right now.
 
-To narrow the list down:
+To narrow the list:
 
-- **Search** (press `/`) looks at names, tags, maps, countries and descriptions.
-- **Filters** hide full or empty servers and servers that need an account (**Free slots**,
-  **Players online**, **No account needed**). You can also limit the **Download size**, ask for
-  servers with no mods or with a particular mod, and pick maps and countries.
+- The search box (`/`) matches names, tags, maps, cities and countries, descriptions and the names of the files a server sends.
+- **Filters** opens the switches **Free slots**, **Players online** and **No account needed**, a **Download size** limit in megabytes (the **Stock** button keeps only servers without mods), a **Mods** choice (*No mods* or *With mods*) with the **Sends a mod named…** field, and **Map** and **Country**.
 
 ## Look at a server
 
-Click a row and the server's card opens on the right:
+Click a row to open the server's card on the right:
 
-- a picture of the map, the name and the description;
-- the host's links: Discord, rules, website, donations, voice chat. A link opens in your browser; a
-  Mumble or TeamSpeak address is copied instead, to paste into that app;
-- tags, how many players are on, whether you need an account, the mode and the location;
-- who's playing right now;
-- **It will send you**: the server's mods you don't have yet, with their total size. **Stock
-  content** means the server sends nothing extra.
+- a picture of the map and, under it, the host's links with icons and addresses (Discord, rules, website, donations, voice chat). Links open in your browser; a voice chat address is copied instead, to paste into Mumble or TeamSpeak;
+- the name, description and tags;
+- **Players**: how many are on the server; click the number to see who;
+- **Access**: *Account required* or *Test Drive allowed*;
+- **Content**: how many files the server sends and their size; click it to open the list (**It will send you**). If the server sends nothing, the row says *None*;
+- **Mode** and **Location**.
 
-The same list is on the website: [nodemp.com/servers](https://nodemp.com/servers). Its **Connect**
-button opens the launcher straight on that server.
+The same list is on the website, [nodemp.com/servers](https://nodemp.com/servers). **Connect** on a server's page opens the launcher and starts joining that server at once.
 
 ## Join by address
 
-If the host gave you an address, click **Direct Connect** above the list and enter `address:port`,
-such as `203.0.113.10:30814` or `example.com:30814`. An IPv6 address goes in square brackets:
-`[2001:db8::1]:30814`.
+If the host gave you an address, click **Direct Connect** above the list, enter `address:port` and click **Connect**. For example, `203.0.113.10:30814` or `example.com:30814`; put an IPv6 address in square brackets: `[2001:db8::1]:30814`.
 
-If the server is listed, the launcher finds it and joins as usual. If it isn't, the launcher says so
-and connects anyway.
+If the server is on the list, the launcher joins it as usual. If not, it says *Not on the public list · connecting anyway…* and connects.
 
-The first time you connect to a server that isn't listed, the launcher remembers its certificate.
-If the certificate is different next time, the launcher refuses to connect: somebody could be
-pretending to be that server. Ask the host whether they reinstalled it.
+The launcher checks the server's certificate: for a listed server, against the one the server reported to NodeMP; for an unlisted one, against the certificate it remembered on the first connection. If the certificate has changed, the launcher doesn't connect, because someone may be posing as that server. Ask the host whether they reinstalled it. What to do next: [Error messages](/reference/error-codes/).
 
 ## Join
 
-Select a server, press and hold **Hold to play** at the bottom of its card, then let go. The hold is
-there so you don't join by accident. You can turn it off under **Settings → Launcher → Hold to
-play**, and then one click joins. Holding Enter, Space or a gamepad's A button works too.
+Select a server, press and hold **Hold to play** at the bottom of its card until it reads *Release to play*, then let go. The 0.4-second hold prevents joining by accident. Holding Enter, Space or a gamepad's A button works too. With **Settings → Launcher → Hold to play** off, the button reads **Play** and one click joins.
 
-While you wait, the button shows what's happening, and **Cancel** stops it. In order:
+While you join, the button shows the current step and **Cancel** (or Esc), which stops the join:
 
-1. If a launcher update was found, the launcher updates, restarts and carries on.
-2. The launcher checks the client mod and downloads a new version if there is one.
-3. The launcher connects to the server, which lets you in or says why not.
-4. The launcher checks your game files. How closely is up to the server, see
-   [below](#what-the-server-checks).
-5. The server's mods you don't have are downloaded.
-6. BeamNG.drive starts. This is the longest step.
-7. The server's map loads and you appear in the world.
+1. `Checking for a launcher update`: with automatic update checks on, the launcher installs its own update if there is one ([Launcher updates](/players/install/#launcher-updates)).
+2. `Checking client mod`: the launcher checks the client mod and downloads it if needed (`Downloading client mod`, `Verifying client mod`).
+3. `Contacting the server`: the launcher connects, and the server lets you in or says why not.
+4. `Checking your game files`: the server decides how closely ([below](#what-the-server-checks)). A strict server first sends its reference manifest (`Fetching the server's reference manifest`), which the launcher downloads once and keeps.
+5. `Downloading …` and `Installing …`: the launcher downloads the server's mods you don't have yet and installs them.
+6. `Starting BeamNG.drive`, then `Loading BeamNG.drive`: the game starts, the longest step. If the Steam copy of the game is already running, the launcher uses it instead of starting a second one.
+7. `Entering the world`: the map loads and you appear on the server.
+
+When the game starts, the launcher hides in an icon in the Windows notification area; click the icon to bring it back. It also comes back by itself when you close BeamNG.drive or when the session ends against your will: a kick, or a connection that didn't recover. With **Close the launcher once the game starts** on, the launcher closes instead.
+
+If the join fails, a notification says why ([What the launcher says](/players/troubleshooting/#what-the-launcher-says)).
 
 ### When the server is full
 
-A full server may let you wait in its queue, if you are signed in. The button then reads
-**In queue: 3 of 7**, next to the download progress: while you wait, the launcher checks your game
-files and downloads the server's mods, so the game starts as soon as your turn comes. Places go in
-queue order, to the first player whose mods are ready.
-
-If the host paused the queue, his note shows under your place. **Cancel** leaves the queue; joining
-again puts you at the end. With Test Drive, or on a server without a queue, a full server says
-*Server full!*. More on [The join queue](/hosting/join-queue/#what-the-player-sees).
-
-If something goes wrong, the launcher tells you what and why, and the notification stays under the
-bell icon. Common cases are on [When something breaks](/players/troubleshooting/).
+If a full server has a queue, a signed-in player waits in it. The join line shows your place (*In queue: 3 of 7*) and what the launcher does meanwhile: it checks your game files and downloads mods, so the game starts as soon as your turn comes. If the host paused the queue, their note shows under your place. **Cancel** leaves the queue. A guest, or anyone on a server without a queue, gets `Server full!`. How the queue works: [The join queue](/hosting/join-queue/).
 
 ## What the server checks
 
-Before letting you in, every server asks the launcher to check your game files. The check runs on
-your computer; the server only hears the result.
+Before you join, the launcher checks the game files on your computer and sends the server only the result. The server decides how strict the check is:
 
-- **A normal server** compares the game's files with the list that comes with the game. It doesn't
-  look at your user folder or your mods. If it refuses you, verify the game files in Steam.
-- **A strict server** compares the whole game folder, the contents of its archives and your user
-  folder with a clean install the host prepared. Extra files in your user folder, other programs in
-  the game folder or a different game version get in the way. What to do about it is on
-  [When something breaks](/players/troubleshooting/#a-strict-server-refuses-you).
+- A normal server has the launcher compare the game files with the game's own file list, leaving your user folder and mods alone. If it refuses you, verify the game files in Steam.
+- A strict server has the launcher compare your installation and user folder with a clean installation the host prepared. If it refuses you, see [A strict server refuses you](/players/troubleshooting/#a-strict-server-refuses-you). How the check works is on the [page for hosts](/hosting/strict-verification/).
 
-**What about my own mods?** Zip mods in your `mods\` folder never fail a check. During a session the
-game turns them off, unless you turned on *Use my local mods in multiplayer* and the server allows
-it.
+Your zip mods in `mods\` don't break the check, but the client mod turns them off for the session. To keep them on, turn on **Use my local mods in multiplayer** on the NodeMP tab; the server must allow it too ([Settings](/players/settings/#the-nodemp-tab-in-the-game)).

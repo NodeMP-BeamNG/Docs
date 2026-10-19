@@ -1,86 +1,63 @@
 ---
 title: Settings
-description: The launcher's settings, the NodeMP tab in the game's options, and what locked rows mean.
+description: The launcher's settings, the NodeMP tab in the game's settings, the Content tab with downloaded mods, and what the locked rows mean.
 ---
 
-There are settings in two places. The **launcher** has everything needed before the game starts.
-The **NodeMP** tab in the game's own options has what you see during a session and how other
-players' cars behave. Changes apply right away unless the row says otherwise.
+Settings are in two places. The launcher has what you need before the game starts. The **NodeMP** tab in the game's own settings has what you see during a session and how other players' cars behave. Changes apply at once unless the row says otherwise.
 
 ## In the launcher
 
-The gear at the bottom of the left rail opens **Settings**. There are three pages.
+The gear at the bottom of the left rail opens **Settings** with the pages **Game**, **Launcher** and **Account**.
 
 **Game**
 
-- **Where BeamNG.drive is installed**: found by itself. **Browse** picks the folder by hand, **Find
-  it** searches again.
-- **Graphics mode**: Direct3D 12 (the default on BeamNG 0.39), Vulkan, or Direct3D 11 if D3D12 gives
-  you trouble. The game starts straight in the chosen mode.
+- **Where BeamNG.drive is installed**: the path to the game, with the **Browse** and **Find it** buttons ([The launcher can't find the game](/players/install/#the-launcher-cant-find-the-game)).
+- **Graphics mode**: *Direct3D 12* (the default in BeamNG 0.39), *Vulkan* or *Direct3D 11*, the fallback if D3D12 doesn't work. The game starts in the chosen mode without asking.
+- **Client mod**: the installed version and the **Check now** button ([The client mod](/players/install/#the-client-mod)).
 
 **Launcher**
 
-- **Language** of the launcher. What servers and the game write stays as they wrote it.
-- **Hold to play**: hold the join button for 0.4 seconds. Turned off, one click joins.
+- **Language**: *Русский* or *English*. On the first start the launcher follows the system: Russian on a Russian Windows, English otherwise. Texts from servers and the game stay as they were written.
+- **Hold to play**: when off, one click joins ([Join](/players/join/#join)).
 - **Start with Windows**.
-- **Close the launcher once the game starts**: off by default, so the launcher waits out of the way
-  and comes back when you leave the server.
-- **Folders**: where the servers' downloaded mods and the logs are. Attach `launcher.log` when you
-  report a problem.
-- **Client mod**: the installed version and **Check now**.
-- **Updates**: the channel, automatic checks, background downloads, going back a version
-  ([more](/players/install/#launcher-updates)).
-- **Reset**: back to the defaults. Favorites, recent servers and downloads stay.
+- **Close the launcher once the game starts**: off by default, so the launcher hides in the notification area instead ([Join](/players/join/#join)).
+- **Updates**: the launcher's version, the check, automatic checks, background downloads, the channel and going back to the previous version ([Launcher updates](/players/install/#launcher-updates)).
+- **Folders**: **Downloaded content** and **Logs**, each with an **Open** button.
+- **Reset**: returns the launcher's settings to their defaults. The **Favorites** and **Recent** lists and downloaded mods stay.
 
-**Account**: your name, links to your profile, **Sign in** or **Sign out** ([Your account](/players/sign-in/)).
+**Account**: your name, links to your profile, **Sign in** or **Sign out** ([Your account in the launcher](/players/sign-in/#your-account-in-the-launcher)).
 
 ### Downloaded mods
 
-**Content** on the left rail lists every mod servers have sent you: the file, its size and when it
-was downloaded. **Remove** frees the space (close BeamNG.drive first: the game keeps the files open).
-If you need the mod again, the server sends it on your next join.
+The **Content** tab on the left rail lists every file servers have sent you, with its size and download date. The search box filters by name, **Open folder** opens the cache, and **Re-read the cache folder** refreshes the list after you change files by hand.
 
-## In the game: the NodeMP tab
+To free space, click **Remove**: the launcher shows how much it frees and asks you to confirm. Close BeamNG.drive first: the game holds the file while it runs. If you need the mod again, the server sends it on your next join.
 
-BeamNG.drive's options get a **NodeMP** tab. The **NodeMP settings** button on the mods tab of the
-pause menu opens it too, as does a key bound to *NodeMP: Settings*. The tab has a search box, and
-**Show advanced settings** reveals the rarer rows.
+## The NodeMP tab in the game
 
-A row can be locked. **Set by the server** means the server you're on decides this for everyone
-during the session. **Locked by the strict session** means a strict server turned it off. Your own
-value comes back when you leave the server.
+BeamNG.drive's settings get a **NodeMP** tab. The **NodeMP settings** button on the pause menu's mods tab also opens it, as does a key bound to *NodeMP: Settings*. The tab has a search box, and **Show advanced settings** reveals the rarer rows: overlay colors, the synced node grabber, and the launcher's port and address.
 
-| Section | What's there |
+A row can be locked. *Set by the server* means the server decides it for everyone for the session. *Locked by the strict session* means a server plugin put you in a strict session. In one, you can't use the free camera without the server's permission, **Spectate** and **Teleport camera** don't work, you can't get into cars the server didn't seat you in or open the console or the editor, and local mods are off. How plugins turn it on: [Client scripts](/plugins/client-scripting/#strict-sessions). When you leave the server, your own values come back.
+
+Each row's hint on the tab says what it does. The sections:
+
+| Section | What's in it |
 |---|---|
-| **Players** | Name tags over cars: whether to show them, your own tag, an *Empty* tag on empty cars, the distance, fading out far away, shortening long names, player IDs. Markers for deleted cars and for players in free camera. The character you walk as. |
-| **Chat** | How many lines stay visible while the chat is closed, how many seconds a line stays, the time in front of each line, words hidden as `***` on your screen only. A separate overlay window with the chat and the player list. |
-| **Cars & network** | Your cars: whether edits are sent automatically, protecting your configs from copying, who may get into your cars, whether others may use your triggers and grab your cars with Ctrl. Other cars: when their new cars and changes are built ([below](#other-players-new-cars-and-changes)), see-through after a reset, simplified models, holding them tightly on their real path. *Use my local mods in multiplayer*. |
-| **Debug** | Detailed logs and switches for finding problems. Leave them alone unless a developer asks. **Tools** opens the diagnostics window. |
+| **Players** | Name tags over cars, markers for cars and for players in free camera, the character you walk as, players' heads in cars, player IDs. |
+| **Chat** | How many lines show while the chat is closed and for how long, timestamps, words hidden as `***` on your screen only, the overlay window with the chat and the player list. |
+| **Cars & network** | **My cars**: sending edits (at most once every 15 seconds), protecting your configs from cloning, **Access to my cars**, triggers and grabbing with Ctrl. **Other players' cars**: when their new cars and changes are built ([below](#other-players-new-cars-and-changes)), **Ghost cars after a reset** (for 1.5 seconds after a reset, another player's car doesn't collide with yours), simplified models. **Use my local mods in multiplayer**. |
 
 ### Other players' new cars and changes
 
-When another player spawns a car or changes its parts, tuning or model, your game has to build that
-car, and building stops the game for a moment. NodeMP holds these and builds them when it suits you,
-so somebody else's rebuild doesn't freeze your game mid-corner. While cars are waiting, a lime tab
-with their number slides out of the session panel's left edge; clicking it builds them all now. A
-key bound to *NodeMP: Load scheduled changes* does the same.
+When another player spawns a car or changes its parts, tuning or model, BeamNG.drive rebuilds that car on your computer and freezes meanwhile. The client mod holds such changes and applies them at a better moment, so the game doesn't freeze mid-corner. The [session panel](/players/in-game/#the-session-panel) shows how many cars are waiting.
 
-When they are built on their own is set under *Cars & network → Other players' cars*:
+How long cars wait is set in **Cars & network → Other players' cars**:
 
-| Setting | |
+| Setting | Default |
 |---|---|
-| **Schedule other players' car changes** | On by default. Off: every change is built the moment it arrives. |
-| **Apply scheduled changes** | *When I stop, at least every N s* (the default), *Every N s*, *Only when I stop*, *Only with the button*. |
-| **N: longest wait** | 30 seconds by default, counted from the first change that came. |
-| **Stopped: slower than**, **for at least** | 5 km/h for 2 seconds by default. On foot or without a car counts as stopped. |
+| **Schedule other players' car changes** | On. When off, every change is built as soon as it arrives. |
+| **Apply scheduled changes**: *When I stop, at least every N s*, *Every N s*, *Only when I stop* or *Only with the button* | *When I stop, at least every N s* |
+| **N: longest wait** | 30 seconds, counted from the first change that arrived. |
+| **Stopped: slower than** and **Stopped: for at least** | 5 km/h for 2 seconds. On foot or without a car also counts as stopped. |
 
-Some things never wait: deletions, resets, colour changes, people on foot, and the car you sit in,
-also as a passenger. While a new car waits, its name tag already shows where it drives. A server can
-switch this off for everyone (a race or a league) or have everything built within a set time; the
-row then says *Set by the server*.
-
-## For the curious: Launcher.cfg
-
-The launcher's background part reads a small settings file:
-`%LOCALAPPDATA%\NodeMP\helper\Launcher.cfg`. You rarely need it: the launcher passes everything a
-join needs by itself. Keep the file valid JSON, or the launcher can't connect.
+Some changes apply at once: deletions, resets, color changes, people on foot, and the car you sit in, even as a passenger. A server can turn waiting off for everyone (a race, a league) or require everything to be built within a set time. Then the row says *Set by the server*, and **Applied by the server within** shows that time. How a host sets this up: [Configuring the server](/hosting/server-toml/).

@@ -1,52 +1,45 @@
 ---
 title: In the game
-description: The session panel, the chat, the keys and how to leave a server.
+description: The session panel and the player list, the chat, NodeMP's keys, and how to leave a server.
 ---
+
+NodeMP's interface in the game is the session panel and the chat. Their labels are in English unless BeamNG.drive is set to Russian.
 
 ## The session panel
 
-The session panel sits in a corner: the server's name, your ping and how many players are on. Click
-the player count to open the list. From there you can spectate a player or move your camera to them.
+The panel in a corner of the screen shows the server's name, your ping (*24 ms*) and the number of players (*7/16 players*). Move it in the game's UI layout editor.
 
-- `T` opens the chat: Enter sends, Esc closes.
-- `Tab` shows or hides the player list.
-- Everything else is in the game's options, on the **NodeMP** tab ([Settings](/players/settings/)).
+Click the player count or press `Tab` to open the list with each player's ping. A player who lost connection is marked with an icon; on your screen, their cars are stopped and see-through.
 
-If your connection drops, you see *Connection lost, reconnecting…* with a countdown, and the launcher
-tries to get you back by itself. More on [A bad connection](/players/connection/).
+Click another player's row for **Spectate** (you ride in their car as a passenger) and **Teleport camera** (the free camera moves 7 meters behind their car and 3 meters above it). Neither works in a strict session ([Settings](/players/settings/#the-nodemp-tab-in-the-game)).
+
+A lime tab with a number to the left of the panel counts other players' cars waiting for you to accept them. Click it to build them at once ([Other players' new cars and changes](/players/settings/#other-players-new-cars-and-changes)).
 
 ## Chat
 
-`T` opens the chat, Enter sends, Esc closes. Up and Down bring back what you typed before. While the
-chat is open, your car ignores the keyboard.
+`T` opens the chat; Enter sends a line and keeps the chat open. Esc, or Enter on an empty line, closes it. The up and down arrows bring back earlier lines. While the chat is open, your car ignores the keyboard.
 
-A line you send shows dimmed with *sending…* until the server confirms it. If the server didn't let
-it through, the reason replaces it: too many messages, muted on this server, didn't pass the filter
-and so on.
+A line you send is pale at first, marked *sending…*, and turns normal when the server confirms it. With no confirmation within five seconds, you see *Not delivered: the server did not answer.* If the server refuses the line, the reason replaces it: you write too often, you are muted, the filter caught it, or a server plugin rejected it. A line longer than the server allows isn't sent; the mod writes *Not sent: the message is too long.*
 
-Lines starting with `/` are commands. What they do depends on the server's resources; on many
-servers `/help` lists them.
+Lines starting with `/` are commands for the server's plugins; the host knows which exist. A command no plugin takes shows for everyone as an ordinary line. Color text with codes such as `^1` and `^#RRGGBB` (all codes: [Chat and commands](/plugins/chat/)).
 
-You can colour text: `^0`–`^9` and `^a`–`^f` pick a colour, `^#RRGGBB` any colour, `^l` bold, `^o`
-italic, `^n` underline, `^m` strike-through, and `^r` resets everything.
+Set how the chat looks in the **Chat** section of the NodeMP tab ([Settings](/players/settings/#the-nodemp-tab-in-the-game)).
 
 ## Keys
 
-Change them in the game's controls options, in the *gameplay* category:
+Change the keys in the game's controls settings, where NodeMP's actions start with *NodeMP:*.
 
 | Default | Action | What it does |
 |---|---|---|
-| `T` | NodeMP: Chat | Open the chat. |
-| `Tab` | NodeMP: Player list | Show or hide the player list. |
-| not bound | NodeMP: Settings | Open the NodeMP tab. |
-| not bound | NodeMP: Load scheduled changes | Build every car waiting for you now. |
-| not bound | NodeMP: Diagnostics window | Open the diagnostics window. |
-| not bound | NodeMP: Toggle debug chat | Show or hide the overlay chat window. |
+| `T` | NodeMP: Chat | Opens the chat. |
+| `Tab` | NodeMP: Player list | Shows or hides the player list. |
+| not bound | NodeMP: Settings | Opens the NodeMP tab. |
+| not bound | NodeMP: Load scheduled changes | Builds all waiting cars of other players at once. |
+| not bound | NodeMP: Diagnostics window | Opens the diagnostics window. |
+| not bound | NodeMP: Toggle debug chat | Shows or hides the overlay window with the chat. |
 
 ## Leave
 
-Hold **Leave** in the session panel. When you leave, the launcher comes back. If the server ended
-the session, the launcher shows the reason.
+Press and hold **Leave** on the session panel until the button fills, then let go. The game returns to the main menu, but the launcher window doesn't come back by itself: click the NodeMP icon in the Windows notification area. You can't switch servers from inside the game; pick one in the launcher.
 
-You can't hop from server to server inside the game: close BeamNG.drive and pick the next server in
-the launcher.
+If the server ends the session, the launcher comes back with the reason ([You got dropped](/players/troubleshooting/#you-got-dropped)). If the connection drops, the launcher tries to put you back on the server ([When the connection drops](/players/connection/#when-the-connection-drops)).
