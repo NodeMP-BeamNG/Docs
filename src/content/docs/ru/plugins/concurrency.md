@@ -3,11 +3,11 @@ title: Таймеры и корутины
 description: Таймеры, корутины, которые ждут, не задерживая сервер, тяжёлая работа в фоновых потоках, правило 250 мс и перезапуск с обратным отсчётом в чате.
 ---
 
-Обработчики, таймеры и корутины всех плагинов выполняются на одном рабочем потоке, по очереди. Блокировки и гонки не нужны, но обработчик, который работает долго, задерживает все остальные плагины.
+Обработчики, таймеры и корутины всех плагинов выполняются на одном рабочем потоке, по очереди. Гонок между ними нет и блокировки не нужны, но обработчик, который работает долго, задерживает все остальные плагины.
 
 Если один запуск держит поток дольше 250 мс, сервер пишет в лог:
 
-```
+```text
 plugin worker job stalled the thread …
 ```
 
@@ -20,7 +20,7 @@ plugin worker job stalled the thread …
 | `node.after(ms, fn)` | Выполняет `fn` один раз через `ms` миллисекунд. |
 | `node.every(ms, fn)` | Выполняет `fn` каждые `ms` миллисекунд. Медленный запуск сдвигает следующий, запуски не копятся. |
 | `node.every(ms, fn, { precise = true })` | Держит расписание: запуски, которые поток пропустил, идут подряд, а `fn(missed)` узнаёт, сколько их пропущено. |
-| `node.cancel(id)` | Останавливает таймер. Безопасно и для уже сработавшего. |
+| `node.cancel(id)` | Останавливает таймер. Можно вызывать и для таймера, который уже сработал. |
 | `node.defer(fn)` | Выполняет `fn`, как только текущее событие обработано. |
 
 <!-- doctest: server -->
@@ -41,7 +41,7 @@ id = node.every(500, countTick)
 -- expect: stopped after 3 ticks
 ```
 
-`precise` нужен, когда важно число запусков: очко раз в секунду, обратный отсчёт. Десять секунд `every(100, fn, { precise = true })` дают сто запусков, даже если другой обработчик занимал поток. После долгой задержки догоняется не больше `maxBacklog` запусков (по умолчанию 10, не больше 1000); дальше расписание начинается заново от текущего момента, и лог один раз об этом пишет.
+`precise` нужен, когда важно число запусков: очко раз в секунду, обратный отсчёт. Десять секунд `every(100, fn, { precise = true })` дают сто запусков, даже если другой обработчик занимал поток. После долгой задержки таймер догоняет не больше `maxBacklog` запусков (ключ той же таблицы, по умолчанию 10, не больше 1000). Остальные пропускаются, расписание начинается заново от текущего момента, и лог один раз об этом пишет.
 
 <!-- doctest: server -->
 ```lua
@@ -52,11 +52,12 @@ local function countTime(missed)
     if missed > 0 then node.log("caught up %d runs", missed) end
 end
 
+node.every(100, countTime, { precise = true })
+
 local function reportTime()
     node.log("counted %.1f s", seconds)
 end
 
-node.every(100, countTime, { precise = true })
 node.after(1050, reportTime)
 
 -- expect: counted 1\.0 s
@@ -83,7 +84,7 @@ node.async(countdown)
 -- expect: ^go$
 ```
 
-`node.wait(fn)` ждёт, пока `fn` не вернёт истину. Функцию вызывают каждые 50 мс, другой интервал задаёт второй аргумент:
+`node.wait(fn)` ждёт, пока `fn` не вернёт истину. Сервер вызывает её каждые 50 мс, другой интервал задаёт второй аргумент:
 
 <!-- doctest: server+client -->
 ```lua
@@ -101,13 +102,13 @@ node.async(announce)
 -- expect: someone is here
 ```
 
-`node.sleep`, `node.wait`, `node.await`, `node.yield` и `node.http.fetch` вызывают только внутри `node.async`. Цикл, который должен выполняться на рабочем потоке и идёт долго, отдаёт поток другим на один оборот вызовом `node.yield()`.
+`node.sleep`, `node.wait`, `node.await`, `node.yield`, `node.suspend` и `node.http.fetch` работают только внутри `node.async`. Долгий цикл, которому нужен рабочий поток, отдаёт его другим на один оборот вызовом `node.yield()`.
 
-`node.suspend(arm)` ставит корутину на паузу, пока кто-нибудь не вызовет `resume(...)`, переданную в `arm`; значения `resume` вернёт сам `node.suspend`. Это общий вид `node.sleep` и `node.await`: так колбэк превращается в линейный код, как в `db.lua` ([Модуль db](/ru/plugins/database/)).
+`node.suspend(arm)` вызывает `arm(resume)` и ставит корутину на паузу, пока кто-нибудь не вызовет `resume(...)`. То, что передали в `resume`, вернёт сам `node.suspend`. Это общий вид `node.sleep` и `node.await`: так колбэк превращается в линейный код, как в `db.lua` ([Модуль db](/ru/plugins/database/)).
 
 ## Тяжёлая работа
 
-Долгим вычислениям на рабочем потоке не место. `node.await(fn, args)` выполняет `fn` в фоновом потоке и держит корутину на паузе, пока она не закончит:
+Долгим вычислениям на рабочем потоке не место. `node.await(fn, args)` выполняет `fn` в фоновом потоке и держит корутину на паузе, пока `fn` не закончит:
 
 <!-- doctest: server -->
 ```lua
@@ -162,6 +163,8 @@ local function trackShutdown(info)
     node.async(countDown, info)
 end
 
+node.on("serverShutdownScheduled", trackShutdown)
+
 local function handleRestart(player, msg)
     if msg.text ~= "/restart" then return end
     if moderators[player.accountId] then
@@ -170,7 +173,6 @@ local function handleRestart(player, msg)
     return { handled = true }
 end
 
-node.on("serverShutdownScheduled", trackShutdown)
 node.on("chatMessageRequest", handleRestart)
 
 -- expect-client: Alice chat:msg .*Restart in \d+ s: Scheduled restart

@@ -110,11 +110,12 @@ local function logChange(path, what)
     node.log("%s %s", path, what)
 end
 
+node.fs.watch("notes.txt", logChange)
+
 local function writeNotes()
     node.fs.write("notes.txt", "hello")
 end
 
-node.fs.watch("notes.txt", logChange)
 node.after(1500, writeNotes)
 
 -- expect: notes.txt changed

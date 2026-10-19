@@ -7,13 +7,13 @@ description: Что нужно для плагинов на JavaScript, перв
 
 ## Что для этого нужно
 
-`js-host` в архив сервера не входит. Его собирают из исходников вместе с Node.js, собранным как библиотека, и собирается он на Windows. Положите `js-host.dll` в `modules/` рядом с сервером, а `libnode.dll` из Node рядом с программой, и запустите сервер. В логе появится:
+`js-host` в архив сервера не входит: его собирают из исходников, только на Windows и вместе с Node.js, собранным как библиотека. Положите `js-host.dll` в папку `modules/`, а `libnode.dll` рядом с программой сервера, и запустите сервер. В логе появится:
 
-```
+```text
 js-host: resources with type = "js" will run on Node
 ```
 
-Без него плагин на JavaScript пропускается, и лог объясняет почему: `resource type 'js' has no language host loaded, skipping`.
+Без модуля сервер пропускает плагин на JavaScript и пишет в лог `resource type 'js' has no language host loaded, skipping`.
 
 ## Первый плагин
 
@@ -35,11 +35,12 @@ function greet(playerId) {
     node.log(`${name} joined`);
 }
 
+node.onBuiltin('playerJoined', greet);
+
 function countPlayers() {
     node.log(`${node.getPlayerCount()} online`);
 }
 
-node.onBuiltin('playerJoined', greet);
 const timer = node.setInterval(countPlayers, 60_000);
 
 function stopTimer() {
@@ -67,7 +68,7 @@ module.exports.unload = stopTimer;
 | `player:send(name, data)` | `node.emitClient(id, name, string)` | |
 | `node.after`, `node.every` | `node.setTimeout(fn, ms)`, `node.setInterval(fn, ms)`, `node.clearTimer(id)` | |
 
-То, что вы отправляете, строка: объекты кодируйте через `JSON.stringify`. Обработчик получает строку такой, какой её отправили, и разбирает её через `JSON.parse`. `node.off(id)` снимает то, что вернул вызов `on…`.
+Отправляют строки: объекты кодируйте через `JSON.stringify`. Обработчик получает строку такой, какой её отправили, и разбирает её через `JSON.parse`. `node.off(id)` снимает подписку по id, который вернул вызов `on…`.
 
 ## Отказ в запросе
 
@@ -82,7 +83,7 @@ function refuseCityBus(playerId, vehicleId, data) {
 node.onRequest('vehicleSpawnRequest', refuseCityBus);
 ```
 
-Сервер ждёт ответа до двух секунд, а если ответ запоздал, пропускает запрос. Поэтому такие обработчики должны быть быстрыми.
+`js-host` ждёт ответа до двух секунд, а если ответ запоздал, пропускает запрос. Поэтому такие обработчики должны быть быстрыми.
 
 ## Что умеет только Lua
 
@@ -99,6 +100,6 @@ node.onRequest('vehicleSpawnRequest', refuseCityBus);
 
 ## Ошибки
 
-Исключение в обработчике или промис, который никто не поймал, пишутся в лог со стеком, а плагин работает дальше. Плагин, который сломался при загрузке, попадает в лог как `js: hello-js failed to load: …` и пропускается.
+Исключение в обработчике попадает в лог строкой `js: uncaught in handler: …`, промис, который никто не поймал, — строкой `js: unhandled promise rejection: …` со стеком. Плагин после этого работает дальше. Плагин, который сломался при загрузке, попадает в лог как `js: hello-js failed to load: …` и пропускается.
 
-`session-report` из архива сервера готовый плагин на JavaScript ([Примеры плагинов](/ru/plugins/examples/)).
+`session-report` из архива сервера — готовый плагин на JavaScript ([Примеры плагинов](/ru/plugins/examples/)).

@@ -13,7 +13,7 @@ other services: work where npm already has the library. Game rules are simpler i
 library, and it builds on Windows. Put `js-host.dll` into `modules/` next to the server and Node's
 `libnode.dll` next to the executable, then start the server. The log confirms:
 
-```
+```text
 js-host: resources with type = "js" will run on Node
 ```
 
@@ -35,16 +35,24 @@ main = "server/main.js"
 
 node.log(`${resource.name} loaded`);
 
-node.onBuiltin('playerJoined', (playerId) => {
+function greet(playerId) {
     const name = node.getPlayerName(playerId);
     node.log(`${name} joined`);
-});
+}
 
-const timer = node.setInterval(() => {
+node.onBuiltin('playerJoined', greet);
+
+function countPlayers() {
     node.log(`${node.getPlayerCount()} online`);
-}, 60_000);
+}
 
-module.exports.unload = () => node.clearTimer(timer);
+const timer = node.setInterval(countPlayers, 60_000);
+
+function stopTimer() {
+    node.clearTimer(timer);
+}
+
+module.exports.unload = stopTimer;
 ```
 
 The file runs once, like a Lua `main.lua`. Besides Node's globals it gets `node`, the server, and
@@ -79,10 +87,12 @@ A request handler refuses by returning a string, which is the reason the player 
 refuse without one. Anything else lets the request through.
 
 ```js
-node.onRequest('vehicleSpawnRequest', (playerId, vehicleId, data) => {
+function refuseCityBus(playerId, vehicleId, data) {
     const config = JSON.parse(data);
     if (config.jbm === 'citybus') return 'No buses on this server';
-});
+}
+
+node.onRequest('vehicleSpawnRequest', refuseCityBus);
 ```
 
 The server waits up to two seconds for the answer and lets the request through when it comes later,

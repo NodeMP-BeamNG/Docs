@@ -66,20 +66,20 @@ can't read `server.toml`, delete files or run programs on the host's machine:
 | `load` | Text only; precompiled chunks are refused. |
 | `debug` | `traceback` and `getinfo` only. |
 
-The same applies inside `node.job` and `node.await`. If a resource really needs more, the host lists
-it in `server.toml`, and it gets the whole standard library with paths from the server's folder:
-
-```toml
-[resources]
-trusted = ["backup"]
-```
-
 <!-- doctest: server -->
 ```lua
 local _, err = pcall(os.execute, "echo hi")
 node.log("%s", err)
 
 -- expect: os\.execute is not available to resources
+```
+
+The same applies inside `node.job` and `node.await`. If a resource really needs more, the host lists
+it in `server.toml`, and it gets the whole standard library with paths from the server's folder:
+
+```toml
+[resources]
+trusted = ["backup"]
 ```
 
 Lua modules written in C can't be loaded: the server doesn't load native libraries into a resource.
@@ -134,12 +134,13 @@ local function countJoin()
     joins = joins + 1
 end
 
+node.on("playerJoined", countJoin)
+
 local function saveJoins(reason)
     node.storage.set("joins", joins)
     node.log("joins so far: %d (%s)", joins, reason)
 end
 
-node.on("playerJoined", countJoin)
 node.on("resourceUnload", saveJoins)
 
 -- expect: joins so far: 1 \(shutdown\)

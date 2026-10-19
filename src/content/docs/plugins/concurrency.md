@@ -8,7 +8,7 @@ makes code simple, with no locks and no races, and it sets one rule: **never blo
 loops for a second holds up every other resource for that second. The server warns when one job holds
 the thread longer than 250 ms:
 
-```
+```text
 plugin worker job stalled the thread …
 ```
 
@@ -56,11 +56,12 @@ local function countTime(missed)
     if missed > 0 then node.log("caught up %d runs", missed) end
 end
 
+node.every(100, countTime, { precise = true })
+
 local function reportTime()
     node.log("counted %.1f s", seconds)
 end
 
-node.every(100, countTime, { precise = true })
 node.after(1050, reportTime)
 
 -- expect: counted 1\.0 s
@@ -174,6 +175,8 @@ local function trackShutdown(info)
     node.async(countDown, info)
 end
 
+node.on("serverShutdownScheduled", trackShutdown)
+
 local function handleRestart(player, msg)
     if msg.text ~= "/restart" then return end
     if moderators[player.accountId] then
@@ -182,7 +185,6 @@ local function handleRestart(player, msg)
     return { handled = true }
 end
 
-node.on("serverShutdownScheduled", trackShutdown)
 node.on("chatMessageRequest", handleRestart)
 
 -- expect-client: Alice chat:msg .*Restart in \d+ s: Scheduled restart

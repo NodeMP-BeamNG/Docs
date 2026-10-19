@@ -1,6 +1,6 @@
 ---
 title: Переход с других платформ
-description: Как понятия BeamMP и KissMP ложатся на NodeMP, что модуль beammp-compat запускает без изменений и чему нет замены.
+description: Чему в NodeMP соответствуют понятия BeamMP и KissMP, что модуль beammp-compat запускает без изменений и чему нет замены.
 ---
 
 Если вы писали плагины для BeamMP или KissMP, большая часть знаний пригодится: сервер выполняет Lua, реагирует на игроков и машины и общается со скриптами в игре.
@@ -10,11 +10,11 @@ description: Как понятия BeamMP и KissMP ложатся на NodeMP, 
 | Что | В NodeMP |
 |---|---|
 | Потоки | Обработчики всех плагинов выполняются по очереди на одном рабочем потоке. Ждите таймерами и корутинами ([Таймеры и корутины](/ru/plugins/concurrency/)). |
-| Обработчики | Обработчик получает объект `Player` или `Vehicle` с полями и методами, а не голое число ([Игроки и машины](/ru/plugins/players-and-vehicles/)). |
+| Обработчики | Обработчик получает объект `Player` или `Vehicle` с полями и методами, а не номер ([Игроки и машины](/ru/plugins/players-and-vehicles/)). |
 | Id машин | У каждой машины один id, уникальный на сервере, кто бы её ни заспавнил. |
 | Машины после ухода игрока | Остаются в мире без хозяина. Удаляет их плагин, например `vehicle-cleanup` ([Игроки и машины](/ru/plugins/players-and-vehicles/#кто-есть-кто-в-машине)). |
 | Чат | Встроен в сервер и работает без плагинов. Команда — строка чата, которую плагин забирает, вернув `{ handled = true }` ([Чат и команды](/ru/plugins/chat/)). |
-| Отказ | Запрос, который вернул `false, "причина"`, показывает игроку причину ([События](/ru/plugins/events/#отказ-в-запросе)). |
+| Отказ | Обработчик запроса, который вернул `false, "причина"`, отказывает, и игрок видит причину ([События](/ru/plugins/events/#отказ-в-запросе)). |
 | Личность | На сервере из списка аккаунт каждого игрока проверяет NodeMP, и `player.accountId` годится как ключ для данных. |
 
 ## Что куда переезжает
@@ -41,7 +41,7 @@ description: Как понятия BeamMP и KissMP ложатся на NodeMP, 
 | `onVehicleEdited` | `vehicleEditRequest` |
 | `onVehicleDeleted` | `vehicleDeleted` |
 | `onVehicleReset` | `vehicleReset` |
-| `onShutdown` | `serverShutdown`, а последнее слово самого плагина `resourceUnload` |
+| `onShutdown` | `serverShutdown`; свои данные плагин сохраняет в `resourceUnload` |
 | `MP.SendChatMessage` | `player:tell`, а всем `node.chat.say` |
 | `MP.DropPlayer` | `player:kick(reason)` |
 | `MP.GetPlayers`, `MP.GetPlayerName` | `node.players.all()`, `player.name` |
@@ -83,7 +83,7 @@ node.on("chatMessageRequest", answerHello)
 
 ## Понятия KissMP в NodeMP
 
-Слоя совместимости с KissMP в NodeMP нет, плагин KissMP переписывают. Понятия ложатся близко:
+Модуля совместимости с KissMP нет: плагин KissMP придётся переписать. Соответствия такие:
 
 | KissMP | NodeMP |
 |---|---|
@@ -101,15 +101,15 @@ node.on("chatMessageRequest", answerHello)
 
 Нативный модуль `beammp-compat` запускает серверные плагины BeamMP как есть. Это языковой хост: он занимает `type = "beammp"` и даёт каждому такому плагину таблицы `MP`, `Util` и `FS`, которых ждёт плагин BeamMP.
 
-`beammp-compat` в архив сервера не входит, его собирают из исходников через CMake, как и другие [нативные модули](/ru/plugins/examples/#собираются-из-исходников-в-архив-не-входят). Положите `beammp-compat.dll` в `modules/` рядом с сервером. Затем оформите плагин как папку в `resources/`:
+`beammp-compat` в архив сервера не входит, его собирают из исходников через CMake, как и другие [нативные модули](/ru/plugins/examples/#собираются-из-исходников-в-архив-не-входят). Положите `beammp-compat.dll` в папку `modules/`. Затем оформите плагин как папку в `resources/`:
 
-```
+```text
 resources/
 └── my-plugin/
     ├── resource.toml
-    ├── main.lua         ← файлы плагина, без изменений
+    ├── main.lua         ← the plugin's files, unchanged
     ├── commands.lua
-    └── client/          ← файлы клиентского мода, распакованные (необязательно)
+    └── client/          ← the client mod's files, unpacked (optional)
 ```
 
 ```toml
@@ -145,4 +145,4 @@ main = "main.lua"
 - `exit()` только пишет предупреждение: плагин не может так остановить сервер.
 - В игре нет модулей отдельных потоков данных: `MPInputsGE`, `MPElectricsGE`, `MPPowertrainGE`, `positionGE`, `MPHelpers`, `MPUpdatesGE` и `MPModManager`.
 
-Чтобы уходить от слоя совместимости постепенно, в исходниках модуля есть ещё `mp.lua`: он даёт обычному плагину на Lua те же таблицы `MP`, `Util` и `FS`. Тогда старый код и новый, на `node`, живут в одном плагине, пока вы переписываете его по частям.
+Чтобы переписывать плагин по частям, возьмите из исходников модуля `mp.lua` и `mp_backend_node.lua`. Положите их рядом с `server/main.lua` обычного плагина на Lua и подключите через `require("mp")` ([Несколько файлов](/ru/plugins/resources/#несколько-файлов)): плагин получит те же таблицы `MP`, `Util` и `FS`. Тогда старый код и новый, на `node`, работают в одном плагине.

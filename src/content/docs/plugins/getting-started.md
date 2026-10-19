@@ -14,7 +14,7 @@ launcher to join it with.
 
 Resources live in `resources/`, next to `server.toml`. Make this tree:
 
-```
+```text
 resources/
 └── greeter/
     ├── resource.toml
@@ -75,7 +75,7 @@ node.on("playerLeft", sayGoodbye)
 
 Start the server. The console shows your log line and then the server's line about the resource:
 
-```
+```text
 greeter · greeter loaded
 greeter v1.0 loaded — lua · server 1 file · 0 client files
 ```
@@ -189,7 +189,7 @@ the rest of the client side.
 
 You don't need to restart the server after changing the server half. Type in the server console:
 
-```
+```text
 reload greeter
 ```
 
@@ -201,7 +201,7 @@ files are packed when the server starts, so changes to `client/` reach players a
 An error in a handler doesn't stop the server or the resource: the server logs it with the file, the
 line and a traceback, and goes on.
 
-```
+```text
 greeter · error in builtin 'playerJoined': …/server/main.lua:4: attempt to …
 ```
 

@@ -114,13 +114,13 @@ plugin expects.
 [native modules](/plugins/examples/#built-from-source-not-in-the-archive). Put
 `beammp-compat.dll` into `modules/` next to the server. Then make the plugin a resource:
 
-```
+```text
 resources/
 └── my-plugin/
     ├── resource.toml
-    ├── main.lua         ← файлы плагина, без изменений
+    ├── main.lua         ← the plugin's files, unchanged
     ├── commands.lua
-    └── client/          ← файлы клиентского мода, распакованные (необязательно)
+    └── client/          ← the client mod's files, unpacked (optional)
 ```
 
 ```toml

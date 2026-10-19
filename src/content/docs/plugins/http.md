@@ -48,7 +48,7 @@ row read top to bottom:
 <!-- doctest: server -->
 ```lua
 local function fetchStatus()
-    local status, body = node.http.fetch("http://127.0.0.1:9/")
+    local status = node.http.fetch("http://127.0.0.1:9/")
     node.log("status %d", status)
 end
 

@@ -110,11 +110,12 @@ local function logBalance(_, data)
     node.log("balance: %d cents", node.json.decode(data).cents)
 end
 
+node.bus.on("bank:balance:" .. me, logBalance)
+
 local function askBalance()
     node.bus.emit("bank:ask", { replyTo = "bank:balance:" .. me })
 end
 
-node.bus.on("bank:balance:" .. me, logBalance)
 node.after(500, askBalance)
 
 -- expect: balance: 1500 cents
