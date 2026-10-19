@@ -1,9 +1,9 @@
 ---
 title: Wire protocol
-description: The protocol between the launcher and a NodeMP server, v23. The transport, the frame of a category and a subtype, every packet by category, and the order of a join.
+description: The protocol between the launcher and a NodeMP server, v24. The transport, the frame of a category and a subtype, every packet by category, and the order of a join.
 ---
 
-Wire protocol v23, between the launcher's helper and a NodeMP server. Plugins don't see it: they send and receive events. Packets are seen by authors of native modules, whose relay filter describes a packet by category and subtype, and by anyone reading a traffic capture or the server's debug log. This page names the packets and the order of a join; the field layouts are in the server's `include/net/Protocol.h`, which the helper carries an exact copy of.
+Wire protocol v24, between the launcher's helper and a NodeMP server. Plugins don't see it: they send and receive events. Packets are seen by authors of native modules, whose relay filter describes a packet by category and subtype, and by anyone reading a traffic capture or the server's debug log. This page names the packets and the order of a join; the field layouts are in the server's `include/net/Protocol.h`, which the helper carries an exact copy of.
 
 ## Transport
 
@@ -58,7 +58,7 @@ In the tables, the direction uses L (the helper), S (the server) and G (the clie
 | `Queued` | S→L, T | The server is full and the join waits in the queue: the place, how many are waiting, and the host's note while the queue is paused. Sent instead of `Welcome`, then on every change. |
 | `QueueAdmit` | S→L, T | A place has freed up for this join. `Welcome` follows. |
 
-### Session (10)
+### Session (11)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -72,6 +72,7 @@ In the tables, the direction uses L (the helper), S (the server) and G (the clie
 | `Policy` | G→S, T and R | The player's choice for their cars: who may get in, use triggers, pull nodes. |
 | `Reconnecting` | L→G, R | The link broke and the helper is restoring the session: the attempt number and the next pause. |
 | `Resumed` | L→G, R | The server took the session back. |
+| `Appearance` | G↔S, T and R | A player's walker colour and face. The client sends its own after joining and on change; the server passes a change on to the others and replays everyone's to a joining player before the cars, so a player already in a seat is shown in their colour. |
 
 ### Content (9)
 
@@ -87,7 +88,7 @@ In the tables, the direction uses L (the helper), S (the server) and G (the clie
 | `ResourceDone` | S→G, T and R | All client scripts are delivered. |
 | `ModsReady` | L→S, T | A queued join has all its mods in the cache; only then can it get a place. |
 
-### Vehicle (30)
+### Vehicle (31)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
@@ -100,13 +101,13 @@ In the tables, the direction uses L (the helper), S (the server) and G (the clie
 | `Coupler` | G↔S, T and R | A coupling or door changed. |
 | `Paint` | G↔S, T and R | A new paint job. |
 | `Camera` | G↔S, T and R | Which car a player's camera follows. |
-| `SeatClaim` | G→S, T and R | The player asks for the driver's seat or a passenger seat, or wants to get out. |
-| `SeatVerdict` | S→one, T and R | The answer to `SeatClaim`, with a reason if a plugin refused. |
+| `SeatClaim` | G→S, T and R | The player asks for a seat by its id (`FL`, `FR`, ...: the car's occupant slots), lets the server pick a free one, moves to another seat of the same car, or wants to get out. |
+| `SeatVerdict` | S→one, T and R | The answer to `SeatClaim`: the seat it got, or why not -- the seat is taken, the car has no such seat, the lock forbids it, or a plugin refused, with its reason. |
 | `Driver` | S→G, T and R | Who drives the car now. |
 | `SeatFree` | S→G, T and R | The driver's seat has become free. |
 | `Authority` | S→G, T and R | Whose game simulates the car now. |
 | `AuthRevoke` | S→one, T and R | This game no longer simulates the car. |
-| `PlayerVehicle` | S→G, T and R | Which car a player is in, and in which role. |
+| `PlayerVehicle` | S→G, T and R | Which car a player is in, in which role and in which seat. |
 | `Resync` | S→G, T and R | The car's full saved state again. |
 | `ResyncReq` | G→S, T and R | A client asks to resync one car or all of them. |
 | `Trigger` | G↔S, T and R | A trigger or door press, repeated to everyone. |
@@ -121,12 +122,13 @@ In the tables, the direction uses L (the helper), S (the server) and G (the clie
 | `NodeGrabSet` | S→one, T and R | An allowed grab, passed on to the car's authority. |
 | `Grab` | G↔S, T and R | The stream of the synced node grab, forwarded to the other clients. |
 | `EditDeny` | S→one, T and R | A refused edit or paint job, with the plugin's reason, before the rollback. |
+| `Seats` | G→S, T and R | The car's seats as its build has them: each seat's id and which one is the driver's. Sent by the car's owner after every build; stays on the server, which keeps one player per seat. Whoever sits in the driver's seat drives and simulates the car. |
 
 ### State (11)
 
 | Subtype | Direction | Purpose |
 |---|---|---|
-| `Pos` | G↔S, U with T fallback | The car's position, rotation, speeds and driving controls, in a fixed binary form. |
+| `Pos` | G↔S, U with T fallback | The car's position, rotation, speeds, acceleration and driving controls in 56 bytes: the position as floats, the rotation and the speeds as 16-bit fixed point. |
 | `Inputs` | G↔S, T | Input axes beyond those in `Pos`, sent on change. |
 | `Electrics` | G↔S, T | Lights, indicators and gauges: changes. |
 | `Nodes` | G↔S, T | Node positions: deformation. |
@@ -188,7 +190,7 @@ In the tables, the direction uses L (the helper), S (the server) and G (the clie
 4. Mods: `ModsRequest`, `ModsInfo`, then `FileRequest` and `FileBegin` or `FileDeny` for each missing file, until `SyncDone` arrives.
 5. `UdpToken` and `MapInfo`, and right after them the plugins' client scripts (`ResourceChunk` and `ResourceDone`). The server fires `playerJoining`, and the game loads the map.
 6. The helper binds UDP with `UdpHello` and sends `JoinWorld`.
-7. The server answers the joining player with `SelfInfo` and the others with `PlayerJoined`, replays all cars with their state and fires `playerJoined`.
+7. The server answers the joining player with `SelfInfo` and the others with `PlayerJoined`, sends the joining player everyone's `Appearance`, replays all cars with their state and who sits in which seat, and fires `playerJoined`.
 
 Instead of refusing a player with an account, a full server may put them in the [join queue](/hosting/join-queue/). It answers `Queued` in place of `Welcome`; steps 3 and 4 run while the player waits and end with `ModsReady` instead of `SyncDone`. A waiting helper sends `Ping` every 30 seconds. When a place frees up, `QueueAdmit` and `Welcome` arrive, the helper puts the mods into the game and sends `SyncDone`, and the join continues from step 5.
 
