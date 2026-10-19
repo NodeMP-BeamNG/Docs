@@ -1,161 +1,14 @@
 ---
-title: Server settings
-description: How server.toml works, environment variables, command-line options, and every server setting with its default.
+title: Settings reference
+description: Every server setting, table by table, with its type, default and environment variable.
 ---
 
-Every server setting lives in one file, `server.toml`, in the server's working directory. This page
-starts with how the file behaves, then the settings people change most, and ends with
-[every setting](#every-setting), table by table.
-
-## How the file works
-
-On the first start the server writes a short file with the tables a host fills in: `[server]`,
-`[listing]` and `[vehicles]`.
-
-```toml
-# NodeMP server settings: https://docs.nodemp.com/hosting/configuration/
-# Environment variables (NODE_PORT, NODE_NAME, ...) win over this file.
-
-[server]
-name = "Node Server"
-port = 30814
-max_players = 8
-cars_per_player = 1
-map = "/levels/gridmap_v2/info.json"
-mods = "content"  # folder of mod zips players download
-
-[vehicles]
-queue = "allow"  # "off": every client applies at once (races, leagues)
-queue_max_delay_sec = 0  # not 0: a client must apply within N s
-edit_interval_sec = 5  # edits of one car reach the others at most once per N s
-spawn_interval_sec = 2  # one player's new cars at most once per N s
-
-[listing]
-url = ""  # "https://api.nodemp.com" to be listed in the launcher
-host_id = ""
-host_secret = ""  # or NODE_DIRECTORY_HOST_SECRET, out of this file
-description = ""
-mode = "freeroam"
-tags = ""
-preview = ""  # a JPEG or PNG; empty: the map's own
-public = true
-guests = true  # players without a NodeMP account
-```
-
-- **Everything else you add yourself.** A setting that isn't in the file keeps its default. To
-  change one, write it into its table, and add the table if the file doesn't have it yet. The
-  names are in the tables [below](#every-setting).
-- **The server only reads your file.** It doesn't add or change anything in it, and it reads it at
-  start, so restart the server after a change.
-- **Mistakes are explained.** A value of the wrong type or out of range is replaced by the default,
-  with a warning in the log. A key the server doesn't know gets a warning with its name, which is
-  how a typo shows up. A table written twice stops the server from starting. Usually that's a
-  second `[listing]` pasted under the one already in the file: move its keys into the first one and
-  delete the second.
-- **Lists** (`connection_limit_exempt`, `masked_commands`, `trusted`) can be a comma-separated string or a TOML
-  list.
-- **A file from before 1.9.0** (`[General]`, `[Directory]` and the rest) is converted once, on the
-  first start of 1.9.0. The server writes it in the new layout with the same settings and keeps the
-  old one as `server.toml.old`. [Updating](/hosting/updating/#settings-since-190) lists the
-  names that changed.
-
-## What people change most
-
-**Name, map and slots**: `name`, `map`, `max_players` and `cars_per_player` in `[server]`.
-[Run a server](/hosting/quick-start/#name-map-and-slots) has an example.
-
-**The port**: `[server] port`, `30814` by default, the same for TCP and UDP. Leave `address` at
-`"::"`: the server then listens on every address, IPv4 and IPv6.
-
-**The game file check**: `[integrity] verify`.
-
-| Value | What is checked | How long the player waits |
-|---|---|---|
-| `"size"` | The size of every game file, and extra files in the game's `content/`. The default. | About 2 seconds. |
-| `"scripts"` | The same, plus checksums of the game's `lua/` and `ui/`. Catches edited scripts. | About 10 seconds. |
-| `"full"` | Checksums of the whole game, about 50 GB. An audit, not a check before every join. | Minutes. |
-| `"strict"` | The whole game folder, the contents of its archives and the user folder, against a clean install. | A few seconds. See [Strict file check](/hosting/strict-verification/). |
-| `"off"` | The server asks for nothing, but the launcher still checks `size`. | |
-
-**A place in the server list**: the `[listing]` table, and in it the links to your Discord, rules,
-site and voice chat. [Get listed](/hosting/registering/) explains how to fill it in.
-
-**Chat** is part of the server. `[chat] max_length`, `rate_per_sec` and `burst` keep it from being
-flooded: extra lines just aren't sent, and nobody is kicked for chatting.
-
-**Other players' cars.** A new car, or a change of a car's parts, tuning or model, has to be built
-on every player's machine, and building stops the game for a moment. So each player's mod holds
-other players' new cars and changes and builds them when the player stops, every 30 seconds at the
-latest, or on a click ([what players see](/players/settings/#other-players-new-cars-and-changes)).
-For a race or a league, where everyone must see the same cars at once, turn it off; or keep it and
-have everything built within a time you set:
-
-```toml
-[vehicles]
-queue = "off"            # or: queue = "allow" and queue_max_delay_sec = 10
-```
-
-A resource can switch it during the session too, and have everything built right before a start
-([plugin API](/plugins/players-and-vehicles/#scheduled-changes)). Two more settings keep the
-rebuilds few to begin with: the edits of one car reach the others at most once per
-`edit_interval_sec` (5), the latest one, and one player's new cars come at most once per
-`spawn_interval_sec` (2); a car spawned sooner is refused with *Wait 2 s*.
-
-**Bad connections.** A player silent for `lag_grace_sec` seconds (8) shows as lagging. After
-`disconnect_sec` (30) they are dropped, and that's also how long the server waits for a broken
-connection to come back. For players on mobile internet or a VPN you can give them longer:
-
-```toml
-[network]
-disconnect_sec = 60
-```
-
-More than 600 seconds doesn't help: a launcher stops trying to come back after 600. The four
-timers must stay in order, or the server won't start:
-`lag_grace_sec < seat_takeover_sec <= seat_release_sec <= disconnect_sec`.
-
-## Environment variables
-
-Every setting has an environment variable of its own, named in the tables below. The variable wins
-over the file, and `--port` on the command line wins over both. Secrets such as `host_secret` belong
-in the environment: then they don't end up in a file that gets copied and sent around.
-
-A few variables aren't settings:
-
-| Variable | What it does |
-|---|---|
-| `NODE_LUA` | The Lua 5.1 the obfuscator runs on. Needed on Linux. |
-| `NODE_TOOLS_DIR` | Another place for the `tools/` folder. |
-| `NODE_PROVIDER_DISABLE_CONFIG` | `true` ignores `server.toml` and takes everything from the environment. The Docker image works this way. |
-| `NODE_PROVIDER_IP_ENV`, `NODE_PROVIDER_PORT_ENV` | For hosting panels: the name of the variable that carries the address and port the panel assigns. |
-| `NODE_HEARTBEAT_FILE` | A file the server keeps touching while it runs. Docker's health check reads it. |
-| `NODE_FORCE_ANSI` | `1` keeps colours when the output isn't a terminal. |
-
-## Command line
-
-| Option | What it does |
-|---|---|
-| `--config=FILE` | Which settings file to read. By default, `server.toml` in the working directory. |
-| `--port=N` | The TCP and UDP port. Wins over the file and the environment. |
-| `--working-directory=DIR` | The working directory: every relative path starts there. |
-| `--version` | Print the version and exit. |
-| `--help` | Print the help and exit. |
-| `--gen-integrity GAMEDIR` | Make the reference manifest for the strict check ([more](/hosting/strict-verification/#make-the-manifest)). |
-| `--bans list`, `--bans remove …` | Show or lift bans while the server is stopped ([more](/hosting/administration/#bans)). |
-| `--obf-selftest` | Check that the obfuscator works. |
-
-A value may also follow its option after a space: `--port 30815`. To run two servers on one
-machine, give each its own working directory and port:
-
-```bash
-./Node-Server --working-directory=/srv/nodemp-2 --port=30815
-```
-
-## Every setting
+How the file works, the command line and the settings people change most are on
+[Configuring the server](/hosting/server-toml/).
 
 In the order the server declares them. Strings are in quotes, as in the file.
 
-### `[server]`
+## `[server]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -168,7 +21,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[server]` | `address` | string | `"::"` | `NODE_IP` | The address to listen on. `"::"` is every address, IPv4 and IPv6. Not your public address. |
 | `[server]` | `console` | bool | `false` | `NODE_CONSOLE` | Read console commands from standard input even without a terminal. |
 
-### `[vehicles]`
+## `[vehicles]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -177,7 +30,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[vehicles]` | `edit_interval_sec` | int | `5` | `NODE_VEHICLES_EDIT_INTERVAL_SEC` | The edits of one car reach the other players at most once per this many seconds, as the latest config; the editor's own car changes at once. `0`: every edit as it comes. |
 | `[vehicles]` | `spawn_interval_sec` | int | `2` | `NODE_VEHICLES_SPAWN_INTERVAL_SEC` | One player's new cars at most once per this many seconds; one sooner is refused with *Wait N s*. Walking and replacing your own car don't count. `0`: no limit. |
 
-### `[listing]`
+## `[listing]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -200,7 +53,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[listing]` | `donate` | string | `""` | `NODE_DIRECTORY_LINK_DONATE` | A page where players can support the server. |
 | `[listing]` | `voice` | string | `""` | `NODE_DIRECTORY_LINK_VOICE` | The voice chat: `https://…`, `mumble://…` or `ts3server://…`. |
 
-### `[integrity]`
+## `[integrity]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -208,7 +61,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[integrity]` | `manifests` | string | `"integrity"` | `NODE_INTEGRITY_DIR` | The folder with the reference manifests for `strict`. |
 | `[integrity]` | `recheck_sec` | int | `600` | `NODE_INTEGRITY_RECHECK_SEC` | Under `strict`, how many seconds apart each player's files are checked again during the session. `0`: never; anything under `60` counts as `60`. Since 1.12.0. |
 
-### `[network]`
+## `[network]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -226,7 +79,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[network]` | `handshake_timeout_sec` | int | `20` | `NODE_NETWORK_HANDSHAKE_TIMEOUT_SEC` | Seconds a new connection gets for the handshake and the first steps of joining. |
 | `[network]` | `download_stall_sec` | int | `60` | `NODE_NETWORK_DOWNLOAD_STALL_SEC` | A mod download ends after this many seconds without progress. A slow one is never cut off. |
 
-### `[queue]`
+## `[queue]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -238,7 +91,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[queue]` | `no_show_window_min` | int | `60` | `NODE_QUEUE_NO_SHOW_WINDOW_MIN` | The minutes over which no-shows are counted, from 1 to 10080. |
 | `[queue]` | `no_show_bar_min` | int | `30` | `NODE_QUEUE_NO_SHOW_BAR_MIN` | How many minutes the queue stays closed to such an account, up to 10080. `0`: never closed. |
 
-### `[chat]`
+## `[chat]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -248,7 +101,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[chat]` | `log` | bool | `true` | `NODE_CHAT_LOG_TO_CONSOLE` | Show the chat in the console and in the log. |
 | `[chat]` | `masked_commands` | string | `"login, register, reg, password, passwd, pass, pw, auth, changepassword, setpassword, 2fa, totp, otp, pin, token, apikey"` | `NODE_CHAT_LOG_HIDDEN_COMMANDS` | Commands whose arguments are logged as `***`. `""`: log every command as typed. |
 
-### `[logs]`
+## `[logs]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -259,7 +112,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[logs]` | `date` | bool | `false` | `NODE_LOG_DATE` | Put the date before the time on every line. |
 | `[logs]` | `netstats_sec` | int | `15` | `NODE_NETWORK_STATS_INTERVAL_SEC` | How often to log a `netstats` line for each player. `0`: only when they leave. |
 
-### `[sync]`
+## `[sync]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -269,7 +122,7 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[sync]` | `verbose_trace` | string | `""` | `NODE_SYNC_VERBOSE_TRACE` | `"on"` turns on everyone's most detailed sync logs. |
 | `[sync]` | `trace_rate` | int | `0` | `NODE_SYNC_TRACE_RATE` | The rate of those logs for everyone: `10`, `20` or `60` Hz. `0`: each player's own. |
 
-### `[http]`
+## `[http]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
@@ -277,14 +130,14 @@ In the order the server declares them. Strings are in quotes, as in the file.
 | `[http]` | `insecure` | bool | `false` | `NODE_HTTP_INSECURE` | Skip certificate checks in plugins' HTTPS requests. Leave off. |
 | `[http]` | `allow_private_networks` | bool | `false` | `NODE_HTTP_ALLOW_PRIVATE_NETWORKS` | Let plugins' HTTP requests reach local and private addresses. |
 
-### `[resources]`
+## `[resources]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|
 | `[resources]` | `obfuscate` | bool | `true` | `NODE_OBFUSCATE` | Obfuscate the client scripts of resources. `false` sends them as they are. |
 | `[resources]` | `trusted` | string | `""` | `NODE_RESOURCES_TRUSTED` | Resources whose Lua gets the whole standard library: files anywhere, programs, the environment. `"*"` trusts every one. Others reach only their own folder ([what a resource can do](/plugins/resources/#the-lua-environment)). |
 
-### `[experimental]`
+## `[experimental]`
 
 | Section | Key | Type | Default | Environment | What it does |
 |---|---|---|---|---|---|

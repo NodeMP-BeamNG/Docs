@@ -22,7 +22,7 @@ Docker answers `Loaded image: nodemp-server:1.13.0-78abbaa`. That tag is what yo
 
 - **Settings are environment variables only.** The image doesn't read `server.toml`: each setting
   has a variable of its own, `NODE_NAME` for `[server] name` and so on. The full list is on
-  [server.toml](/hosting/configuration/#every-setting).
+  [server.toml](/hosting/configuration/).
 - **Everything the server writes lives in `/data`**: resources, mods, storage, bans, logs. The
   program's own folder is read-only.
 - **The server runs as user id 10001.** The data folder must belong to it.

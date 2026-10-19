@@ -13,5 +13,36 @@
     "check": "config.env",
     "claim": "NODE_DB_DEFAULT_URL",
     "reason": "An instance of the documented NODE_DB_<NAME>_URL pattern (the connection called default); the database module builds the name, so it is in no source as a literal."
+  },
+  {
+    "check": "config.table",
+    "claim": "[sync] variant",
+    "page": "hosting/configuration.md",
+    "reason": "The server still parses [sync] and pins the values for every player, but the client mod's main has none of the settings it pins (OBSOLETE_V4 in settingsSchema.lua), so the Russian reference leaves the table out."
+  },
+  {
+    "check": "config.table",
+    "claim": "[sync] hold_tight",
+    "page": "hosting/configuration.md",
+    "reason": "Pins nodemp.sync.holdTight, which the client mod's main no longer has; the server still parses it."
+  },
+  {
+    "check": "config.table",
+    "claim": "[sync] steer_lead",
+    "page": "hosting/configuration.md",
+    "reason": "Pins nodemp.sync.steerLead, which the client mod's main no longer has; the server still parses it."
+  },
+  {
+    "check": "config.table",
+    "claim": "[sync] verbose_trace",
+    "page": "hosting/configuration.md",
+    "reason": "Pins nodemp.debug.verboseTrace, which the client mod's main no longer has; the server still parses it."
+  },
+  {
+    "check": "config.table",
+    "claim": "[sync] trace_rate",
+    "page": "hosting/configuration.md",
+    "reason": "Pins nodemp.debug.traceRate, which the client mod's main no longer has; the server still parses it."
   }
 ]
+

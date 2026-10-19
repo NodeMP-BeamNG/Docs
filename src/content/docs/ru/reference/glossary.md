@@ -26,7 +26,7 @@ description: Слова, которыми пользуется документ�
 | Слово | Что значит | Подробнее |
 |---|---|---|
 | **Хост** (host) | Человек, который держит сервер. Не «хостер». | [Запуск сервера](/ru/hosting/quick-start/) |
-| **Рабочая папка** (working directory) | Папка, из которой запущен сервер. В ней `server.toml`, `resources/`, `content/`, `logs/`. | [Настройки сервера](/ru/hosting/configuration/) |
+| **Рабочая папка** (working directory) | Папка, из которой запущен сервер. В ней `server.toml`, `resources/`, `content/`, `logs/`. | [Настройка сервера](/ru/hosting/server-toml/) |
 | **Ключ сервера** (server key) | Host ID и Host secret из аккаунта на nodemp.com. С ним сервер попадает в список. | [Попасть в список](/ru/hosting/registering/) |
 | **Отпечаток** (fingerprint) | SHA-256 TLS-сертификата сервера. По нему лаунчеры узнают сервер. | [Попасть в список](/ru/hosting/registering/#отпечаток-сервера) |
 | **Эталонный манифест** (reference manifest) | Описание чистой установки BeamNG одной версии, по которому строгий сервер проверяет игроков. | [Строгая проверка](/ru/hosting/strict-verification/) |
