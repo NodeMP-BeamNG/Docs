@@ -66,6 +66,12 @@ test('signposting phrases and closing headings are reported', () => {
   assert.deepEqual(rulesFor(page(['Что дальше делать, решайте сами.'])), []);
 });
 
+test('"Что видно" is a calque as a heading or a column title, not inside a sentence', () => {
+  assert.deepEqual(rulesFor(diluted('## Что видно')), ['calque']);
+  assert.deepEqual(rulesFor(diluted('| Что видно | Что сделать |\n|---|---|\n| а | б |')), ['calque']);
+  assert.deepEqual(rulesFor(diluted('Сервер показывает всё, что видно игроку.')), []);
+});
+
 test('the calque "держите кнопку" is reported, "нажмите и держите кнопку" is not', () => {
   assert.deepEqual(rulesFor(page(['Держите кнопку нажатой.'])), ['calque']);
   assert.deepEqual(rulesFor(page(['Нажмите и держите кнопку.'])), []);
@@ -89,6 +95,18 @@ test('dashes over the limit are reported with the measured density', () => {
   const dashed = Array(4).fill(`${filler} — ${filler}`);
   assert.deepEqual(hitsFor(page(dashed)).map(([rule]) => rule), ['dashes', 'dashes and colons']);
   assert.deepEqual(hitsFor(page(dashed))[0].slice(1), [1, '50.0 per 1000 words, limit 10']);
+});
+
+test('two dashes in a paragraph pass, three are reported at that line', () => {
+  assert.deepEqual(rulesFor(diluted('Ключ — адрес, а значение — причина.')), []);
+  assert.deepEqual(hitsFor(diluted('А — б, в — г, д — е.')).map(([rule, line, phrase]) => [rule, line, phrase]),
+    [['dashes in a paragraph', 5, '3, limit 2']]);
+});
+
+test('a table row is judged cell by cell, and dashes in code spans do not count', () => {
+  assert.deepEqual(rulesFor(diluted('| а — б, в — г | д — е, ж — з |\n|---|---|')), []);
+  assert.deepEqual(rulesFor(diluted('| а — б, в — г, д — е | ж |\n|---|---|')), ['dashes in a paragraph']);
+  assert.deepEqual(rulesFor(diluted('Строка `a — b — c — d` и слово — ещё.')), []);
 });
 
 test('a dash swapped for a colon still counts: both together are capped', () => {

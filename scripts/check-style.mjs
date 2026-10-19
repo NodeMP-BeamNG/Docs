@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 // Flags the machine patterns STYLE.md names on the pages the rewrite has reached (the ones
-// off check-stale's PENDING): wrapped paragraphs, banned phrases and signposting, and too
-// many dashes, colons, bold spans and admonitions. Russian pages only.
+// off check-stale's PENDING): wrapped paragraphs, banned phrases and signposting, too many
+// dashes in a paragraph, and too many dashes, colons, bold spans and admonitions on a page.
+// Russian pages only.
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GENERATED, PENDING, walk } from './check-stale.mjs';
 
-// Per 1000 words outside code. Each limit sits just above the densest approved players page.
+// Per 1000 words outside code unless said otherwise. Each limit sits at or just above the
+// densest approved players page.
 export const LIMITS = {
+  dashesPerParagraph: 2, // a line of prose, a list item or a table cell; players: 2 at most, both grammatical
   dashes: 10, // spaced dashes; the players pages have 5 at most
   dashesAndColons: 40, // both together, so a dash swapped for a colon still counts; players: 37 at most
   bold: 70, // players/settings, whose bold spans are all interface names, has 68
@@ -38,8 +41,10 @@ export const PHRASES = [
   },
   {
     rule: 'calque',
-    re: word(['без лишних движений', 'что видно', 'подробнее — на странице', '(?<!нажмите и )держите кнопку', 'ресурсы не делят переменные']),
+    re: word(['без лишних движений', 'подробнее — на странице', '(?<!нажмите и )держите кнопку', 'ресурсы не делят переменные']),
   },
+  // As a heading or a column title only: «всё, что видно игроку» is plain Russian.
+  { rule: 'calque', re: /(?:^#{2,6}[ \t]+|\|[ \t]*)что видно(?![\p{L}])/gimu },
   // The glossary names the English words beside the Russian ones.
   { rule: 'English interface word', re: /(?<![\p{L}])(?:Leave|Direct Connect|Connect|Hold to play)(?![\p{L}])/gu, except: /reference[\\/]glossary\.md$/ },
 ];
@@ -89,6 +94,17 @@ function wrappedParagraphs(blocks) {
   return hits;
 }
 
+// Lines that carry more spaced dashes than the limit; a table row is judged cell by cell.
+function crowdedDashes(prose, limit) {
+  const hits = [];
+  prose.split('\n').forEach((l, i) => {
+    const cells = /^\s*\|/.test(l) ? l.split('|') : [l];
+    const most = Math.max(...cells.map((c) => (c.match(/ [—–] /g) ?? []).length));
+    if (most > limit) hits.push({ line: i + 1, count: most });
+  });
+  return hits;
+}
+
 export function findStyleHits(files, limits = LIMITS, pending = PENDING) {
   const hits = [];
   for (const { path, text } of files) {
@@ -105,6 +121,7 @@ export function findStyleHits(files, limits = LIMITS, pending = PENDING) {
     }
     for (const m of prose.matchAll(CLOSING_HEADING)) add(lineOf(prose, m.index), 'signposting', m[0].trim());
     for (const m of prose.matchAll(BOLD_LEAD_IN)) add(lineOf(prose, m.index), 'bold lead-in', m[0].trim());
+    for (const h of crowdedDashes(prose, limits.dashesPerParagraph)) add(h.line, 'dashes in a paragraph', `${h.count}, limit ${limits.dashesPerParagraph}`);
 
     const n = measure(text);
     const density = (what, value, limit, unit = 'per 1000 words') => {
