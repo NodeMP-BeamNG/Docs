@@ -129,7 +129,7 @@ To watch a request without interfering, return nothing. Which requests exist and
 
 ## Reserved slots
 
-On a full server `playerConnectRequest` still fires, with `player.overCapacity` set to `true`. A handler that explicitly returns `true` lets the player in beyond `max_players`, and a single `false` refuses whatever the others answer. If nobody returns `true`, the server refuses on its own (`Server full!`).
+On a full server `playerConnectRequest` still fires, with `player.overCapacity` set to `true`. A handler that explicitly returns `true` lets the player in beyond `max_players`, and a single `false` refuses whatever the others answer. If nobody returns `true`, the server refuses with `Server full!`, or puts the player in the [join queue](/hosting/join-queue/) if the queue takes them; `playerLeft` then fires with the reason `Queued`.
 
 <!-- doctest: server -->
 ```lua

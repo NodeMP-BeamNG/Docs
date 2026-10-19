@@ -53,7 +53,7 @@ The ABI version is `major.minor`, set by `NODE_ABI_VERSION_MAJOR` and `NODE_ABI_
 
 | The module was built | What the server does |
 |---|---|
-| With a different major version | Refuses to load it before the module touches anything: `module '…' was built against SDK ABI 1.12, this server speaks 2.8 -- refusing to load it. Rebuild the module.` |
+| With a different major version | Refuses to load it before the module touches anything: `module '…' was built against SDK ABI <major>.<minor>, this server speaks <major>.<minor> -- refusing to load it. Rebuild the module.` |
 | With an older minor version | Loads it: everything the module knows is where it expects. |
 | With a newer minor version | Loads it with a warning: the module may call functions this server doesn't have. If it must also work on such a server, check `api->struct_size` before calling a new function. |
 

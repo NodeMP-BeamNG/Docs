@@ -24,7 +24,7 @@ A `chatMessageRequest` handler gets the player and `msg = { text, scope }`, and 
 | `{ text = ..., scope = ... }` | Replaces the text, the scope or both. A scope other than `"global"` or `"local"` refuses the line. |
 | `{ handled = true }` | The plugin took the line as its command; nobody sees it. |
 
-Handlers run in turn, each seeing the text as the previous one left it. The first refusal ends the chain.
+Handlers run in turn, each seeing the text as the previous one left it. The first refusal or `{ handled = true }` ends the chain.
 
 To rewrite a line, return the new text; the server cleans and cuts it again:
 
