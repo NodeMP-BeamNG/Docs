@@ -28,7 +28,7 @@ test('a clean page has no hits', () => {
 
 test('pages the rewrite has not reached, and English pages, are skipped', () => {
   const text = `Это важно отметить.\nИ перенос.`;
-  assert.deepEqual(hitsFor(text, 'ru/plugins/events.md'), []);
+  assert.deepEqual(hitsFor(text, 'ru/introduction/what-is-nodemp.md'), []);
   assert.deepEqual(hitsFor(text, 'players/join.md'), []);
 });
 
