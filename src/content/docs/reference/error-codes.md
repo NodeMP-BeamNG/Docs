@@ -3,11 +3,11 @@ title: Error messages
 description: Launcher notifications, the server's refusals and kicks, the helper's exit codes, and what to do about each message.
 ---
 
-NodeMP has no error numbers. What stops a join is a sentence: a launcher notification, a refusal or kick from the server, or the last line of the helper's log. This page collects all of them, and `…` stands for a part that changes. The common cases step by step: [When something breaks](/players/troubleshooting/).
+NodeMP has no error numbers. A join is stopped by a sentence: a launcher notification, a refusal or kick from the server, or the last line of the helper's log. They are all here, with `…` for a part that changes. The common cases step by step: [When something breaks](/players/troubleshooting/).
 
 ## Launcher notifications
 
-A notification has a title that names the step and, under it, the reason. In the tables they are written as *title* · `reason`. The launcher shows titles in the interface language, while reasons from the helper and the server are in English. Errors and warnings stay in the notification centre under the bell icon: the **Copy** button puts their text on the clipboard, and **Details** shows the original words of the server or the helper.
+A notification has a title that names the step and, under it, the reason; the tables write them as *title* · `reason`. Titles follow the interface language, while reasons from the helper and the server are in English. Errors and warnings stay in the notification center under the bell icon: **Copy** puts their text on the clipboard, and **Details** shows the server's or the helper's original words.
 
 ### Client mod
 
@@ -16,8 +16,8 @@ A notification has a title that names the step and, under it, the reason. In the
 | *Could not join* · `client mod is not installed and the directory is unreachable` | `NodeMP.zip` isn't on the disk yet, and NodeMP didn't answer. | Check your connection and join again. |
 | *Could not join* · `client mod is not installed and no release has been published yet` | `NodeMP.zip` isn't there, and NodeMP hasn't published any version of the mod yet. | Join later. |
 | *Could not join* · `could not start the download: …`, `the download server returned …`, `the download stopped: …`, `the download was N bytes, the release says M`, `the download is larger than the release says` | The mod download didn't start or broke off. | Check your connection, VPN or proxy and join again. |
-| *Could not join* · `the downloaded client mod does not match the published checksum`, `the …'s signature does not verify: it was not signed by NodeMP` | The downloaded file failed the checksum or signature check. The launcher doesn't install such a mod. | Join again. |
-| *Could not join* · `LOCALAPPDATA is not set, so BeamNG's user folder cannot be found` | Windows didn't pass the launcher the `LOCALAPPDATA` variable, which it uses to find the game's user folder. | Restart the computer. If that doesn't help, set the variable yourself; it is usually `%USERPROFILE%\AppData\Local`. |
+| *Could not join* · `the downloaded client mod does not match the published checksum`, `the …'s signature does not verify: it was not signed by NodeMP` | The downloaded file failed the checksum or signature check, so the launcher doesn't install it. | Join again. |
+| *Could not join* · `LOCALAPPDATA is not set, so BeamNG's user folder cannot be found` | Windows didn't pass the launcher the `LOCALAPPDATA` variable, which it uses to find the game's user folder. | Restart the computer. If that doesn't help, set the variable yourself; it's usually `%USERPROFILE%\AppData\Local`. |
 | *Client mod could not be updated* · *Joining with the installed copy.* | The check failed, but the previous `NodeMP.zip` is in place, and the launcher joins with it. This is a warning. | If the server refuses the old mod, close the game and click **Settings → Game → Client mod → Check now**. |
 | *Could not check the client mod* · `could not replace …\NodeMP.zip (is BeamNG.drive running?): …` | The running game holds the file. | Close BeamNG.drive and click **Check now**. |
 
@@ -39,7 +39,7 @@ A notification has a title that names the step and, under it, the reason. In the
 |---|---|---|
 | *Could not connect* · `Could not reach the server` | Nothing answers at that address: the server is off, its port is closed, or a firewall is in the way. | Refresh the list. If it's your server, check that the port is open for TCP and UDP. |
 | *Could not connect* · `DNS Lookup Failed` | The name you entered in Direct Connect can't be found. | Check the spelling or enter the IP address. |
-| *Could not connect* · `server certificate fingerprint mismatch` | The server's certificate isn't the one the launcher expected. For a server on the list, the launcher compares it with what NodeMP knows about the server; for a join by address, with what it remembered last time. | Ask the host: they may have reinstalled the server. If you joined by address, delete the server's line from `known_servers.json` in the launcher's cache folder. |
+| *Could not connect* · `server certificate fingerprint mismatch` | The server's certificate isn't the one the launcher expected: for a listed server, the one NodeMP knows; for an unlisted one, the one the launcher remembered on the first connection. | Ask the host: they may have reinstalled the server. If the server isn't listed, delete its line from `known_servers.json` in the launcher's cache folder. |
 | *Could not connect* · `TLS handshake failed: …`, `server presented no certificate` | Something other than a NodeMP server answered, or the connection broke during the handshake. | Check the address and port and try again. Through a VPN: [A bad connection](/players/connection/#connection-error-messages). |
 
 ### Downloading the server's mods
@@ -58,36 +58,36 @@ These reasons come in a *The server refused the join* or *Session ended* notific
 | Message | What happened | What to do |
 |---|---|---|
 | *Could not reach NodeMP* | The server list didn't load. The line under the title names NodeMP's address. | Check your connection and VPN. |
-| *Technical work: the server list is closed for now* | NodeMP is under maintenance. It issues no join tickets now, so you can't join by address either, but games in progress go on. | Wait: the launcher asks again by itself. |
+| *Technical work: the server list is closed for now* | NodeMP is under maintenance and issues no join tickets, so you can't join by address either; games in progress go on. | Wait: the launcher asks again by itself. |
 | *Could not remove the file* · `could not remove …: …`, `… is no longer in the cache`, `… is not a cached content file` | The file wasn't removed from the **Content** tab. The first message usually means the game holds the file. | Close the game and try again. |
-| *Could not install the launcher update* · `the downloaded installer does not match the published checksum`, `the …'s signature does not verify: it was not signed by NodeMP`, `the download stopped (…); it resumes on the next try`, `the download stopped at N of M bytes; it resumes on the next try` | The installer didn't download completely or failed the check. | Try again: the download resumes from where it stopped. |
+| *Could not install the launcher update* · `the downloaded installer does not match the published checksum`, `the …'s signature does not verify: it was not signed by NodeMP`, `the download stopped (…); it resumes on the next try`, `the download stopped at N of M bytes; it resumes on the next try` | The installer didn't download completely or failed the check. | Try again: the download resumes where it stopped. |
 | `Could not find a BeamNG.drive install. Browse to it, or launch the game once so Steam writes its path.` | The game isn't found under the path in **Settings → Game**. | Click **Browse** and choose the game folder, or start the game through Steam and click **Find it**. |
 | `No Bin64\BeamNG.drive.x64.exe in this folder` | The path in **Settings → Game** isn't the game's main folder. | Choose the folder that holds `Bin64\`. |
 
 ## The server's refusals and kicks
 
-At the door, the launcher shows a refusal as *The server refused the join*. During a session, the game reports that the session ended, and the launcher comes back with *Session ended*. The server's log has the same text as `<name> kicked — <reason>`.
+At the door, a refusal shows as *The server refused the join*. During a session, the game reports that the session ended, and the launcher comes back with *Session ended*. The server's log has the same text as `<name> kicked — <reason>`.
 
-For version and game-file refusals, the launcher replaces the server's sentence with its own advice, also in English and often with a button. For such rows the table says what the launcher shows, and the server's own words are behind the **Details** button. Plugins can kick with their own text, and you see it as it is.
+For version and game-file refusals, the launcher replaces the server's sentence with its own advice, often with a button; such rows say what the launcher shows, and the server's own words are under **Details**. Plugins can kick with their own text, which you see as it is.
 
 | Reason | When | What to do |
 |---|---|---|
-| `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | The launcher and the server have different protocol versions, and the message has the real numbers of both. If the launcher is behind, it shows `This server needs a newer launcher — update now` with the **Update now** button. If the server is behind, it shows `This server runs an older NodeMP server (protocol v21; this launcher speaks v22)`. | **Update now** updates the launcher and joins again. If the server is behind, tell the host. |
-| `Your NodeMP mod is out of date for this server (it speaks wire protocol …, the server …). Reinstall it from the launcher.` | The client mod and the server have different protocol versions, and the message has both. | If the mod's number is lower, close the game, click **Settings → Game → Client mod → Check now** and join again. If it is higher, tell the host: the server is behind. |
-| `Server full!` | The server has as many players as it admits, and you can't wait in its queue: you have no account, the launcher can't wait in a queue, the server isn't on the list, or its queue is off. | Turn on the **Free slots** switch in the list, or wait. |
+| `Protocol version mismatch: launcher speaks v22, server speaks v21 - update the outdated side` | The launcher and the server have different protocol versions; the message gives both real numbers. If the launcher is behind, it shows `This server needs a newer launcher — update now` with the **Update now** button; if the server is behind, `This server runs an older NodeMP server (protocol v21; this launcher speaks v22)`. | **Update now** updates the launcher and joins again. If the server is behind, tell the host. |
+| `Your NodeMP mod is out of date for this server (it speaks wire protocol …, the server …). Reinstall it from the launcher.` | The client mod and the server have different protocol versions; the message gives both. | If the mod's number is lower, close the game, click **Settings → Game → Client mod → Check now** and join again. If it is higher, tell the host: the server is behind. |
+| `Server full!` | The server is at its player limit, and you can't wait in its queue: you have no account, the launcher can't wait in a queue, the server isn't listed, or its queue is off. | Turn on **Free slots** in the list, or wait. |
 | `The server is full and so is its join queue` | As many players are already waiting in the [join queue](/hosting/join-queue/) as the host allows. The launcher writes *The server is full, and so is its queue. Try again later.* | Try again later. |
-| `Someone from your address is already in this server's join queue` | As many players from your address are already waiting in the queue as the host allows, one by default. Through a shared connection, all players arrive from one address. The launcher writes *Someone on your network is already in this server's queue.* | Wait until that player gets in, or join from another connection. |
-| `You did not join after your turn too often; this server's join queue is closed to you until …` | Your turn in the queue came several times, and you left before reaching the world. After the word `until` comes the UTC time when the queue opens again. The launcher writes *You did not join when your turn came several times, so this server's queue is closed to you until …* and shows the time on your clock. | Wait until then. You can join a server with a free slot right now. |
+| `Someone from your address is already in this server's join queue` | As many players from your address are already waiting in the queue as the host allows, one by default. Players on a shared connection all come from one address. The launcher writes *Someone on your network is already in this server's queue.* | Wait until that player gets in, or join from another connection. |
+| `You did not join after your turn too often; this server's join queue is closed to you until …` | Your turn in the queue came several times, and you left before reaching the world. The word `until` is followed by the UTC time when the queue opens again. The launcher writes *You did not join when your turn came several times, so this server's queue is closed to you until …* and shows the time in your time zone. | Wait until then. You can join a server with a free slot now. |
 | `The server is starting up; join again in a moment.` | The server is still loading its plugins. | Try again in a minute. |
 | `Server shutdown` | The server is stopping. Everyone on it gets this. | Wait for the host to bring it back up. |
 | `You are banned from this server` | Your address, account or launcher installation is on the server's ban list, and no reason is given. If the host gave one, you see it. | Ask the host. |
-| `This server requires a NodeMP account: sign in to the launcher and join again` | The server doesn't let Test Drive in, and you joined without an account. | Sign in: **Settings → Account → Sign in**. Or turn on the **No account needed** switch in the list. |
-| `Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | NodeMP didn't accept the one-time join ticket; the reason is in brackets. | Join again. |
+| `This server requires a NodeMP account: sign in to the launcher and join again` | The server doesn't let Test Drive in, and you joined without an account. | Sign in: **Settings → Account → Sign in**. Or turn on **No account needed** in the list. |
+| `Your join ticket was not accepted (join ticket invalid or expired). Join again from the launcher to get a new one` | NodeMP didn't accept the one-time join ticket; the reason is in parentheses. | Join again. |
 | `The server could not verify your account with the directory (…). Try again in a moment` | The server couldn't reach NodeMP to check the account. | Try again a little later. |
-| `Resume rejected` | The connection broke and the launcher tried to resume the session, but the server didn't accept it: the session had already ended, or the key didn't match. | Join again. |
+| `Resume rejected` | The connection broke and the launcher tried to resume the session, but the server refused: the session had already ended, or the key didn't match. | Join again. |
 | `Resume rejected: too many failed attempts, try again later` | Too many failed attempts to resume a session from your address in a short time. | Wait a minute and join again. |
 | `This account is banned from NodeMP` | NodeMP banned the account on all servers at once while you were playing. | See the ban window in the launcher ([Bans](/players/sign-in/#bans)). |
-| `Disconnected by the NodeMP directory (…)` | NodeMP disconnected your account from the server; the reason code is in brackets. | Join again. If it repeats, report it on Discord. |
+| `Disconnected by the NodeMP directory (…)` | NodeMP disconnected your account from the server; the reason code is in parentheses. | Join again. If it repeats, report it on Discord. |
 | `Connection refused` | A plugin turned you away and gave no reason. If it gave one, you see it. | Ask the host. |
 | `Your BeamNG install does not match the game's own file list (3 files differ). Verify the game's files in Steam and try again. …` | Some game files differ from the game's own list. The number is real. | Verify the game files in Steam. |
 | `Your BeamNG install changed while you were playing, and this server requires it to match the game's own file list (1 file differs). …` | The same check, run during the session, found a change. | Undo what you installed and verify the game files. |
@@ -99,7 +99,7 @@ For version and game-file refusals, the launcher replaces the server's sentence 
 | `This server has integrity manifests for 2 game versions (0.39.4.0, 0.39.3.0) and cannot tell which one you run. Ask the host to keep exactly one manifest in the server's integrity folder.` | The server's manifest folder holds files for several game versions. | Tell the host. |
 | `Unknown integrity manifest requested` | The launcher asked for a manifest the server doesn't have, usually because the host replaced it a moment ago. The launcher shows `The server would not send its reference manifest`. | Join a little later. If it repeats, tell the host. |
 | `Too many integrity manifest requests` | The launcher asked for the manifest too often in one session. The launcher shows `The server stopped sending its reference manifest (asked too often)`. | Join a little later. If it repeats, reinstall the launcher. |
-| `This server requires a check of your BeamNG install, which could not be completed: …` | The check couldn't run; the reason follows the colon. The launcher shows `BeamNG's user folder was not found`, `Could not download the server's reference manifest`, `The server's reference manifest is out of date` or `Your game files could not be checked`. | Follow the advice under the message and join again. |
+| `This server requires a check of your BeamNG install, which could not be completed: …` | The check couldn't run; the reason follows the colon. The launcher shows `BeamNG's user folder was not found`, `Could not download the server's reference manifest`, `The server's reference manifest is out of date`, `The server asked for a strict check without a usable reference manifest`, `The server asked for too many game-file checks at once` or `Your game files could not be checked`. | Follow the advice under the message and join again. |
 | `Kicked`, `Kicked by the server`, `Kicked by module` | A plugin, the server console or a native module removed you and gave no reason. | Ask the host. |
 | `Banned` | A plugin banned you and gave no reason. | Ask the host. |
 | `Packet rate limit exceeded` | Your game sent packets faster than the server allows. | Join again. If it repeats, report it. |
@@ -111,7 +111,7 @@ For version and game-file refusals, the launcher replaces the server's sentence 
 
 ## Helper exit codes
 
-The helper is the background part of the launcher that does the joining. If it ends with an error, the launcher shows *The launcher's traffic helper stopped* and the last line of its log, and **Details** begin with `exit code` and a number. The full log is `%LOCALAPPDATA%\NodeMP\helper\logs\launcher.log`.
+If the [helper](/players/troubleshooting/#the-launchers-traffic-helper) ends with an error, the launcher shows *The launcher's traffic helper stopped* and the last line of its log, and **Details** start with `exit code` and the number. The full log is `%LOCALAPPDATA%\NodeMP\helper\logs\launcher.log`.
 
 | Code | Last log line | What it means | What to do |
 |---|---|---|---|
@@ -123,4 +123,4 @@ The helper is the background part of the launcher that does the joining. If it e
 | `5` | `Another Node-Launcher is already running on port 4444 - closing` | A second helper was started while the first is running. | Close the first one, or BeamNG.drive along with it, and try again. |
 | `6` | `port 4444 is in use by another program …` | Another program holds the local port the game uses to talk to the helper. | Close it. The message names a command that shows which program it is. |
 
-The helper can also run the game-file check on its own: the **Copy** button under a strict server's refusal gives the command. It ends with code `0` if everything is clean (`game files verified: …`), with code `1` if there are differences (`game files DIFFER: …`), and with code `2` if the check couldn't run (`cannot read the manifest file …`, `not a reference manifest: …`, `could not check: …`).
+The helper can also run the game-file check on its own: the **Copy** button under a strict server's refusal gives the command. It exits with `0` if everything is clean (`game files verified: …`), `1` if there are differences (`game files DIFFER: …`) and `2` if the check couldn't run (`cannot read the manifest file …`, `not a reference manifest: …`, `could not check: …`).

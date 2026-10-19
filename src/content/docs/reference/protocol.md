@@ -1,22 +1,22 @@
 ---
 title: Wire protocol
-description: The wire protocol between the launcher and a NodeMP server, v23. The transport, the frame made of a category and a subtype, every packet by category, and the order of a join.
+description: The protocol between the launcher and a NodeMP server, v23. The transport, the frame of a category and a subtype, every packet by category, and the order of a join.
 ---
 
-This page describes wire protocol v23, which the launcher's helper speaks with a NodeMP server. Plugins don't see it: they send and receive events. Packets are visible to authors of native modules, whose relay filter describes a packet by category and subtype, and to anyone reading a traffic capture or the server's debug log. This page names the packets and the order of a join. The field layouts are in `include/net/Protocol.h` of the server, of which the helper carries an exact copy.
+Wire protocol v23, between the launcher's helper and a NodeMP server. Plugins don't see it: they send and receive events. Packets are seen by authors of native modules, whose relay filter describes a packet by category and subtype, and by anyone reading a traffic capture or the server's debug log. This page names the packets and the order of a join; the field layouts are in the server's `include/net/Protocol.h`, which the helper carries an exact copy of.
 
 ## Transport
 
 A session has two channels between the helper and the server: one TCP connection inside TLS 1.3 for everything reliable and, once bound, one UDP flow for car positions.
 
-- UDP carries only `State::Pos`, `State::HeadPose`, `State::PosBatch` and the handshake packets `Ping`, `Pong`, `UdpHello` and `UdpHelloAck`. UDP isn't encrypted. The session key arrives once over TLS (`UdpToken`) and is never sent over UDP: `UdpHello` is confirmed with an HMAC made with it, and `State::Pos` datagrams from the client carry an authentication tag and a sequence number against replay. Until UDP is bound, positions go over TCP.
+- UDP carries only `State::Pos`, `State::HeadPose`, `State::PosBatch` and the handshake packets `Ping`, `Pong`, `UdpHello` and `UdpHelloAck`. UDP isn't encrypted. The session key arrives once over TLS (`UdpToken`) and is never sent over UDP: `UdpHello` carries an HMAC made with it, and `State::Pos` datagrams from the client carry an authentication tag and a sequence number against replay. Until UDP is bound, positions go over TCP.
 - The game talks to the helper over two local TCP ports: `4444` for commands and `4445` for the relay. The first frame on each channel is `Command::Auth` with the helper's token, and a wrong token closes the connection.
-- A compressed body is marked with the `FlagCompressed` bit and starts with its exact size after decompression, so the receiver checks it against the packet's limit before decompressing. Only the stretch between the helper and the server is compressed: the client mod never sees a compressed body.
-- Limits: a frame up to 4 KB before `Welcome` and up to 1 MB after it, a UDP datagram at 10 KB, a vehicle config up to 768 KB so that its replay on join fits in a frame. The reference manifest is sent in parts of `IntegrityChunkBytes` = 32 KiB.
+- A compressed body has the `FlagCompressed` bit and starts with its exact decompressed size, so the receiver checks it against the packet's limit before decompressing. Only the link between the helper and the server is compressed: the client mod never sees a compressed body.
+- Limits: a frame up to 4 KB before `Welcome` and 1 MB after it, a UDP datagram 10 KB, a vehicle config 768 KB so that its replay on join fits in a frame. The reference manifest goes in parts of `IntegrityChunkBytes` = 32 KiB.
 
 ## The frame
 
-Every packet is named by two bytes: a category and a subtype inside it. A TCP frame is built like this: `[u32 length][category][subtype][flags][body]`. A UDP datagram starts with `[category][subtype][flags]`; in a datagram from the client, `[u32 client_id]` follows, then the body. The game doesn't speak UDP: the helper does.
+Every packet is named by two bytes: a category and a subtype within it. A TCP frame is `[u32 length][category][subtype][flags][body]`. A UDP datagram starts with `[category][subtype][flags]`; from the client, `[u32 client_id]` follows, then the body. The game doesn't speak UDP; the helper does.
 
 | Category | Byte | What it covers |
 |---|---|---|
@@ -29,9 +29,9 @@ Every packet is named by two bytes: a category and a subtype inside it. A TCP fr
 | `Command` | `0x07` | The command channel between the game and the helper. |
 | `Module` | `0x08` | Binary data between native modules and clients. |
 
-Subtype `0` is invalid in every category, so a zeroed buffer can't mean a packet. Integers are little-endian, and strings are UTF-8 without a terminating zero. Only one variable-length field has no length prefix, the last one: it takes the rest of the frame.
+Subtype `0` is invalid in every category, so a zeroed buffer can't mean a packet. Integers are little-endian; strings are UTF-8 without a terminating zero. Only the last variable-length field may have no length prefix: it takes the rest of the frame.
 
-In the tables, the direction is written with the letters L (the helper), S (the server) and G (the client mod in the game), and S→one means the server sends the packet to a single client. The channel is written with the letters T (the server's TCP channel), U (its UDP channel), R (the relay port) and CC (the command port).
+In the tables, the direction uses L (the helper), S (the server) and G (the client mod in the game); S→one means the server sends the packet to a single client. The channel uses T (the server's TCP channel), U (its UDP channel), R (the relay port) and CC (the command port).
 
 ## Packets by category
 
@@ -40,22 +40,22 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 | Subtype | Direction | Purpose |
 |---|---|---|
 | `Hello` | L→S, T | The protocol version, the helper's capability bits and the name the player asked for. |
-| `Welcome` | S→L, T | The player's number (id), a token for resuming the session, the resume window and the server's capability bits. |
+| `Welcome` | S→L, T | The player's id, a token for resuming the session, the resume window and the server's capability bits. |
 | `Ping` | L→S, T and U | Liveness and round-trip probe. An optional stamp comes back in `Pong`. |
 | `Pong` | S→L, T and U | The answer to `Ping`. |
 | `UdpToken` | S→L, T | The session's 64-byte key for signing UDP. |
-| `UdpHello` | L→S, U | Binds the client's UDP address with a nonce and an HMAC. A correct packet binds from any address, which VPN split tunnelling needs. |
-| `MapInfo` | S→L, T | The map the game has to load. |
+| `UdpHello` | L→S, U | Binds the client's UDP address with a nonce and an HMAC. A correct packet binds from any address, which VPN split tunneling needs. |
+| `MapInfo` | S→L, T | The map the game must load. |
 | `JoinWorld` | L→S, T | The map is loaded; the world can be sent. |
-| `VerifyRequest` | S→L, T | How strictly to check the game installation (`[integrity] verify`) and, for `strict`, the id of the reference manifest. During a session it is sent by the repeated checks of a strict server and by `player:verify`. |
+| `VerifyRequest` | S→L, T | How strictly to check the game installation (`[integrity] verify`) and, for `strict`, the id of the reference manifest. During a session, a strict server's rechecks and `player:verify` send it again. |
 | `VerifyReport` | L→S, T | What the launcher checked and found: the level, the outcome, the number of problems and a detail line. |
-| `Identity` | L→S, T | The join ticket, always right after `Hello`. Empty if there is no ticket. |
-| `IntegrityManifestRequest` | L→S, T | The launcher's cache has no reference manifest with this id, and it asks for it. |
+| `Identity` | L→S, T | The join ticket, always right after `Hello`. Empty without a ticket. |
+| `IntegrityManifestRequest` | L→S, T | The launcher asks for the reference manifest with this id, which its cache lacks. |
 | `IntegrityManifestChunk` | S→L, T | The next part of the compressed manifest. |
 | `IntegrityManifestDone` | S→L, T | All parts are sent. The hash the launcher checks before it saves the file. |
-| `Resume` | L→S, T | Sent after `Hello` instead of `Identity` to take a broken session back within the resume window. |
+| `Resume` | L→S, T | Sent after `Hello` instead of `Identity` to resume a broken session within the resume window. |
 | `UdpHelloAck` | S→L, U | Confirms an accepted `UdpHello` to the bound address. |
-| `Queued` | S→L, T | The server is full and the join waits in the queue: the place, how many are waiting, and the host's note while the queue is paused. Sent instead of `Welcome`, then again at every change. |
+| `Queued` | S→L, T | The server is full and the join waits in the queue: the place, how many are waiting, and the host's note while the queue is paused. Sent instead of `Welcome`, then on every change. |
 | `QueueAdmit` | S→L, T | A place has freed up for this join. `Welcome` follows. |
 
 ### Session (10)
@@ -64,7 +64,7 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 |---|---|---|
 | `Kick` | S→G, T and R | The connection is refused or ended, with the reason as text. |
 | `SelfInfo` | S→G, T and R | The joining player's own id and final name. |
-| `PlayerJoined` | S→G, T and R | The number and name of another player. |
+| `PlayerJoined` | S→G, T and R | The id and name of another player. |
 | `PlayerLeft` | S→G, T and R | A player left. |
 | `PlayerList` | S→G, T and R | The roster: how many players, the maximum, every id and name. |
 | `SessionEnd` | L→G, R | The helper tells the game that the session ended, and why. |
@@ -80,12 +80,12 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 | `ModsRequest` | L→S, T | Ask for the server's mod list. |
 | `ModsInfo` | S→L, T | The mod list as JSON. |
 | `FileRequest` | L→S, T | Ask for one mod file by name. |
-| `FileBegin` | S→L, T | A file is about to follow: its size, then the bytes themselves. |
-| `FileDeny` | S→L, T | There will be no file: it is unknown, protected or unreadable. |
+| `FileBegin` | S→L, T | A file follows: its size, then the bytes. |
+| `FileDeny` | S→L, T | No file will follow: it is unknown, protected or unreadable. |
 | `SyncDone` | L→S, T | The helper has all the files it needs. |
 | `ResourceChunk` | S→G, T and R | A part of one plugin's client scripts, as JSON. |
 | `ResourceDone` | S→G, T and R | All client scripts are delivered. |
-| `ModsReady` | L→S, T | A join in the queue has all its mods in the cache. Only then can it get a place. |
+| `ModsReady` | L→S, T | A queued join has all its mods in the cache; only then can it get a place. |
 
 ### Vehicle (30)
 
@@ -108,14 +108,14 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 | `AuthRevoke` | S→one, T and R | This game no longer simulates the car. |
 | `PlayerVehicle` | S→G, T and R | Which car a player is in, and in which role. |
 | `Resync` | S→G, T and R | The car's full saved state again. |
-| `ResyncReq` | G→S, T and R | A client asks for a resync of one car or all of them. |
+| `ResyncReq` | G→S, T and R | A client asks to resync one car or all of them. |
 | `Trigger` | G↔S, T and R | A trigger or door press, repeated to everyone. |
 | `DamageStat` | G→S, T and R | The damage counter from the car's authority. Stays on the server. |
 | `DamageBlob` | G→S, T and R | The damage data itself, now and then. Stays on the server for joins and resyncs. |
 | `CouplerSet` | S→G, T and R | The server opens or closes a coupling or door. |
 | `Tag` | S→G, T and R | A tag a plugin set on a car. An empty value removes it. |
 | `Lock` | S→G, T and R | Who may get into the car. |
-| `ConfigHash` | G↔S, T and R | A checksum of the saved config. A mismatch leads to a quiet resync. |
+| `ConfigHash` | G↔S, T and R | A checksum of the saved config. A mismatch triggers a quiet resync. |
 | `TriggerReq` | G→S, T and R | Ask the car's authority to run a trigger. Plugins can refuse. |
 | `NodeGrab` | G→S, T and R | A request for the experimental node grab. Refused unless a plugin allowed it. |
 | `NodeGrabSet` | S→one, T and R | An allowed grab, passed on to the car's authority. |
@@ -142,7 +142,7 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 
 | Subtype | Direction | Purpose |
 |---|---|---|
-| `Event` | G↔S, T and R | A named event: the name and the data. On the client it is sent by `node.emitServer`, on the server by `player:send` and `node.broadcast`. |
+| `Event` | G↔S, T and R | A named event: the name and the data. The client sends it with `node.emitServer`, the server with `player:send` and `node.broadcast`. |
 
 ### Command (23)
 
@@ -150,7 +150,7 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 
 | Subtype | Direction | Purpose |
 |---|---|---|
-| `Keepalive` | G↔L, CC | Sent back as it is. |
+| `Keepalive` | G↔L, CC | Echoed back as is. |
 | `VersionReq` | G→L, CC | Ask for the helper's protocol version. |
 | `Version` | L→G, CC | The protocol version. |
 | `Connect` | G→L, CC | Join the server at this address and port. |
@@ -178,20 +178,20 @@ In the tables, the direction is written with the letters L (the helper), S (the 
 
 | Subtype | Direction | Purpose |
 |---|---|---|
-| `Data` | G↔S, T and R | Raw bytes on a channel with a number the module picks. On the server, `node.modules.on` and `node.modules.send` serve this. |
+| `Data` | G↔S, T and R | Raw bytes on a channel the module numbers. On the server, `node.modules.on` and `node.modules.send` handle it. |
 
 ## The order of a join
 
-1. The helper opens TLS and sends `Hello`, then `Identity` with the join ticket. To take a broken session back, `Resume` is sent instead of `Identity`.
+1. The helper opens TLS and sends `Hello`, then `Identity` with the join ticket. To resume a broken session, it sends `Resume` instead of `Identity`.
 2. The server checks bans, free places and the ticket, gives the player an id and asks the plugins: `playerConnectRequest`, then `playerAuthenticated`. A refusal arrives as `Kick` with a reason.
-3. `Welcome` and `VerifyRequest` follow. The helper checks the game and sends `VerifyReport`. For a strict server it first downloads the reference manifest, if it isn't in the cache. A failed check ends with a `Kick` before any download.
+3. `Welcome` and `VerifyRequest` follow. The helper checks the game and sends `VerifyReport`. For a strict server it first downloads the reference manifest unless it's cached. A failed check ends with `Kick` before any download.
 4. Mods: `ModsRequest`, `ModsInfo`, then `FileRequest` and `FileBegin` or `FileDeny` for each missing file, until `SyncDone` arrives.
 5. `UdpToken` and `MapInfo`, and right after them the plugins' client scripts (`ResourceChunk` and `ResourceDone`). The server fires `playerJoining`, and the game loads the map.
 6. The helper binds UDP with `UdpHello` and sends `JoinWorld`.
 7. The server answers the joining player with `SelfInfo` and the others with `PlayerJoined`, replays all cars with their state and fires `playerJoined`.
 
-A full server may, instead of refusing a player with an account, put them in the [join queue](/hosting/join-queue/). It answers `Queued` where `Welcome` would be, and steps 3 and 4 happen while the player waits and end with `ModsReady` instead of `SyncDone`. A waiting helper sends `Ping` every 30 seconds. When a place frees up, `QueueAdmit` and `Welcome` arrive, the helper puts the mods into the game and sends `SyncDone`, and the join goes on from step 5.
+Instead of refusing a player with an account, a full server may put them in the [join queue](/hosting/join-queue/). It answers `Queued` in place of `Welcome`; steps 3 and 4 run while the player waits and end with `ModsReady` instead of `SyncDone`. A waiting helper sends `Ping` every 30 seconds. When a place frees up, `QueueAdmit` and `Welcome` arrive, the helper puts the mods into the game and sends `SyncDone`, and the join continues from step 5.
 
 ## Versions
 
-The protocol version number is carried in `Hello` and `Command::Version` and goes up when an old participant stops understanding a new one. Versions must match exactly: if the launcher or the client mod has another one, the server refuses and names both. Additions that an old participant can skip, such as the capability bits at the end of `Welcome` and the helper's bits in `Hello`, don't change the number. The helper says in `Hello` that it can wait in a queue. A helper that doesn't say so gets `Server full!` from a full server.
+The protocol version travels in `Hello` and `Command::Version` and goes up when an old peer stops understanding a new one. Versions must match exactly: if the launcher or the client mod has another one, the server refuses and names both. Additions an old peer can skip, such as the capability bits at the end of `Welcome` and the helper's bits in `Hello`, don't change the number. The helper says in `Hello` that it can wait in a queue; a full server answers a helper that doesn't with `Server full!`.
