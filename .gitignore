@@ -1,0 +1,25 @@
+# build output & deps
+node_modules/
+dist/
+.astro/
+
+# pagefind cache
+.pagefind/
+
+# generated API reference (npm run gen:api) and the sdk checkout CI makes
+src/content/docs/plugins/api/
+src/content/docs/ru/plugins/api/
+sdk/
+
+# the doctest runner's scratch servers (npm run doctest), the server binary CI downloads and
+# the server checkout CI makes for the runner's wire helpers
+.doctest/
+.server/
+server/
+__pycache__/
+
+# os / editor
+.DS_Store
+Thumbs.db
+/.idea/
+.vscode/

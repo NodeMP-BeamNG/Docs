@@ -1,0 +1,30 @@
+{
+  "name": "nodemp-docs",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "gen:api": "node scripts/import-api.mjs",
+    "prebuild": "node scripts/import-api.mjs",
+    "predev": "node scripts/import-api.mjs",
+    "test": "node --test \"scripts/*.test.mjs\" && node scripts/doctest.mjs --self-test",
+    "check:locales": "node scripts/check-locales.mjs",
+    "check:claims": "node scripts/check-claims.mjs",
+    "check": "npm run check:locales && npm run check:claims",
+    "doctest": "node scripts/doctest.mjs"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.1",
+    "@astrojs/starlight": "^0.42.5",
+    "astro": "^7.3.5",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "github-slugger": "^2.0.0",
+    "starlight-links-validator": "^0.26.0"
+  }
+}

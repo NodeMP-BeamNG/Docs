@@ -1,0 +1,9 @@
+---
+// One theme, as everywhere in NodeMP: always dark. Starlight's provider would
+// follow a light system theme; the stub keeps the API its scripts call.
+---
+
+<script is:inline>
+  document.documentElement.dataset.theme = 'dark';
+  window.StarlightThemeProvider = { updatePickers() {} };
+</script>

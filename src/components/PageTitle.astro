@@ -1,0 +1,39 @@
+---
+// The page title in the display face, with the section it belongs to above it
+// (the sidebar's top-level group), as the site's pages carry a small label.
+// Starlight's PAGE_TITLE_ID; the skip link and the table of contents point at it.
+const PAGE_TITLE_ID = '_top';
+
+type Entry = { type: 'link' | 'group'; isCurrent?: boolean; label: string; entries?: Entry[] };
+const { entry, sidebar } = Astro.locals.starlightRoute;
+const holds = (e: Entry): boolean => (e.type === 'link' ? !!e.isCurrent : (e.entries ?? []).some(holds));
+const section = (sidebar as Entry[]).find((e) => e.type === 'group' && holds(e))?.label;
+---
+
+{section && <p class="nmp-section">{section}</p>}
+<h1 id={PAGE_TITLE_ID}>{entry.data.title}</h1>
+
+<style>
+  .nmp-section {
+    margin: 1rem 0 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--nmp-fg-muted);
+  }
+
+  h1 {
+    margin-top: 0.5rem;
+    font-family: var(--nmp-display);
+    font-size: var(--sl-text-h1);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0;
+    color: var(--sl-color-white);
+  }
+
+  .nmp-section + h1 {
+    margin-top: 0.5rem;
+  }
+</style>

@@ -1,0 +1,267 @@
+---
+// Two bars, one card: the overview (splash) is the site's floating bar — mark,
+// Servers / Download / Docs, EN | RU — so opening the docs from
+// nodemp.com is the same header on another host, no fold. Any other page is
+// the compact bar over the sidebar (mark, search, EN | RU). Same origin, so
+// the browser slides one into the place of the other (nodemp.css, nmp-fold):
+// the card, the mark and the items are captured apart for that.
+import config from 'virtual:starlight/user-config';
+import Search from 'virtual:starlight/components/Search';
+import Mark from './Mark.astro';
+import { inLocale } from '../lib/locale';
+
+const { locale, entry } = Astro.locals.starlightRoute;
+const ru = locale === 'ru';
+const home = entry.data.template === 'splash';
+const site = `https://nodemp.com/${ru ? 'ru' : 'en'}`;
+const docsHome = ru ? '/ru/' : '/';
+const langs = Object.entries(config.locales ?? {}).map(([code, l]) => ({
+  short: code === 'root' ? 'EN' : code.toUpperCase(),
+  name: l!.label,
+  lang: l!.lang,
+  href: inLocale(Astro.url.pathname, code === 'root' ? undefined : code),
+  current: (code === 'root' ? undefined : code) === locale,
+})).sort((a, b) => (a.short === 'RU' ? -1 : 1));
+const shouldRenderSearch = config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+const siteLinks = [
+  { href: `${site}/news`, label: ru ? 'Новости' : 'News' },
+  { href: `${site}/servers`, label: ru ? 'Серверы' : 'Servers' },
+  { href: `${site}/download`, label: ru ? 'Скачать' : 'Download' },
+  { href: docsHome, label: ru ? 'Документация' : 'Docs', current: true },
+];
+---
+
+<div class:list={['nmp-bar', home ? 'nmp-bar--home' : 'nmp-bar--page']}>
+  <a class="nmp-home" href={site} aria-label={ru ? 'NodeMP — на главную сайта' : 'NodeMP — the website'}>
+    <Mark size={22} />
+  </a>
+  <div class="nmp-items">
+    {home ? (
+      <>
+        <span class="nmp-rule" aria-hidden="true"></span>
+        <nav class="nmp-site-nav" aria-label={ru ? 'Разделы' : 'Sections'}>
+          {siteLinks.map((l) => (
+            <a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a>
+          ))}
+        </nav>
+        <span class="nmp-rule" aria-hidden="true"></span>
+        <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
+          {langs.map((l) => (
+            <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+              {l.short}
+            </a>
+          ))}
+        </nav>
+      </>
+    ) : (
+      <>
+        <div class="nmp-search">{shouldRenderSearch && <Search />}</div>
+        <nav class="nmp-lang" aria-label={ru ? 'Язык' : 'Language'}>
+          {langs.map((l) => (
+            <a href={l.href} hreflang={l.lang} lang={l.lang} aria-label={l.name} aria-current={l.current ? 'true' : undefined}>
+              {l.short}
+            </a>
+          ))}
+        </nav>
+      </>
+    )}
+  </div>
+</div>
+
+<style>
+  .nmp-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 52px;
+    width: 100%;
+    padding-inline: 8px 52px;
+    border-radius: 18px;
+    background: var(--nmp-nav-surface);
+    box-shadow: inset 0 0 0 1px var(--nmp-hairline);
+    view-transition-name: nmp-bar;
+  }
+
+  .nmp-bar--home {
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 8px;
+  }
+
+  .nmp-home {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    height: 36px;
+    padding-inline: 8px;
+    border-radius: 13px;
+    color: var(--nmp-fg);
+    view-transition-name: nmp-mark;
+    transition: background-color 200ms var(--nmp-ease);
+  }
+
+  .nmp-home:hover {
+    background: var(--nmp-hover);
+  }
+
+  /* Everything after the mark, laid out as the bar's own row was. */
+  .nmp-items {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  /* Named only while a transition runs: at rest the name would paint the row as a layer
+     of its own, and Chrome would draw its text without subpixel antialiasing. */
+  :global(:root:active-view-transition) .nmp-items {
+    view-transition-name: nmp-items;
+  }
+
+  .nmp-rule {
+    display: none;
+    width: 1px;
+    height: 20px;
+    margin-inline: 6px;
+    background: var(--nmp-hover-strong);
+  }
+
+  .nmp-site-nav {
+    display: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .nmp-site-nav a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding-inline: 12px;
+    border-radius: 13px;
+    color: var(--nmp-fg-soft);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 200ms var(--nmp-ease),
+      color 200ms var(--nmp-ease);
+  }
+
+  .nmp-site-nav a:hover {
+    color: var(--nmp-fg);
+    background: var(--nmp-hover);
+  }
+
+  .nmp-site-nav a[aria-current] {
+    color: var(--nmp-accent);
+  }
+
+  .nmp-site-nav a[aria-current]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 13px;
+    background: var(--nmp-accent-wash);
+  }
+
+  .nmp-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .nmp-search :global(button[data-open-modal]) {
+    width: 100%;
+    max-width: none;
+    height: 36px;
+    border: 0;
+    border-radius: 13px;
+    background: var(--nmp-hover);
+    color: var(--nmp-fg-muted);
+    font-size: 14px;
+    transition: background-color 200ms var(--nmp-ease);
+  }
+
+  .nmp-search :global(button[data-open-modal]:hover) {
+    background: var(--nmp-hover-strong);
+    color: var(--nmp-fg);
+  }
+
+  .nmp-search :global(kbd) {
+    display: none;
+  }
+
+  @media (max-width: 49.99rem) {
+    .nmp-search {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .nmp-search :global(button[data-open-modal]) {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
+  .nmp-lang {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 13px;
+    background: var(--nmp-hover);
+  }
+
+  .nmp-lang a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 28px;
+    border-radius: 10px;
+    color: var(--nmp-fg-muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 200ms var(--nmp-ease),
+      color 200ms var(--nmp-ease);
+  }
+
+  .nmp-lang a:hover {
+    color: var(--nmp-fg);
+  }
+
+  .nmp-lang a[aria-current] {
+    background: var(--nmp-hover-strong);
+    color: var(--nmp-fg);
+  }
+
+  @media (min-width: 50rem) {
+    .nmp-bar--page {
+      width: calc(var(--sl-sidebar-width) - 0.75rem);
+      padding-inline-end: 8px;
+    }
+
+    .nmp-bar--home .nmp-lang,
+    .nmp-bar--page .nmp-lang {
+      display: inline-flex;
+    }
+  }
+
+  /* Same cut as the site's `lg:`: the overview bar is a centred pill, not full width. */
+  @media (min-width: 64rem) {
+    .nmp-bar--home {
+      width: fit-content;
+    }
+
+    .nmp-bar--home .nmp-rule,
+    .nmp-bar--home .nmp-site-nav {
+      display: flex;
+    }
+  }
+</style>

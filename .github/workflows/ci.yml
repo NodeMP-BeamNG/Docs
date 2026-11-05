@@ -1,0 +1,174 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODEMP_SDK_DIR: ${{ github.workspace }}/sdk
+      NODEMP_SERVER_DIR: ${{ github.workspace }}/server
+      NODEMP_LAUNCHER_DIR: ${{ github.workspace }}/launcher
+      NODEMP_MOD_DIR: ${{ github.workspace }}/NodeMP
+      NODEMP_UI_LAUNCHER_DIR: ${{ github.workspace }}/UI-launcher
+      IMPORT_API_STRICT: "1"
+    steps:
+      - uses: actions/checkout@v5
+      # The API reference is generated from the sdk, so the sdk this job reads
+      # decides which anchors exist. An API change lands as a pair of PRs -- sdk
+      # first, then the pages -- so when the sdk has a branch NAMED LIKE THIS ONE
+      # that is what the pages were written against; otherwise the release the
+      # pages describe (versions.json), as deploy.yml does: main runs ahead of it.
+      # The deploy key stays configured on each clone for the second step.
+      #
+      # check-claims (npm run check) reads the server, the launcher, the client mod
+      # and the launcher interface the same way: one read-only deploy key each.
+      - name: Checkout sdk (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/sdk
+          ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
+          path: sdk
+          persist-credentials: true
+      - name: Checkout server (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/server
+          ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
+          path: server
+          persist-credentials: true
+      - name: Checkout launcher (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/launcher
+          ssh-key: ${{ secrets.LAUNCHER_DEPLOY_KEY }}
+          path: launcher
+          persist-credentials: true
+      - name: Checkout NodeMP, the client mod (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/NodeMP
+          ssh-key: ${{ secrets.MOD_DEPLOY_KEY }}
+          path: NodeMP
+          persist-credentials: true
+      - name: Checkout UI-launcher (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/UI-launcher
+          ssh-key: ${{ secrets.UI_LAUNCHER_DEPLOY_KEY }}
+          path: UI-launcher
+          persist-credentials: true
+      - name: The branch named like this one in each repository, otherwise the release the pages describe
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          v() { jq -r ".$1" src/content/versions.json; }
+          declare -A released=([sdk]="server-v$(v server)" [server]="v$(v server)" [launcher]="v$(v launcher)"
+                               [NodeMP]="v$(v mod)" [UI-launcher]="v$(v launcher)")
+          for repo in sdk server launcher NodeMP UI-launcher; do
+            if [ "$BRANCH" != "main" ] && git -C "$repo" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+              git -C "$repo" fetch --depth 1 origin "$BRANCH"
+              echo "$repo: branch $BRANCH"
+            else
+              git -C "$repo" fetch --depth 1 origin "refs/tags/${released[$repo]}"
+              echo "$repo: tag ${released[$repo]}"
+            fi
+            git -C "$repo" checkout --detach FETCH_HEAD
+            git -C "$repo" rev-parse HEAD
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run build
+
+  # Every ```lua example of the plugin guides runs against the published server release and a
+  # PostgreSQL service (scripts/doctest/run.py; README "Doctests"). deploy.yml has the same job.
+  doctest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: docs
+          POSTGRES_PASSWORD: docs
+          POSTGRES_DB: docs
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U docs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v5
+      # The released server the examples run on (NodeMP-BeamNG/releases, tag server-v<version>).
+      - name: Server version from versions.json
+        run: echo "SERVER_VERSION=$(jq -r .server src/content/versions.json)" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lua5.4 (the syntax checks) and zstandard (the fake player's frames)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.4
+          python -m pip install --quiet zstandard
+      - name: Download Node-Server ${{ env.SERVER_VERSION }}
+        run: |
+          set -euo pipefail
+          mkdir -p .server
+          cd .server
+          asset="Node-Server-${SERVER_VERSION}-linux-x64.tar.gz"
+          base="https://github.com/NodeMP-BeamNG/releases/releases/download/server-v${SERVER_VERSION}"
+          curl -fsSL --retry 3 -o "$asset" "$base/$asset"
+          curl -fsSL --retry 3 -o "$asset.sha256" "$base/$asset.sha256"
+          sha256sum -c "$asset.sha256"
+          tar -xzf "$asset"
+          chmod +x Node-Server
+          ./Node-Server --version
+      # The fake player's wire codec (run/wire.py, run/wire_taxonomy.py, run/testclient.py) is
+      # read from the server repository at run time: it is not public, so nothing of it is
+      # copied into this one. Read-only deploy key, run/ only.
+      - name: Checkout the server's run/ helpers (read-only deploy key)
+        uses: actions/checkout@v5
+        with:
+          repository: NodeMP-BeamNG/server
+          ref: v${{ env.SERVER_VERSION }}
+          ssh-key: ${{ secrets.SERVER_DEPLOY_KEY }}
+          path: server
+          sparse-checkout: run
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
+      - run: python scripts/doctest/run.py --self-test
+      - name: Run the examples
+        env:
+          DOCTEST_SERVER: ${{ github.workspace }}/.server/Node-Server
+          NODEMP_SERVER_DIR: ${{ github.workspace }}/server
+          NODE_DB_URL: postgres://docs:docs@127.0.0.1:5432/docs
+        run: python scripts/doctest/run.py --strict
+      - name: Upload the server logs of the failed pages
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doctest-server-logs
+          path: |
+            .doctest/*/server.log
+            .doctest/*/received.log
+          include-hidden-files: true  # .doctest/ is a dot-directory
+          if-no-files-found: ignore
+          retention-days: 7
