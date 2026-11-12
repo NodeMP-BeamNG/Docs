@@ -1,0 +1,141 @@
+# NodeMP
+
+> NodeMP is a multiplayer platform for BeamNG.drive: a launcher and a client mod for players, Node-Server for hosts, and a plugin API (Lua, JavaScript, C) for developers. These are the docs at https://docs.nodemp.com: English at the root, Russian under /ru/.
+
+Every page's text in one file: [English](https://docs.nodemp.com/llms-full.txt), [Русский](https://docs.nodemp.com/llms-full-ru.txt). Downloads and the server list: https://nodemp.com.
+
+## Getting started
+
+- [NodeMP documentation](https://docs.nodemp.com/): Multiplayer for BeamNG.drive. How to play, how to run a server of your own, and how to write plugins for it.
+- [What is NodeMP](https://docs.nodemp.com/introduction/what-is-nodemp/): NodeMP is multiplayer for BeamNG.drive. What it is made of and what happens when you join a server.
+
+## Players
+
+- [Install the launcher](https://docs.nodemp.com/players/install/): How to install the NodeMP launcher for Windows, what it does on the first start, and how it installs the client mod and updates itself.
+- [Your account](https://docs.nodemp.com/players/sign-in/): Why you need a NodeMP account, how to create one and sign in through your browser, playing without one in Test Drive, and bans.
+- [Join a server](https://docs.nodemp.com/players/join/): Finding a server in the launcher, what it will send you, joining by address, and what happens between the click and the game.
+- [In the game](https://docs.nodemp.com/players/in-game/): The session panel and the player list, the chat, NodeMP's keys, and how to leave a server.
+- [Settings](https://docs.nodemp.com/players/settings/): The launcher's settings, the NodeMP tab in the game's settings, the Content tab with downloaded mods, and what the locked rows mean.
+- [A bad connection and VPNs](https://docs.nodemp.com/players/connection/): How to play through a VPN or on an unstable connection, what happens when the link drops, and what to do about lag and jumping cars.
+- [When something breaks](https://docs.nodemp.com/players/troubleshooting/): A server won't let you in, a strict server rejects your files, mods don't download, the game won't start or you get dropped. The usual causes and what to do.
+
+## Hosting a server
+
+- [Run a server](https://docs.nodemp.com/hosting/quick-start/): What a NodeMP server needs, where to get Node-Server, and how to get from the download to your first join.
+- [Server on Windows](https://docs.nodemp.com/hosting/windows/): Download Node-Server for Windows, check the archive, start it, open the port in the firewall and start the server with Windows.
+- [Server on Linux](https://docs.nodemp.com/hosting/linux/): Download Node-Server for Linux, install Lua 5.1 for the obfuscator, open the port and run the server as a systemd service.
+- [Server in Docker](https://docs.nodemp.com/hosting/docker/): How to get the Node-Server image, prepare a data folder, run the container with docker run or Compose and set it up with variables.
+- [Configuring the server](https://docs.nodemp.com/hosting/server-toml/): How server.toml works, the settings hosts change most, environment variables and command-line options.
+- [Configuration reference](https://docs.nodemp.com/hosting/configuration/): Every server setting by section, with environment variables, descriptions, and options.
+- [Get listed](https://docs.nodemp.com/hosting/registering/): How to create a server key in your NodeMP account, put it into the settings, set how the server looks in the list and find out why it isn't there.
+- [Mods and maps](https://docs.nodemp.com/hosting/mods/): How to add your own map, a car or another BeamNG mod to the server, how players get them and how to keep a mod from being sent.
+- [Plugins on the server](https://docs.nodemp.com/hosting/resources/): How to install a plugin on the server, configure, reload and obfuscate it, and what native modules are.
+- [Console, kicks and bans](https://docs.nodemp.com/hosting/administration/): The server console's commands, how to kick and ban a player, lift a ban, restart the server with a warning and what to look for in the log.
+- [The join queue](https://docs.nodemp.com/hosting/join-queue/): How a full server lets players with an account wait for a place, the limits of the queue, what the console shows and how plugins steer the queue.
+- [Strict file check](https://docs.nodemp.com/hosting/strict-verification/): What verify = "strict" checks, how to make the reference manifest, where to put it and what to do after a game update.
+- [Updating the server](https://docs.nodemp.com/hosting/updating/): How to check the server's version, install a new release on Windows, Linux and in Docker, what survives an update and when players need a new launcher.
+- [When the server misbehaves](https://docs.nodemp.com/hosting/troubleshooting/): The server won't start, can't be reached, refuses players at the door, Docker surprises, a player says it lags. What the log says and what to do.
+
+## Plugin development
+
+- [Overview](https://docs.nodemp.com/plugins/overview/): What NodeMP plugins can do, the kinds of plugin, how the server and client halves work, and what to read first.
+- [Your first plugin](https://docs.nodemp.com/plugins/getting-started/): Build a plugin from an empty folder, step by step. It greets players, answers a chat command, reads its settings, runs a client half and reloads.
+- [How a plugin is built](https://docs.nodemp.com/plugins/resources/): The files of a plugin, every key of resource.toml, the Lua environment, code in several files, reloading, load errors and the log.
+- [Events](https://docs.nodemp.com/plugins/events/): The kinds of events, join and leave order, refusing a request with a reason, reserved slots, unsubscribing, and events that fire many times a second.
+- [Players and vehicles](https://docs.nodemp.com/plugins/players-and-vehicles/): Player and Vehicle objects, finding players, roles, kicks and bans, freezing, teleporting, spawning cars, tags, locks and scheduled changes.
+- [Chat and commands](https://docs.nodemp.com/plugins/chat/): How the server's chat works, refusing and rewriting lines, logging chat, speaking as the server, a command router and kick and ban commands.
+- [Timers and coroutines](https://docs.nodemp.com/plugins/concurrency/): Timers, coroutines that wait without blocking the server, heavy work on background threads, the 250 ms rule and a restart with a countdown in chat.
+- [Storage and files](https://docs.nodemp.com/plugins/storage/): Keeping data with node.storage, files in the plugin's folder, safe writes, watching a file, and when a database fits better.
+- [The db module](https://docs.nodemp.com/plugins/database/): Setting up the db module, db.lua, queries with placeholders, creating tables, transactions, NULL and errors in PostgreSQL, SQLite and MySQL.
+- [HTTP requests](https://docs.nodemp.com/plugins/http/): Callbacks and coroutines, errors, a Discord webhook, certificates and why requests to local addresses are refused.
+- [The bus between plugins](https://docs.nodemp.com/plugins/bus/): How plugins on one server send each other messages, how to name them, parse the data, ask and answer, and what else travels on the bus.
+- [Client scripts](https://docs.nodemp.com/plugins/client-scripting/): How client files reach the game, engine files and extensions, talking to the server, files inside the car, session settings and strict sessions.
+- [API conventions](https://docs.nodemp.com/plugins/conventions/): How API calls report failure, what happens to errors in handlers, which ids last, how to check versions and measure a plugin's memory and time.
+- [Native modules](https://docs.nodemp.com/plugins/native-modules/): The three exported functions, ABI versions, threads, what only a native module can do, language hosts and installing a module.
+- [JavaScript plugins](https://docs.nodemp.com/plugins/js-host/): What JavaScript plugins need, a first plugin, how the API looks from JavaScript, refusing requests, npm packages and what only Lua can do.
+- [The example plugins](https://docs.nodemp.com/plugins/examples/): The plugins in the examples folder of the server archive, what each one shows, how to try one and which plugins are built from source.
+- [Moving from other platforms](https://docs.nodemp.com/plugins/migrating/): How BeamMP and KissMP ideas map to NodeMP, what the beammp-compat module runs unchanged and what has no equivalent.
+
+## Reference
+
+- [Error messages](https://docs.nodemp.com/reference/error-codes/): Launcher notifications, the server's refusals and kicks, the helper's exit codes, and what to do about each message.
+- [Frequent questions](https://docs.nodemp.com/reference/faq/): Questions from players, hosts and plugin authors, each with a link to the page that describes the answer in full.
+- [Glossary](https://docs.nodemp.com/reference/glossary/): The words the NodeMP documentation uses, one for each thing, with the Russian equivalent.
+- [Wire protocol](https://docs.nodemp.com/reference/protocol/): The protocol between the launcher and a NodeMP server, v24. The transport, the frame of a category and a subtype, every packet by category, and the order of a join.
+
+## API reference
+
+- [C ABI reference (NodeApi)](https://docs.nodemp.com/plugins/api/c/): The NodeApi C ABI for native modules.
+- [Events reference](https://docs.nodemp.com/plugins/api/events/): Every event name, its kind and its handler arguments.
+- [API reference](https://docs.nodemp.com/plugins/api/): The server-side plugin API: Lua node.*, node.raw, the C ABI and every event, generated from sdk/api.toml.
+- [Lua API reference (node)](https://docs.nodemp.com/plugins/api/lua/): Every node.* function and Player/Vehicle method a resource can call.
+- [Raw Lua reference (node.raw.*)](https://docs.nodemp.com/plugins/api/raw/): node.raw: the 1:1 Lua mirror of the C ABI.
+
+# Русская версия
+
+### Начало
+
+- [Документация NodeMP](https://docs.nodemp.com/ru/): Мультиплеер для BeamNG.drive. Как играть, как поднять свой сервер и как писать для него плагины.
+- [Что такое NodeMP](https://docs.nodemp.com/ru/introduction/what-is-nodemp/): NodeMP — мультиплеер для BeamNG.drive. Из чего он состоит и что происходит, когда вы заходите на сервер.
+
+### Игрокам
+
+- [Установка лаунчера](https://docs.nodemp.com/ru/players/install/): Как поставить лаунчер NodeMP для Windows, что он делает при первом запуске, как ставит клиентский мод и обновляется сам.
+- [Аккаунт и вход](https://docs.nodemp.com/ru/players/sign-in/): Зачем нужен аккаунт NodeMP, как создать его и войти в лаунчер через браузер, как играть без аккаунта в режиме Test Drive и что делать с блокировкой.
+- [Как зайти на сервер](https://docs.nodemp.com/ru/players/join/): Как найти сервер в лаунчере, что он пришлёт на скачивание, как подключиться по адресу и что происходит между нажатием кнопки и появлением в игре.
+- [В игре](https://docs.nodemp.com/ru/players/in-game/): Панель сессии и список игроков, чат, клавиши NodeMP и выход с сервера.
+- [Настройки](https://docs.nodemp.com/ru/players/settings/): Настройки лаунчера, вкладка NodeMP в настройках игры, окно «Контент» со скачанными модами и что значат заблокированные строки.
+- [Плохое соединение и VPN](https://docs.nodemp.com/ru/players/connection/): Как играть через VPN и на нестабильном интернете, что происходит при обрыве связи и что делать с лагами и прыгающими машинами.
+- [Если что-то не работает](https://docs.nodemp.com/ru/players/troubleshooting/): Не пускает на сервер, строгий сервер ругается на файлы, моды не качаются, игра не запускается или выкидывает с сервера. Что за этим обычно стоит и что делать.
+
+### Свой сервер
+
+- [Запуск сервера](https://docs.nodemp.com/ru/hosting/quick-start/): Что нужно для своего сервера NodeMP, откуда взять Node-Server и как дойти от скачивания до первого входа.
+- [Сервер на Windows](https://docs.nodemp.com/ru/hosting/windows/): Как скачать Node-Server для Windows, проверить архив, запустить, открыть порт в брандмауэре и запускать сервер вместе с системой.
+- [Сервер на Linux](https://docs.nodemp.com/ru/hosting/linux/): Как скачать Node-Server для Linux, поставить Lua 5.1 для обфускации, открыть порт и запустить сервер службой systemd.
+- [Сервер в Docker](https://docs.nodemp.com/ru/hosting/docker/): Как получить образ Node-Server, подготовить папку данных, запустить контейнер через docker run или Compose и задать настройки переменными.
+- [Настройка сервера](https://docs.nodemp.com/ru/hosting/server-toml/): Как устроен server.toml, что хосты меняют чаще всего, переменные окружения и параметры командной строки.
+- [Справочник настроек](https://docs.nodemp.com/ru/hosting/configuration/): Все настройки сервера по разделам, с переменными окружения, описанием и возможными значениями.
+- [Попасть в список серверов](https://docs.nodemp.com/ru/hosting/registering/): Как создать ключ сервера в аккаунте NodeMP, вписать его в настройки, настроить вид сервера в списке и разобраться, почему его там нет.
+- [Моды и карты](https://docs.nodemp.com/ru/hosting/mods/): Как добавить на сервер свою карту, машину или другой мод BeamNG, как игроки их получают и как закрыть мод от раздачи.
+- [Плагины на сервере](https://docs.nodemp.com/ru/hosting/resources/): Как поставить плагин на сервер, настроить, перезагрузить и обфусцировать его, и что такое нативные модули.
+- [Консоль, кики и баны](https://docs.nodemp.com/ru/hosting/administration/): Команды консоли сервера, как кикнуть и забанить игрока, снять бан, перезапустить сервер с предупреждением и что искать в логе.
+- [Очередь на вход](https://docs.nodemp.com/ru/hosting/join-queue/): Как заполненный сервер даёт игрокам с аккаунтом дождаться места, какие у очереди ограничения, что пишет консоль и как плагины управляют очередью.
+- [Строгая проверка файлов](https://docs.nodemp.com/ru/hosting/strict-verification/): Что проверяет verify = "strict", как создать эталонный манифест, куда его положить и что делать после обновления игры.
+- [Обновление сервера](https://docs.nodemp.com/ru/hosting/updating/): Как узнать версию сервера, поставить новый релиз на Windows, Linux и в Docker, что переживает обновление и когда игрокам нужен новый лаунчер.
+- [Если сервер не работает](https://docs.nodemp.com/ru/hosting/troubleshooting/): Сервер не запускается, до него не достучаться, игроков не пускает на входе, Docker ведёт себя не так, игроки жалуются на лаги. Что пишет лог и что делать.
+
+### Разработка плагинов
+
+- [Обзор](https://docs.nodemp.com/ru/plugins/overview/): Что умеют плагины NodeMP, какие бывают виды плагинов, как устроены серверная и клиентская части и в каком порядке читать раздел.
+- [Первый плагин](https://docs.nodemp.com/ru/plugins/getting-started/): Плагин с нуля по шагам, от приветствия и команды в чате до настроек в resource.toml, клиентской части, перезагрузки и чтения ошибок.
+- [Устройство плагина](https://docs.nodemp.com/ru/plugins/resources/): Файлы плагина, все ключи resource.toml, окружение Lua, код в нескольких файлах, перезагрузка, ошибки при загрузке и лог.
+- [События](https://docs.nodemp.com/ru/plugins/events/): Виды событий и как их называть, порядок, в котором игрок заходит и выходит, отказ в запросе с причиной, резервные места, отписка и события, которые приходят много раз в секунду.
+- [Игроки и машины](https://docs.nodemp.com/ru/plugins/players-and-vehicles/): Объекты Player и Vehicle, поиск игрока, роли, кики и баны, заморозка и телепорт, спавн машин, теги и замки, места, запланированные изменения и чтение многих машин сразу.
+- [Чат и команды](https://docs.nodemp.com/ru/plugins/chat/): Как устроен чат сервера, как отклонить или переписать строку, записать чат в лог, говорить от имени сервера, сделать роутер команд и команды кика и бана для модераторов.
+- [Таймеры и корутины](https://docs.nodemp.com/ru/plugins/concurrency/): Таймеры, корутины, которые ждут, не задерживая сервер, тяжёлая работа в фоновых потоках, правило 250 мс и перезапуск с обратным отсчётом в чате.
+- [Хранилище и файлы](https://docs.nodemp.com/ru/plugins/storage/): Как хранить данные между перезапусками через node.storage, читать и писать файлы в папке плагина, записывать надёжно, следить за файлом и когда лучше взять базу данных.
+- [Модуль db](https://docs.nodemp.com/ru/plugins/database/): Настройка модуля db, db.lua, запросы с подстановками, создание таблиц при запуске, транзакции, NULL и ошибки в PostgreSQL, SQLite и MySQL.
+- [HTTP-запросы](https://docs.nodemp.com/ru/plugins/http/): Колбэки и корутины, ошибки, вебхук Discord, сертификаты и почему запросы из плагина к локальным адресам закрыты.
+- [Шина между плагинами](https://docs.nodemp.com/ru/plugins/bus/): Как плагины одного сервера отправляют друг другу сообщения, как их называть, как разбирать данные, как спросить и ответить и что ещё передаётся по шине.
+- [Клиентские скрипты](https://docs.nodemp.com/ru/plugins/client-scripting/): Как файлы клиентской части плагина попадают в игру, файлы игрового движка и расширения, обмен с сервером, файлы внутри машины, настройки и строгие сессии на время игры.
+- [Общие правила API](https://docs.nodemp.com/ru/plugins/conventions/): Как вызовы API сообщают о неудаче, что бывает с ошибками в обработчиках, какие id живут долго, как проверять версии и измерять память и время плагина.
+- [Нативные модули](https://docs.nodemp.com/ru/plugins/native-modules/): Три экспортируемые функции, версии ABI, потоки, что умеет только нативный модуль, языковые хосты и установка модуля.
+- [Плагины на JavaScript](https://docs.nodemp.com/ru/plugins/js-host/): Что нужно для плагинов на JavaScript, первый плагин, как API выглядит из JavaScript, отказ в запросах, пакеты npm и что умеет только Lua.
+- [Примеры плагинов](https://docs.nodemp.com/ru/plugins/examples/): Плагины из папки examples в архиве сервера, что показывает каждый, как попробовать и какие плагины собираются из исходников.
+- [Переход с других платформ](https://docs.nodemp.com/ru/plugins/migrating/): Чему в NodeMP соответствуют понятия BeamMP и KissMP, что модуль beammp-compat запускает без изменений и чему нет замены.
+
+### Справочник
+
+- [Сообщения об ошибках](https://docs.nodemp.com/ru/reference/error-codes/): Уведомления лаунчера, отказы и кики сервера, коды выхода помощника и что делать с каждым сообщением.
+- [Частые вопросы](https://docs.nodemp.com/ru/reference/faq/): Вопросы игроков, хостов и авторов плагинов, у каждого ссылка на страницу, где ответ описан полностью.
+- [Словарь](https://docs.nodemp.com/ru/reference/glossary/): Слова, которыми пользуется документация NodeMP, по одному на каждое понятие, с английским вариантом.
+- [Сетевой протокол](https://docs.nodemp.com/ru/reference/protocol/): Протокол между лаунчером и сервером NodeMP, v24. Транспорт, кадр из категории и подтипа, все пакеты по категориям и порядок входа игрока.
+
+### Справочник API
+
+- [C ABI reference (NodeApi)](https://docs.nodemp.com/ru/plugins/api/c/): The NodeApi C ABI for native modules.
+- [Events reference](https://docs.nodemp.com/ru/plugins/api/events/): Every event name, its kind and its handler arguments.
+- [API reference](https://docs.nodemp.com/ru/plugins/api/): The server-side plugin API: Lua node.*, node.raw, the C ABI and every event, generated from sdk/api.toml.
+- [Lua API reference (node)](https://docs.nodemp.com/ru/plugins/api/lua/): Every node.* function and Player/Vehicle method a resource can call.
+- [Raw Lua reference (node.raw.*)](https://docs.nodemp.com/ru/plugins/api/raw/): node.raw: the 1:1 Lua mirror of the C ABI.
