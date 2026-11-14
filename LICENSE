@@ -1,0 +1,79 @@
+NodeMP Software License Agreement (EULA)
+Copyright (c) 2026 NodeMP
+
+This License governs the use of the NodeMP software, including the NodeMP client
+mod ("NodeMP.zip"), game server ("Node-Server"), launcher ("Node-Launcher"), and
+accompanying components unless another license is explicitly stated for a
+component (collectively, the "NodeMP Software").
+
+By downloading, installing, or using the NodeMP Software, you agree to the
+terms of this License. If you do not agree, delete the NodeMP Software and do
+not use it.
+
+1. Ownership & Open Developer Interfaces
+   1.1. The NodeMP Software is proprietary software. All rights, title, and
+   interest in and to the NodeMP Software, including its source code,
+   protocols, signatures, protected builds, and binaries, belong to NodeMP,
+   except third-party open-source components listed in THIRD_PARTY_NOTICES.md
+   and accompanying license files.
+   1.2. NodeMP is an independent project and is not affiliated with BeamNG
+   GmbH. BeamNG.drive is a trademark of its owner. A valid copy of
+   BeamNG.drive is required to play.
+   1.3. Public developer interfaces (the "sdk" repository / "node.h", the
+   "NodeMP.*" client API documentation, and official example resources in
+   "plugins" / "examples") are licensed under the MIT License (unless another
+   license is explicitly stated alongside a file or folder) so third-party
+   developers can freely build custom mods, gamemodes, and plugins for NodeMP.
+
+2. Permitted Use
+   Subject to full compliance with this License, NodeMP grants you a free,
+   non-exclusive, revocable, non-transferable license to:
+   2.1. Play: Install and run official builds of the launcher and client mod to
+   join servers through official NodeMP infrastructure.
+   2.2. Host Servers & Projects: Install and run official builds of Node-Server
+   for community or custom server projects, provided the server operates
+   exclusively through official NodeMP infrastructure (https://api.nodemp.com,
+   official directory credentials, and valid host/player permits).
+   2.3. Create & Monetize Custom Projects: Build, distribute, and monetize
+   (including donations, VIP perks, paid access, custom gamemodes, mods, and
+   plugins) your own projects running on servers connected to official NodeMP
+   infrastructure, provided that you do not:
+   - sell, rent, or sublicense the NodeMP Software itself as a standalone
+     product;
+   - sell NodeMP accounts or platform-level statuses;
+   - present your server or project as an official NodeMP service or product.
+
+3. Restrictions
+   You must not, directly or indirectly:
+   3.1. Bypass Infrastructure or Security: Disable, strip, patch, emulate, or
+   bypass admission, authentication, permit checks ("nodemp-host-permit",
+   "nodemp-player-permit"), directory credentials ("host_id", "host_secret"),
+   cryptographic signatures ("minisign"), TLS/CA verification, or mandatory
+   communication with https://api.nodemp.com.
+   3.2. Alternative Networks: Connect any part of the NodeMP Software to
+   unofficial master servers, directories, or API emulators, or use any part of
+   the NodeMP Software to build an alternative or competing multiplayer backend
+   or network.
+   3.3. Reverse Engineering & Tampering: Decompile, disassemble, or
+   deobfuscate protected Lua, JavaScript, or native builds of the NodeMP
+   Software, or modify official executables, archives ("NodeMP.zip",
+   "Node-Server", "Node-Launcher"), or manifests.
+   3.4. Unauthorized Redistribution: Redistribute modified, patched, or
+   repackaged core builds of the NodeMP Software. Official unmodified packages
+   may only be shared for use on official NodeMP infrastructure and must keep
+   this LICENSE file and THIRD_PARTY_NOTICES.md intact.
+
+4. Termination & Prior Releases
+   4.1. This License terminates automatically if you breach Section 3. Upon
+   termination, you must stop using and delete all copies of the NodeMP
+   Software, and NodeMP may revoke your server credentials, permits, and
+   network access.
+   4.2. Versions previously released by NodeMP under prior open-source
+   licenses remain subject to those terms only for those prior releases; this
+   License applies to all new versions, builds, and updates going forward.
+
+5. Disclaimer of Warranty & Liability
+   THE NODEMP SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED, NODEMP SHALL NOT BE
+   LIABLE FOR ANY DIRECT OR INDIRECT DAMAGES, DATA LOSS, THIRD-PARTY MODS, OR
+   USER-HOSTED SERVERS.
